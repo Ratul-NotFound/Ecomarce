@@ -77,62 +77,31 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         </span>
       </div>
 
-      {/* Horizontal Category Quick Filter Chips */}
-      <div
-        style={{
-          display: 'flex',
-          gap: '6px',
-          overflowX: 'auto',
-          WebkitOverflowScrolling: 'touch',
-          scrollbarWidth: 'none',
-          paddingBottom: '8px',
-          marginBottom: '12px',
-        }}
-      >
-        <Link
-          href="/search"
-          className={`btn btn-sm ${!categorySlug ? 'btn-primary' : 'btn-secondary'}`}
-          style={{ whiteSpace: 'nowrap', flexShrink: 0, borderRadius: 'var(--radius-full)', fontSize: '12px', padding: '5px 12px' }}
-        >
-          ✨ All
-        </Link>
-
-        {/* Link to dedicated Deals Hub */}
-        <Link
-          href="/deals"
-          className="btn btn-sm btn-secondary"
-          style={{
-            whiteSpace: 'nowrap',
-            flexShrink: 0,
-            borderRadius: 'var(--radius-full)',
-            fontSize: '12px',
-            padding: '5px 12px',
-            color: '#ef4444',
-            borderColor: 'rgba(239, 68, 68, 0.4)',
-            background: 'rgba(239, 68, 68, 0.06)',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '4px',
-          }}
-        >
-          <Zap size={13} fill="#ef4444" />
-          <span>Flash Deals Hub</span>
-        </Link>
-
-        {categories.map(cat => {
-          const isActive = categorySlug === cat.slug;
-          return (
-            <Link
-              key={cat.id}
-              href={`/search?category=${cat.slug}`}
-              className={`btn btn-sm ${isActive ? 'btn-primary' : 'btn-secondary'}`}
-              style={{ whiteSpace: 'nowrap', flexShrink: 0, borderRadius: 'var(--radius-full)', fontSize: '12px', padding: '5px 12px' }}
-            >
-              {cat.name_en}
-            </Link>
-          );
-        })}
-      </div>
+      {/* Active Category Filter Pill if filtered */}
+      {selectedCategory && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+          <span style={{ fontSize: '13px', color: 'var(--color-text-secondary)', fontWeight: 500 }}>Category:</span>
+          <Link
+            href="/search"
+            className="btn btn-sm btn-secondary"
+            style={{
+              borderRadius: 'var(--radius-full)',
+              padding: '4px 12px',
+              fontSize: '12px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: 'var(--color-primary-10)',
+              color: 'var(--color-primary)',
+              borderColor: 'var(--color-primary)',
+              fontWeight: 700,
+            }}
+          >
+            <span>{selectedCategory.name_en}</span>
+            <span style={{ fontWeight: 900, fontSize: '14px' }}>✕</span>
+          </Link>
+        </div>
+      )}
 
       {/* Visual Category Showcase (when browsing general catalog) */}
       {!categorySlug && !query && (
