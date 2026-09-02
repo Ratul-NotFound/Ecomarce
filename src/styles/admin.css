@@ -1,6 +1,6 @@
 /* ============================================================
    src/styles/admin.css
-   High-end Dark Dashboard Theme for Admin & Moderator Portal.
+   Modern, Ultra-Crisp White / Light Dashboard Theme
    ============================================================ */
 
 .admin-body {
@@ -10,6 +10,22 @@
   display: flex;
 }
 
+/* Force dark text for headings and strong tags in the white admin theme */
+.admin-body h1,
+.admin-body h2,
+.admin-body h3,
+.admin-body h4,
+.admin-body h5,
+.admin-body h6,
+.admin-body strong,
+.admin-body b,
+.admin-body .admin-card h1,
+.admin-body .admin-card h2,
+.admin-body .admin-card h3,
+.admin-body .admin-card h4 {
+  color: var(--color-admin-text) !important;
+}
+
 /* ────────────────────────────────────────────────────────────
    ADMIN SIDEBAR
    ──────────────────────────────────────────────────────────── */
@@ -17,6 +33,7 @@
   width: var(--sidebar-width);
   background: var(--color-admin-surface);
   border-right: 1px solid var(--color-admin-border);
+  box-shadow: 1px 0 4px rgba(0, 0, 0, 0.03);
   display: flex;
   flex-direction: column;
   position: fixed;
@@ -38,7 +55,7 @@
 .admin-sidebar__brand {
   font-size: var(--text-lg);
   font-weight: 800;
-  color: #ffffff;
+  color: var(--color-admin-text) !important;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -49,7 +66,7 @@
   font-weight: 800;
   text-transform: uppercase;
   background: var(--color-primary-10);
-  color: var(--color-primary-light);
+  color: var(--color-primary);
   padding: 2px 8px;
   border-radius: var(--radius-full);
 }
@@ -87,11 +104,11 @@
 
 .admin-nav-link:hover {
   background: var(--color-admin-surface-2);
-  color: #ffffff;
+  color: var(--color-admin-text) !important;
 }
 
 .admin-nav-link--active {
-  background: var(--color-primary);
+  background: var(--color-primary) !important;
   color: #ffffff !important;
   box-shadow: 0 4px 12px var(--color-primary-20);
 }
@@ -123,6 +140,7 @@
   height: var(--header-height);
   background: var(--color-admin-surface);
   border-bottom: 1px solid var(--color-admin-border);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -149,7 +167,7 @@
 .admin-page-title {
   font-size: var(--text-2xl);
   font-weight: 800;
-  color: #ffffff;
+  color: var(--color-admin-text) !important;
 }
 
 /* ────────────────────────────────────────────────────────────
@@ -172,6 +190,7 @@
   background: var(--color-admin-surface);
   border: 1px solid var(--color-admin-border);
   border-radius: var(--radius-xl);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   padding: 20px;
   display: flex;
   flex-direction: column;
@@ -185,13 +204,13 @@
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 1px;
-  color: var(--color-admin-dim);
+  color: var(--color-admin-muted);
 }
 
 .admin-kpi-value {
   font-size: var(--text-3xl);
   font-weight: 800;
-  color: #ffffff;
+  color: var(--color-admin-text) !important;
   line-height: 1.1;
 }
 
@@ -208,6 +227,7 @@
   background: var(--color-admin-surface);
   border: 1px solid var(--color-admin-border);
   border-radius: var(--radius-xl);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
   padding: 24px;
   margin-bottom: 24px;
 }
@@ -218,6 +238,7 @@
   border: 1px solid var(--color-admin-border);
   border-radius: var(--radius-xl);
   background: var(--color-admin-surface);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
 }
 
 .admin-table {
@@ -249,7 +270,7 @@
 }
 
 .admin-table tr:hover td {
-  background: rgba(255, 255, 255, 0.02);
+  background: #f8fafc;
 }
 
 /* ────────────────────────────────────────────────────────────
@@ -258,18 +279,19 @@
 .admin-input {
   width: 100%;
   padding: 10px 14px;
-  background: var(--color-admin-surface-2);
+  background: #ffffff;
   border: 1px solid var(--color-admin-border);
   border-radius: var(--radius-lg);
-  color: #ffffff;
+  color: var(--color-admin-text);
   font-size: 14px;
   outline: none;
   transition: all var(--transition-fast);
 }
 
 .admin-input:focus {
-  border-color: var(--color-primary-light);
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 3px var(--color-primary-10);
+  background: #ffffff;
 }
 
 .admin-label {
@@ -280,4 +302,16 @@
   letter-spacing: 0.5px;
   color: var(--color-admin-muted);
   margin-bottom: 6px;
+}
+
+/* Utility buttons in admin */
+.admin-body .btn-secondary {
+  background: #ffffff;
+  border: 1px solid var(--color-admin-border);
+  color: var(--color-admin-text);
+}
+
+.admin-body .btn-secondary:hover {
+  background: var(--color-admin-surface-2);
+  border-color: #cbd5e1;
 }

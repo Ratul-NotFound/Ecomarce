@@ -43,16 +43,16 @@
   --color-star:           #f59e0b;
 
   /* ========================================================
-     DARK THEME — Admin panel
+     WHITE / LIGHT THEME — Admin panel
      ======================================================== */
-  --color-admin-bg:         #0f172a;
-  --color-admin-surface:    #1e293b;
-  --color-admin-surface-2:  #263348;
-  --color-admin-surface-3:  #2d3f55;
-  --color-admin-border:     #334155;
-  --color-admin-text:       #e2e8f0;
-  --color-admin-muted:      #94a3b8;
-  --color-admin-dim:        #64748b;
+  --color-admin-bg:         #f8fafc;
+  --color-admin-surface:    #ffffff;
+  --color-admin-surface-2:  #f1f5f9;
+  --color-admin-surface-3:  #e2e8f0;
+  --color-admin-border:     #e2e8f0;
+  --color-admin-text:       #0f172a;
+  --color-admin-muted:      #64748b;
+  --color-admin-dim:        #94a3b8;
 
   /* ========================================================
      TYPOGRAPHY
