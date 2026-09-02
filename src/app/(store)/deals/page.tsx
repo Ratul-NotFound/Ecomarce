@@ -2,6 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { ProductRepository } from '@/lib/supabase/repositories/ProductRepository';
+import { getStoreSettings } from '@/lib/store-settings';
 import DealCountdownTimer from '@/components/store/DealCountdownTimer';
 import DealCouponClaim from '@/components/store/DealCouponClaim';
 import DealProductCard from '@/components/store/DealProductCard';
@@ -24,6 +25,21 @@ export default async function DealsPage({ searchParams }: DealsPageProps) {
 
   const supabase = await createClient();
   const productRepo = new ProductRepository(supabase);
+
+  // Fetch settings, live coupons from database, and products in parallel
+  const [settings, couponsRes] = await Promise.all([
+    getStoreSettings(),
+    supabase.from('coupons').select('*').eq('is_active', true).order('created_at', { ascending: false }),
+  ]);
+
+  const claimedVouchers = couponsRes.data && couponsRes.data.length > 0
+    ? couponsRes.data.map(c => ({
+        code: c.code,
+        discount: c.type === 'percentage' ? `${c.value}% OFF` : `৳${c.value} FLAT`,
+        description: c.description || (c.type === 'percentage' ? `${c.value}% discount on orders` : `Flat ৳${c.value} discount`),
+        minOrder: c.min_order_amount ? `Min order ৳${c.min_order_amount}` : undefined,
+      }))
+    : undefined;
 
   // Fetch all flash sale or discounted items
   let maxPrice: number | undefined = undefined;
@@ -68,25 +84,25 @@ export default async function DealsPage({ searchParams }: DealsPageProps) {
         <div className="deals-hero-content">
           <div className="deals-hero-badge">
             <Zap size={15} fill="#facc15" color="#facc15" />
-            <span>EXCLUSIVE FLASH PROMOTIONS</span>
+            <span>{settings.deals_badge_text}</span>
           </div>
 
           <h1 className="deals-hero-title">
-            🔥 Super Flash Deals & Discounts
+            {settings.deals_hero_title}
           </h1>
 
           <p className="deals-hero-subtitle">
-            Limited stock, guaranteed authentic with cash on delivery anywhere in Bangladesh.
+            {settings.deals_hero_subtitle}
           </p>
         </div>
 
         {/* Live Countdown Timer */}
-        <DealCountdownTimer targetHours={6} />
+        <DealCountdownTimer targetHours={settings.deals_timer_hours} />
       </div>
 
       <div className="container" style={{ padding: '0 16px 60px' }}>
         {/* 2. Collectible Discount Coupons Section */}
-        <DealCouponClaim />
+        <DealCouponClaim coupons={claimedVouchers} />
 
         {/* 3. Deal Price & Discount Filter Tabs */}
         <div className="deal-tabs-row">
