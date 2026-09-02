@@ -57,68 +57,48 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
   return (
     <div className="container" style={{ padding: '20px 16px 60px' }}>
-      {/* Header Banner - Deals or Search */}
-      {isDeals ? (
-        <div
-          style={{
-            background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%)',
-            color: '#ffffff',
-            padding: '24px 20px',
-            borderRadius: 'var(--radius-2xl)',
-            marginBottom: '20px',
-            position: 'relative',
-            overflow: 'hidden',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-            <Zap size={24} color="#facc15" fill="#facc15" />
-            <span style={{ fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1.5px', color: '#facc15' }}>
-              Special Promotion
-            </span>
-          </div>
-          <h1 style={{ fontSize: '24px', fontWeight: 800, margin: '4px 0 8px' }}>
-            ⚡ Flash Deals & Exclusive Discounts
+      {/* Compact Clean Header Row */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {isDeals ? (
+            <Zap size={20} color="#f59e0b" fill="#f59e0b" />
+          ) : (
+            <LayoutGrid size={20} color="var(--color-primary)" />
+          )}
+          <h1 style={{ fontSize: '18px', fontWeight: 800, margin: 0 }}>
+            {isDeals
+              ? '⚡ Flash Deals'
+              : query
+              ? `"${query}"`
+              : selectedCategory
+              ? selectedCategory.name_en
+              : 'Explore Products'}
           </h1>
-          <p style={{ fontSize: '13px', opacity: 0.9, maxWidth: '500px' }}>
-            Grab limited-time discounts with fast home delivery and cash on delivery across Bangladesh.
-          </p>
         </div>
-      ) : (
-        <div style={{ marginBottom: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <LayoutGrid size={22} color="var(--color-primary)" />
-            <h1 style={{ fontSize: '22px', fontWeight: 800 }}>
-              {query
-                ? `Results for "${query}"`
-                : selectedCategory
-                ? selectedCategory.name_en
-                : 'Explore All Products'}
-            </h1>
-          </div>
-          <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
-            Showing {products.length} of {count} item(s)
-          </div>
-        </div>
-      )}
+
+        <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text-muted)', background: 'var(--color-surface-2)', padding: '3px 10px', borderRadius: 'var(--radius-full)' }}>
+          {count} {count === 1 ? 'item' : 'items'}
+        </span>
+      </div>
 
       {/* Horizontal Category & Deals Quick Filter Chips */}
       <div
         style={{
           display: 'flex',
-          gap: '8px',
+          gap: '6px',
           overflowX: 'auto',
           WebkitOverflowScrolling: 'touch',
           scrollbarWidth: 'none',
-          paddingBottom: '12px',
-          marginBottom: '20px',
+          paddingBottom: '8px',
+          marginBottom: '12px',
         }}
       >
         <Link
           href="/search"
           className={`btn btn-sm ${!isDeals && !categorySlug ? 'btn-primary' : 'btn-secondary'}`}
-          style={{ whiteSpace: 'nowrap', flexShrink: 0, borderRadius: 'var(--radius-full)', fontSize: '12px', padding: '6px 14px' }}
+          style={{ whiteSpace: 'nowrap', flexShrink: 0, borderRadius: 'var(--radius-full)', fontSize: '12px', padding: '5px 12px' }}
         >
-          ✨ All Products
+          ✨ All
         </Link>
 
         <Link
@@ -129,12 +109,12 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             flexShrink: 0,
             borderRadius: 'var(--radius-full)',
             fontSize: '12px',
-            padding: '6px 14px',
+            padding: '5px 12px',
             color: isDeals ? '#ffffff' : '#f59e0b',
             borderColor: isDeals ? 'var(--color-primary)' : 'rgba(245, 158, 11, 0.4)',
           }}
         >
-          ⚡ Flash Deals
+          ⚡ Deals
         </Link>
 
         {categories.map(cat => {
@@ -144,7 +124,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
               key={cat.id}
               href={`/search?category=${cat.slug}`}
               className={`btn btn-sm ${isActive ? 'btn-primary' : 'btn-secondary'}`}
-              style={{ whiteSpace: 'nowrap', flexShrink: 0, borderRadius: 'var(--radius-full)', fontSize: '12px', padding: '6px 14px' }}
+              style={{ whiteSpace: 'nowrap', flexShrink: 0, borderRadius: 'var(--radius-full)', fontSize: '12px', padding: '5px 12px' }}
             >
               {cat.name_en}
             </Link>
