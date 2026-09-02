@@ -715,6 +715,21 @@
   box-shadow: 0 6px 26px rgba(34, 158, 217, 0.5);
 }
 
+@media (max-width: 768px) {
+  .telegram-chat-btn {
+    bottom: 76px;
+    right: 16px;
+    width: 50px;
+    height: 50px;
+  }
+  .chat-modal-window {
+    bottom: 136px;
+    right: 16px;
+    width: calc(100vw - 32px);
+    max-height: calc(100dvh - 160px);
+  }
+}
+
 .chat-modal-window {
   position: fixed;
   bottom: 90px;
