@@ -27,10 +27,20 @@ export default function CartPage() {
 
     try {
       setIsValidatingCoupon(true);
+      const itemsPayload = cart.map(i => ({
+        product_id: i.product_id,
+        price: i.variant ? (i.product.sale_price ?? i.product.base_price) + i.variant.price_modifier : (i.product.sale_price ?? i.product.base_price),
+        quantity: i.quantity,
+      }));
+
       const res = await fetch('/api/coupons/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: couponInput.trim(), total: subtotal }),
+        body: JSON.stringify({
+          code: couponInput.trim(),
+          total: subtotal,
+          items: itemsPayload,
+        }),
       });
       const data = await res.json();
       if (!res.ok || !data.valid) {
