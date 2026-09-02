@@ -322,7 +322,7 @@ export default function AdminMessagesPage() {
                     {activeConversation.userName.charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <div style={{ fontWeight: 700, fontSize: '14px', color: '#ffffff' }}>
+                    <div style={{ fontWeight: 700, fontSize: '14px', color: 'var(--color-admin-text)' }}>
                       {activeConversation.userName}
                     </div>
                     <div style={{ fontSize: '11px', color: 'var(--color-admin-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -384,7 +384,7 @@ export default function AdminMessagesPage() {
                           padding: '10px 14px',
                           borderRadius: isAgent ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
                           background: isAgent ? 'var(--color-primary)' : 'rgba(255, 255, 255, 0.08)',
-                          color: '#ffffff',
+                          color: 'var(--color-admin-text)',
                           fontSize: '13px',
                           lineHeight: 1.5,
                           boxShadow: '0 2px 4px rgba(0,0,0,0.2)',

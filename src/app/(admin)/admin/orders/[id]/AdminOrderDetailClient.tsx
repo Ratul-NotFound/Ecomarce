@@ -70,7 +70,7 @@ export default function AdminOrderDetailClient({ order }: AdminOrderDetailClient
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       {/* 1. Payment Verification Card */}
       <div className="admin-card">
-        <h2 style={{ fontSize: '16px', fontWeight: 800, color: '#ffffff', marginBottom: '16px' }}>
+        <h2 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--color-admin-text)', marginBottom: '16px' }}>
           Payment Verification
         </h2>
 
@@ -79,7 +79,7 @@ export default function AdminOrderDetailClient({ order }: AdminOrderDetailClient
             <div style={{ fontSize: '12px', color: 'var(--color-admin-muted)', textTransform: 'uppercase' }}>
               Method & Status
             </div>
-            <div style={{ fontSize: '16px', fontWeight: 800, color: '#ffffff' }}>
+            <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--color-admin-text)' }}>
               {order.payment_method.toUpperCase()} — {order.payment_status.toUpperCase()}
             </div>
             {order.payment_transaction_id && (
@@ -111,7 +111,7 @@ export default function AdminOrderDetailClient({ order }: AdminOrderDetailClient
 
       {/* 2. Status & Delivery Tracking Update Form */}
       <div className="admin-card">
-        <h2 style={{ fontSize: '16px', fontWeight: 800, color: '#ffffff', marginBottom: '16px' }}>
+        <h2 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--color-admin-text)', marginBottom: '16px' }}>
           Update Order Fulfillment Status
         </h2>
 

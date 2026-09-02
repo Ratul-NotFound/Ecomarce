@@ -74,7 +74,7 @@ export default async function AdminDashboardPage() {
           <Link
             href="/admin/customize"
             className="btn btn-secondary btn-sm"
-            style={{ background: 'var(--color-admin-surface-2)', color: '#ffffff', borderColor: 'var(--color-admin-border)' }}
+            style={{ background: 'var(--color-admin-surface-2)', color: 'var(--color-admin-text)', borderColor: 'var(--color-admin-border)' }}
           >
             <Sparkles size={14} />
             <span>Customize Store</span>
@@ -116,7 +116,7 @@ export default async function AdminDashboardPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <AlertTriangle size={20} color="var(--color-danger)" />
             <div>
-              <strong style={{ color: '#ffffff', fontSize: '14px' }}>
+              <strong style={{ color: 'var(--color-admin-text)', fontSize: '14px' }}>
                 {lowStockProducts.length} Product(s) Running Low on Stock!
               </strong>
               <div style={{ fontSize: '12px', color: 'var(--color-admin-muted)' }}>
@@ -133,7 +133,7 @@ export default async function AdminDashboardPage() {
       {/* Recent Orders Section */}
       <div className="admin-card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#ffffff' }}>Recent Orders</h2>
+          <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--color-admin-text)' }}>Recent Orders</h2>
           <Link href="/admin/orders" style={{ fontSize: '13px', color: 'var(--color-primary-light)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
             <span>View All Orders</span>
             <ArrowRight size={14} />
@@ -190,7 +190,7 @@ export default async function AdminDashboardPage() {
                       <Link
                         href={`/admin/orders/${order.id}`}
                         className="btn btn-secondary btn-sm"
-                        style={{ background: 'var(--color-admin-surface-2)', color: '#ffffff', borderColor: 'var(--color-admin-border)', padding: '4px 10px' }}
+                        style={{ background: 'var(--color-admin-surface-2)', color: 'var(--color-admin-text)', borderColor: 'var(--color-admin-border)', padding: '4px 10px' }}
                       >
                         Manage
                       </Link>

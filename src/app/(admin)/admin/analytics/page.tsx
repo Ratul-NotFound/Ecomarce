@@ -87,7 +87,7 @@ export default async function AdminAnalyticsPage() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
         {/* Top Converting Products */}
         <div className="admin-card">
-          <h2 style={{ fontSize: '16px', fontWeight: 800, color: '#ffffff', marginBottom: '16px' }}>
+          <h2 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--color-admin-text)', marginBottom: '16px' }}>
             Top Selling Products by Volume
           </h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -104,7 +104,7 @@ export default async function AdminAnalyticsPage() {
                 }}
               >
                 <div>
-                  <div style={{ fontWeight: 700, color: '#ffffff', fontSize: '14px' }}>{p.name_en}</div>
+                  <div style={{ fontWeight: 700, color: 'var(--color-admin-text)', fontSize: '14px' }}>{p.name_en}</div>
                   <div style={{ fontSize: '12px', color: 'var(--color-admin-muted)' }}>
                     {formatCurrency(p.sale_price ?? p.base_price)}
                   </div>
@@ -124,7 +124,7 @@ export default async function AdminAnalyticsPage() {
 
         {/* Regional Sales by District */}
         <div className="admin-card">
-          <h2 style={{ fontSize: '16px', fontWeight: 800, color: '#ffffff', marginBottom: '16px' }}>
+          <h2 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--color-admin-text)', marginBottom: '16px' }}>
             Sales by Bangladesh District
           </h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -147,7 +147,7 @@ export default async function AdminAnalyticsPage() {
                     <span style={{ width: '24px', height: '24px', borderRadius: '9999px', background: 'var(--color-primary-10)', color: 'var(--color-primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 800 }}>
                       {idx + 1}
                     </span>
-                    <strong style={{ color: '#ffffff', fontSize: '14px' }}>{dist} District</strong>
+                    <strong style={{ color: 'var(--color-admin-text)', fontSize: '14px' }}>{dist} District</strong>
                   </div>
                   <span style={{ fontWeight: 800, color: 'var(--color-success)', fontSize: '14px' }}>
                     {formatCurrency(sum)}

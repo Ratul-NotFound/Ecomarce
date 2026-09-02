@@ -54,7 +54,7 @@ export default async function AdminOrderDetailPage({ params }: AdminOrderDetailP
           target="_blank"
           rel="noopener noreferrer"
           className="btn btn-secondary btn-sm"
-          style={{ background: 'var(--color-admin-surface-2)', color: '#ffffff', borderColor: 'var(--color-admin-border)' }}
+          style={{ background: 'var(--color-admin-surface-2)', color: 'var(--color-admin-text)', borderColor: 'var(--color-admin-border)' }}
         >
           <FileText size={14} />
           <span>Print / Export Invoice</span>
@@ -67,7 +67,7 @@ export default async function AdminOrderDetailPage({ params }: AdminOrderDetailP
           <div className="admin-card">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid var(--color-admin-border)', paddingBottom: '16px', marginBottom: '16px' }}>
               <div>
-                <h1 style={{ fontSize: '20px', fontWeight: 800, color: '#ffffff' }}>
+                <h1 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--color-admin-text)' }}>
                   Order #{order.order_number}
                 </h1>
                 <div style={{ fontSize: '12px', color: 'var(--color-admin-muted)', marginTop: '4px' }}>
@@ -80,7 +80,7 @@ export default async function AdminOrderDetailPage({ params }: AdminOrderDetailP
 
             {/* Customer Details */}
             <div style={{ background: 'var(--color-admin-surface-2)', padding: '16px', borderRadius: 'var(--radius-lg)', marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#ffffff' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--color-admin-text)' }}>
                 <User size={14} color="var(--color-primary-light)" />
                 <strong>{order.shipping_address?.full_name}</strong>
               </div>
@@ -95,7 +95,7 @@ export default async function AdminOrderDetailPage({ params }: AdminOrderDetailP
             </div>
 
             {/* Items table */}
-            <h3 style={{ fontSize: '14px', fontWeight: 800, color: '#ffffff', marginBottom: '12px', textTransform: 'uppercase' }}>
+            <h3 style={{ fontSize: '14px', fontWeight: 800, color: 'var(--color-admin-text)', marginBottom: '12px', textTransform: 'uppercase' }}>
               Items Ordered
             </h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', borderBottom: '1px solid var(--color-admin-border)', paddingBottom: '16px', marginBottom: '16px' }}>

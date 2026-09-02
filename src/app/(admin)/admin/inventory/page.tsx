@@ -73,7 +73,7 @@ export default function AdminInventoryPage() {
       <div className="admin-card" style={{ background: 'linear-gradient(135deg, #1e293b, #0f172a)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
           <Calculator size={20} color="var(--color-primary-light)" />
-          <h2 style={{ fontSize: '16px', fontWeight: 800, color: '#ffffff' }}>Live Selling Profit & Margin Calculator</h2>
+          <h2 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--color-admin-text)' }}>Live Selling Profit & Margin Calculator</h2>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', alignItems: 'flex-end' }}>
@@ -117,7 +117,7 @@ export default function AdminInventoryPage() {
 
       {/* Stock Management Table */}
       <div className="admin-card">
-        <h2 style={{ fontSize: '16px', fontWeight: 800, color: '#ffffff', marginBottom: '16px' }}>
+        <h2 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--color-admin-text)', marginBottom: '16px' }}>
           Product Stock Overview & Quick Restock
         </h2>
 
@@ -145,7 +145,7 @@ export default function AdminInventoryPage() {
                   return (
                     <tr key={product.id}>
                       <td>
-                        <strong style={{ color: '#ffffff' }}>{product.name_en}</strong>
+                        <strong style={{ color: 'var(--color-admin-text)' }}>{product.name_en}</strong>
                       </td>
                       <td>
                         <code style={{ fontSize: '12px', color: 'var(--color-admin-muted)' }}>{product.sku}</code>
@@ -174,7 +174,7 @@ export default function AdminInventoryPage() {
                             onClick={() => handleAdjustStock(product.id, -1, 'adjustment')}
                             disabled={product.stock_quantity <= 0}
                             className="btn btn-secondary btn-sm"
-                            style={{ background: 'var(--color-admin-surface-2)', color: '#ffffff', borderColor: 'var(--color-admin-border)', padding: '4px 8px' }}
+                            style={{ background: 'var(--color-admin-surface-2)', color: 'var(--color-admin-text)', borderColor: 'var(--color-admin-border)', padding: '4px 8px' }}
                             title="Decrease 1"
                           >
                             <Minus size={12} />
@@ -183,7 +183,7 @@ export default function AdminInventoryPage() {
                             type="button"
                             onClick={() => handleAdjustStock(product.id, 5, 'restock')}
                             className="btn btn-secondary btn-sm"
-                            style={{ background: 'var(--color-admin-surface-2)', color: '#ffffff', borderColor: 'var(--color-admin-border)', padding: '4px 8px' }}
+                            style={{ background: 'var(--color-admin-surface-2)', color: 'var(--color-admin-text)', borderColor: 'var(--color-admin-border)', padding: '4px 8px' }}
                             title="Restock +5"
                           >
                             +5

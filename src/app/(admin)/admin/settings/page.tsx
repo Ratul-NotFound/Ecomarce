@@ -105,7 +105,7 @@ export default function AdminSettingsPage() {
         <div className="admin-card">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
             <Palette size={18} color="var(--color-primary-light)" />
-            <h2 style={{ fontSize: '16px', fontWeight: 800, color: '#ffffff' }}>Brand & Color Theme</h2>
+            <h2 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--color-admin-text)' }}>Brand & Color Theme</h2>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -159,7 +159,7 @@ export default function AdminSettingsPage() {
         <div className="admin-card">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
             <Phone size={18} color="var(--color-primary-light)" />
-            <h2 style={{ fontSize: '16px', fontWeight: 800, color: '#ffffff' }}>Shipping & Payment Details</h2>
+            <h2 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--color-admin-text)' }}>Shipping & Payment Details</h2>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -223,7 +223,7 @@ export default function AdminSettingsPage() {
         <div className="admin-card" style={{ gridColumn: '1 / -1' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
             <Send size={18} color="var(--color-primary-light)" />
-            <h2 style={{ fontSize: '16px', fontWeight: 800, color: '#ffffff' }}>Telegram Bot Live Order Notifications</h2>
+            <h2 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--color-admin-text)' }}>Telegram Bot Live Order Notifications</h2>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>

@@ -45,7 +45,7 @@ export default async function AdminProductsPage() {
         {products.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '40px 16px', color: 'var(--color-admin-muted)' }}>
             <Package size={40} style={{ margin: '0 auto 12px', opacity: 0.6 }} />
-            <h3 style={{ color: '#ffffff', fontSize: '18px', marginBottom: '8px' }}>No products published</h3>
+            <h3 style={{ color: 'var(--color-admin-text)', fontSize: '18px', marginBottom: '8px' }}>No products published</h3>
             <p style={{ fontSize: '14px', marginBottom: '20px' }}>Create your first product to populate your catalog.</p>
             <Link href="/admin/products/new" className="btn btn-primary btn-sm">
               Add First Product
@@ -76,7 +76,7 @@ export default async function AdminProductsPage() {
                             <Image src={img} alt={p.name_en} fill style={{ objectFit: 'cover' }} />
                           </div>
                           <div>
-                            <div style={{ fontWeight: 700, color: '#ffffff' }}>{p.name_en}</div>
+                            <div style={{ fontWeight: 700, color: 'var(--color-admin-text)' }}>{p.name_en}</div>
                             {p.name_bn && (
                               <div style={{ fontSize: '12px', color: 'var(--color-admin-muted)' }}>{p.name_bn}</div>
                             )}
@@ -120,7 +120,7 @@ export default async function AdminProductsPage() {
                             href={`/products/${p.slug}`}
                             target="_blank"
                             className="btn btn-secondary btn-sm"
-                            style={{ background: 'var(--color-admin-surface-2)', color: '#ffffff', borderColor: 'var(--color-admin-border)', padding: '6px' }}
+                            style={{ background: 'var(--color-admin-surface-2)', color: 'var(--color-admin-text)', borderColor: 'var(--color-admin-border)', padding: '6px' }}
                             title="View in store"
                           >
                             <ExternalLink size={14} />
@@ -128,7 +128,7 @@ export default async function AdminProductsPage() {
                           <Link
                             href={`/admin/products/${p.id}/edit`}
                             className="btn btn-secondary btn-sm"
-                            style={{ background: 'var(--color-admin-surface-2)', color: '#ffffff', borderColor: 'var(--color-admin-border)', padding: '6px 12px' }}
+                            style={{ background: 'var(--color-admin-surface-2)', color: 'var(--color-admin-text)', borderColor: 'var(--color-admin-border)', padding: '6px 12px' }}
                           >
                             <Edit3 size={14} />
                             <span>Edit</span>

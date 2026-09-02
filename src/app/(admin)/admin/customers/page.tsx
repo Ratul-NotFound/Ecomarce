@@ -61,7 +61,7 @@ export default async function AdminCustomersPage() {
                         <div style={{ width: '32px', height: '32px', borderRadius: '9999px', background: 'var(--color-primary-10)', color: 'var(--color-primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '13px' }}>
                           {user.full_name?.charAt(0) || 'U'}
                         </div>
-                        <strong style={{ color: '#ffffff' }}>{user.full_name || 'Customer'}</strong>
+                        <strong style={{ color: 'var(--color-admin-text)' }}>{user.full_name || 'Customer'}</strong>
                       </div>
                     </td>
                     <td>{user.phone || '—'}</td>

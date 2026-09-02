@@ -67,7 +67,7 @@ export default async function AdminOrdersPage({ searchParams }: AdminOrdersPageP
             className={`btn ${statusFilter === tab.value ? 'btn-primary' : 'btn-secondary'} btn-sm`}
             style={{
               background: statusFilter === tab.value ? 'var(--color-primary)' : 'var(--color-admin-surface)',
-              color: '#ffffff',
+              color: 'var(--color-admin-text)',
               borderColor: 'var(--color-admin-border)',
             }}
           >
@@ -105,7 +105,7 @@ export default async function AdminOrdersPage({ searchParams }: AdminOrdersPageP
                       <strong style={{ color: 'var(--color-primary-light)' }}>#{order.order_number}</strong>
                     </td>
                     <td>
-                      <div style={{ fontWeight: 700, color: '#ffffff' }}>
+                      <div style={{ fontWeight: 700, color: 'var(--color-admin-text)' }}>
                         {order.shipping_address?.full_name || 'Customer'}
                       </div>
                       <div style={{ fontSize: '12px', color: 'var(--color-admin-muted)' }}>
@@ -120,7 +120,7 @@ export default async function AdminOrdersPage({ searchParams }: AdminOrdersPageP
                         </code>
                       )}
                     </td>
-                    <td style={{ fontWeight: 800, color: '#ffffff' }}>{formatCurrency(order.total)}</td>
+                    <td style={{ fontWeight: 800, color: 'var(--color-admin-text)' }}>{formatCurrency(order.total)}</td>
                     <td>
                       <span
                         style={{
@@ -142,7 +142,7 @@ export default async function AdminOrdersPage({ searchParams }: AdminOrdersPageP
                       <Link
                         href={`/admin/orders/${order.id}`}
                         className="btn btn-secondary btn-sm"
-                        style={{ background: 'var(--color-admin-surface-2)', color: '#ffffff', borderColor: 'var(--color-admin-border)', padding: '6px 12px' }}
+                        style={{ background: 'var(--color-admin-surface-2)', color: 'var(--color-admin-text)', borderColor: 'var(--color-admin-border)', padding: '6px 12px' }}
                       >
                         <Eye size={14} />
                         <span>Manage</span>
