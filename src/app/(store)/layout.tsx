@@ -9,6 +9,8 @@ import { CategoryRepository } from '@/lib/supabase/repositories/CategoryReposito
 import type { Category } from '@/types';
 import '@/styles/store.css';
 
+import { getStoreSettings } from '@/lib/store-settings';
+
 export default async function StoreLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
   const categoryRepo = new CategoryRepository(supabase);
@@ -19,10 +21,19 @@ export default async function StoreLayout({ children }: { children: React.ReactN
     console.error('Failed to load layout categories:', err);
   }
 
+  const settings = await getStoreSettings();
+
   return (
     <ToastProvider>
       <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100dvh' }} suppressHydrationWarning>
-        <Header categories={categories} />
+        <Header
+          categories={categories}
+          announcement={{
+            enabled: settings.announcement_bar_enabled,
+            text: settings.announcement_bar_text,
+            link: settings.announcement_bar_link,
+          }}
+        />
         <main style={{ flex: 1 }}>{children}</main>
         <Footer />
         <MobileNav />

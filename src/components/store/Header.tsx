@@ -10,9 +10,14 @@ import { useAuth } from '@/hooks/useAuth';
 
 interface HeaderProps {
   categories?: Array<{ id: string; name_en: string; name_bn?: string | null; slug: string }>;
+  announcement?: {
+    enabled: boolean;
+    text: string;
+    link?: string;
+  };
 }
 
-export default function Header({ categories = [] }: HeaderProps) {
+export default function Header({ categories = [], announcement }: HeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
   const isCartOrCheckout = pathname === '/cart' || pathname === '/checkout';
@@ -29,6 +34,19 @@ export default function Header({ categories = [] }: HeaderProps) {
 
   return (
     <header className="store-header">
+      {announcement?.enabled && announcement?.text && (
+        <div className="store-announcement-bar">
+          <div className="container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}>
+            {announcement.link ? (
+              <Link href={announcement.link} style={{ color: 'inherit', textDecoration: 'none' }}>
+                {announcement.text} ➔
+              </Link>
+            ) : (
+              <span>{announcement.text}</span>
+            )}
+          </div>
+        </div>
+      )}
       <div className="container store-header__container">
         {/* Main Row */}
         <div className="store-header__inner">

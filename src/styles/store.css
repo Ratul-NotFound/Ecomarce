@@ -5,8 +5,20 @@
    ============================================================ */
 
 /* ────────────────────────────────────────────────────────────
-   HEADER
+   HEADER & ANNOUNCEMENT BAR
    ──────────────────────────────────────────────────────────── */
+.store-announcement-bar {
+  background: linear-gradient(90deg, #1e3a8a, #2563eb, #1d4ed8);
+  color: #ffffff;
+  padding: 7px 16px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  line-height: 1.4;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
 .store-header {
   position: sticky;
   top: 0;
