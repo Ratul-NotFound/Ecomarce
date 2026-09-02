@@ -35,9 +35,9 @@ const withPWA = require('next-pwa')({
 });
 
 const nextConfig: NextConfig = {
-  // Use webpack (not Turbopack) so next-pwa service worker works correctly.
-  // next-pwa relies on webpack's workbox plugin which is incompatible with Turbopack.
-  // We still get the same fast RSC/SSR features — only the bundler changes.
+  // Allowed development origins for LAN / Mobile Wi-Fi testing
+  allowedDevOrigins: ['169.254.28.239', 'localhost', '127.0.0.1'],
+
   turbopack: undefined,
 
   images: {
