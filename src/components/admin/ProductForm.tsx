@@ -4,9 +4,10 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import ImageUploader from './ImageUploader';
 import { useToast } from '@/components/shared/ToastProvider';
-import { slugify } from '@/lib/utils/format';
+import { slugify, formatCurrency } from '@/lib/utils/format';
+import { getProductCostPrice, syncCostToTags, calculateProfitMetrics } from '@/lib/utils/pricing';
 import type { Product, Category, ProductVariant } from '@/types';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Calculator, TrendingUp } from 'lucide-react';
 
 interface ProductFormProps {
   initialProduct?: Product | null;
@@ -27,6 +28,9 @@ export default function ProductForm({ initialProduct, categories = [] }: Product
   const [sku, setSku] = useState(initialProduct?.sku || `SKU-${Date.now().toString().slice(-6)}`);
   const [basePrice, setBasePrice] = useState<number | string>(initialProduct?.base_price ?? '');
   const [salePrice, setSalePrice] = useState<number | string>(initialProduct?.sale_price ?? '');
+  const [costPrice, setCostPrice] = useState<number | string>(
+    initialProduct ? getProductCostPrice(initialProduct) || '' : ''
+  );
   const [stockQuantity, setStockQuantity] = useState<number | string>(initialProduct?.stock_quantity ?? 10);
   const [lowStockThreshold, setLowStockThreshold] = useState<number | string>(initialProduct?.low_stock_threshold ?? 5);
   const [descriptionEn, setDescriptionEn] = useState(initialProduct?.description_en || '');
@@ -92,6 +96,8 @@ export default function ProductForm({ initialProduct, categories = [] }: Product
         sku: sku.trim(),
         base_price: Number(basePrice),
         sale_price: salePrice ? Number(salePrice) : null,
+        cost_price: costPrice ? Number(costPrice) : null,
+        tags: syncCostToTags(initialProduct?.tags || [], costPrice ? Number(costPrice) : null),
         stock_quantity: Number(stockQuantity) || 0,
         low_stock_threshold: Number(lowStockThreshold) || 5,
         description_en: descriptionEn.trim() || null,
@@ -339,11 +345,35 @@ export default function ProductForm({ initialProduct, categories = [] }: Product
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           {/* Pricing & Stock */}
           <div className="admin-card">
-            <h2 style={{ fontSize: '16px', fontWeight: 800, color: '#ffffff', marginBottom: '16px' }}>
-              Pricing & Inventory
+            <h2 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--color-admin-text)', marginBottom: '16px' }}>
+              Pricing & Costing (COGS)
             </h2>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* Buying Price / Costing */}
+              <div className="form-group">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                  <label className="admin-label" htmlFor="prod-cost-price" style={{ margin: 0 }}>
+                    Buying Price / Product Costing (৳)
+                  </label>
+                  <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-primary)' }}>
+                    Internal Costing
+                  </span>
+                </div>
+                <input
+                  id="prod-cost-price"
+                  type="number"
+                  className="admin-input"
+                  placeholder="e.g. 850 (Your purchase cost)"
+                  value={costPrice}
+                  onChange={e => setCostPrice(e.target.value)}
+                  min="0"
+                />
+                <p style={{ fontSize: '11px', color: 'var(--color-admin-muted)', marginTop: '4px' }}>
+                  Used to calculate your real net profit, profit margins, and total inventory value.
+                </p>
+              </div>
+
               <div className="form-group">
                 <label className="admin-label" htmlFor="prod-base-price">Regular Base Price (৳) *</label>
                 <input
@@ -370,6 +400,56 @@ export default function ProductForm({ initialProduct, categories = [] }: Product
                   min="0"
                 />
               </div>
+
+              {/* Dynamic Financial Intelligence Preview */}
+              {Boolean(Number(basePrice) || Number(costPrice)) && (() => {
+                const effectiveSell = Number(salePrice) || Number(basePrice) || 0;
+                const effectiveCost = Number(costPrice) || 0;
+                const metrics = calculateProfitMetrics(effectiveSell, effectiveCost);
+                const totalStockInv = effectiveCost * (Number(stockQuantity) || 0);
+
+                return (
+                  <div
+                    style={{
+                      background: 'var(--color-admin-surface-2)',
+                      border: '1px solid var(--color-admin-border)',
+                      borderRadius: 'var(--radius-lg)',
+                      padding: '12px 14px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '8px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 800, color: 'var(--color-admin-text)' }}>
+                      <TrendingUp size={14} color="var(--color-primary)" />
+                      <span>Financial Margin Preview</span>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                      <div style={{ background: '#ffffff', padding: '8px 10px', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-admin-border)' }}>
+                        <div style={{ fontSize: '10px', color: 'var(--color-admin-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Gross Profit / Unit</div>
+                        <div style={{ fontSize: '15px', fontWeight: 800, color: metrics.isProfitable ? 'var(--color-success)' : 'var(--color-danger)' }}>
+                          {formatCurrency(metrics.netProfit)}
+                        </div>
+                      </div>
+
+                      <div style={{ background: '#ffffff', padding: '8px 10px', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-admin-border)' }}>
+                        <div style={{ fontSize: '10px', color: 'var(--color-admin-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Profit Margin %</div>
+                        <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--color-primary)' }}>
+                          {metrics.marginPercent}%
+                        </div>
+                      </div>
+                    </div>
+
+                    {effectiveCost > 0 && Number(stockQuantity) > 0 && (
+                      <div style={{ fontSize: '11px', color: 'var(--color-admin-muted)', marginTop: '2px', display: 'flex', justifyContent: 'space-between' }}>
+                        <span>Total Stock Investment:</span>
+                        <strong style={{ color: 'var(--color-admin-text)' }}>{formatCurrency(totalStockInv)}</strong>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div className="form-group">

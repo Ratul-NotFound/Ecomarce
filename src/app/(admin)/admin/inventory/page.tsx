@@ -1,16 +1,35 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import Link from 'next/link';
 import { formatCurrency } from '@/lib/utils/format';
+import { getProductCostPrice, calculateProfitMetrics, syncCostToTags } from '@/lib/utils/pricing';
 import { useToast } from '@/components/shared/ToastProvider';
 import { createClient } from '@/lib/supabase/client';
-import { Boxes, Plus, Minus, Calculator, AlertTriangle, ArrowUpDown } from 'lucide-react';
+import {
+  Boxes,
+  Plus,
+  Minus,
+  Calculator,
+  AlertTriangle,
+  ArrowUpDown,
+  DollarSign,
+  TrendingUp,
+  Package,
+  Search,
+  Edit2,
+  Check,
+  X,
+} from 'lucide-react';
 import type { Product } from '@/types';
 
 export default function AdminInventoryPage() {
   const { showToast } = useToast();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [editingCostId, setEditingCostId] = useState<string | null>(null);
+  const [editingCostVal, setEditingCostVal] = useState<number | string>('');
 
   // Profit Margin Calculator state
   const [calcCostPrice, setCalcCostPrice] = useState<number | string>(800);
@@ -18,9 +37,7 @@ export default function AdminInventoryPage() {
 
   const cost = Number(calcCostPrice) || 0;
   const sell = Number(calcSellingPrice) || 0;
-  const netProfit = Math.max(0, sell - cost);
-  const marginPercent = sell > 0 ? ((netProfit / sell) * 100).toFixed(1) : '0.0';
-  const markupPercent = cost > 0 ? ((netProfit / cost) * 100).toFixed(1) : '0.0';
+  const calcMetrics = calculateProfitMetrics(sell, cost);
 
   const loadProducts = async () => {
     const supabase = createClient();
@@ -35,6 +52,38 @@ export default function AdminInventoryPage() {
   useEffect(() => {
     loadProducts();
   }, []);
+
+  // Financial intelligence aggregations
+  const financials = useMemo(() => {
+    let totalCostInvestment = 0;
+    let totalRetailValue = 0;
+    let lowStockCount = 0;
+
+    products.forEach(p => {
+      const unitCost = getProductCostPrice(p);
+      const unitSell = p.sale_price ?? p.base_price ?? 0;
+      const stock = p.stock_quantity || 0;
+
+      totalCostInvestment += unitCost * stock;
+      totalRetailValue += unitSell * stock;
+
+      if (stock <= p.low_stock_threshold) {
+        lowStockCount++;
+      }
+    });
+
+    const potentialGrossProfit = Math.max(0, totalRetailValue - totalCostInvestment);
+    const storeMargin = totalRetailValue > 0 ? ((potentialGrossProfit / totalRetailValue) * 100).toFixed(1) : '0.0';
+
+    return {
+      totalCostInvestment,
+      totalRetailValue,
+      potentialGrossProfit,
+      storeMargin,
+      lowStockCount,
+      totalUnits: products.reduce((acc, p) => acc + (p.stock_quantity || 0), 0),
+    };
+  }, [products]);
 
   const handleAdjustStock = async (productId: string, delta: number, changeType: string) => {
     try {
@@ -58,27 +107,120 @@ export default function AdminInventoryPage() {
     }
   };
 
+  const handleSaveCostPrice = async (product: Product) => {
+    try {
+      const newCost = Number(editingCostVal);
+      if (isNaN(newCost) || newCost < 0) {
+        showToast('Please enter a valid buying price', 'error');
+        return;
+      }
+
+      const updatedTags = syncCostToTags(product.tags || [], newCost);
+
+      const res = await fetch('/api/admin/products', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: product.id,
+          cost_price: newCost,
+          tags: updatedTags,
+        }),
+      });
+
+      const resData = await res.json();
+      if (!res.ok) throw new Error(resData.error || 'Failed to update cost price');
+
+      showToast(`Buying cost for "${product.name_en}" set to ৳${newCost}`, 'success');
+      setEditingCostId(null);
+      loadProducts();
+    } catch (err: any) {
+      showToast(err.message || 'Failed to save buying price', 'error');
+    }
+  };
+
+  const filteredProducts = products.filter(p => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return p.name_en.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q);
+  });
+
   return (
     <div>
       <div className="admin-page-header">
         <div>
-          <h1 className="admin-page-title">Inventory & Profit Analytics</h1>
+          <h1 className="admin-page-title">Inventory & Financial Costing</h1>
           <p style={{ color: 'var(--color-admin-muted)', fontSize: '14px', marginTop: '4px' }}>
-            Monitor real-time product stock, quick-restock units, and compute gross profit margins.
+            Track unit buying prices (COGS), monitor inventory capital investment, and compute profit margins.
           </p>
+        </div>
+
+        <Link href="/admin/products/new" className="btn btn-primary btn-sm">
+          <Plus size={16} />
+          <span>Add Product with Costing</span>
+        </Link>
+      </div>
+
+      {/* Financial Valuation KPI Cards */}
+      <div className="admin-kpi-grid" style={{ marginBottom: '20px' }}>
+        <div className="admin-kpi-card">
+          <div className="admin-kpi-header">
+            <span className="admin-kpi-label">Total Capital Investment</span>
+            <div className="admin-kpi-icon-box" style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--color-danger)' }}>
+              <DollarSign size={20} />
+            </div>
+          </div>
+          <div className="admin-kpi-value">{formatCurrency(financials.totalCostInvestment)}</div>
+          <div className="admin-kpi-change">Cost of all in-stock goods (COGS)</div>
+        </div>
+
+        <div className="admin-kpi-card">
+          <div className="admin-kpi-header">
+            <span className="admin-kpi-label">Retail Inventory Value</span>
+            <div className="admin-kpi-icon-box" style={{ background: 'rgba(59, 130, 246, 0.1)', color: 'var(--color-primary)' }}>
+              <Package size={20} />
+            </div>
+          </div>
+          <div className="admin-kpi-value">{formatCurrency(financials.totalRetailValue)}</div>
+          <div className="admin-kpi-change">Across {financials.totalUnits} available units</div>
+        </div>
+
+        <div className="admin-kpi-card">
+          <div className="admin-kpi-header">
+            <span className="admin-kpi-label">Potential Gross Profit</span>
+            <div className="admin-kpi-icon-box" style={{ background: 'rgba(34, 197, 94, 0.12)', color: 'var(--color-success)' }}>
+              <TrendingUp size={20} />
+            </div>
+          </div>
+          <div className="admin-kpi-value" style={{ color: 'var(--color-success)' }}>
+            {formatCurrency(financials.potentialGrossProfit)}
+          </div>
+          <div className="admin-kpi-change">Store Gross Margin: {financials.storeMargin}%</div>
+        </div>
+
+        <div className="admin-kpi-card">
+          <div className="admin-kpi-header">
+            <span className="admin-kpi-label">Low Stock Alerts</span>
+            <div className="admin-kpi-icon-box" style={{ background: 'rgba(234, 179, 8, 0.1)', color: 'var(--color-warning)' }}>
+              <AlertTriangle size={20} />
+            </div>
+          </div>
+          <div className="admin-kpi-value">{financials.lowStockCount} items</div>
+          <div className="admin-kpi-change">Needs restock attention</div>
         </div>
       </div>
 
-      {/* Profit Margin Calculator Tool Card */}
-      <div className="admin-card" style={{ background: 'linear-gradient(135deg, #1e293b, #0f172a)' }}>
+      {/* Live Profit Margin Calculator */}
+      <div className="admin-card" style={{ background: '#ffffff', border: '1px solid var(--color-admin-border)', marginBottom: '20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-          <Calculator size={20} color="var(--color-primary-light)" />
-          <h2 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--color-admin-text)' }}>Live Selling Profit & Margin Calculator</h2>
+          <Calculator size={18} color="var(--color-primary)" />
+          <h2 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--color-admin-text)' }}>
+            Interactive Unit Margin & Markup Calculator
+          </h2>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', alignItems: 'flex-end' }}>
           <div className="form-group">
-            <label className="admin-label">Unit Cost Price (৳)</label>
+            <label className="admin-label">Buying / Cost Price (৳)</label>
             <input
               type="number"
               className="admin-input"
@@ -89,7 +231,7 @@ export default function AdminInventoryPage() {
           </div>
 
           <div className="form-group">
-            <label className="admin-label">Unit Selling Price (৳)</label>
+            <label className="admin-label">Retail Selling Price (৳)</label>
             <input
               type="number"
               className="admin-input"
@@ -99,32 +241,52 @@ export default function AdminInventoryPage() {
             />
           </div>
 
-          <div style={{ background: 'var(--color-admin-surface-2)', padding: '12px 16px', borderRadius: 'var(--radius-lg)' }}>
-            <div style={{ fontSize: '11px', color: 'var(--color-admin-muted)', textTransform: 'uppercase' }}>Gross Profit Per Unit</div>
-            <div style={{ fontSize: '20px', fontWeight: 800, color: 'var(--color-success)' }}>
-              {formatCurrency(netProfit)}
+          <div style={{ background: 'var(--color-admin-surface-2)', padding: '12px 16px', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-admin-border)' }}>
+            <div style={{ fontSize: '11px', color: 'var(--color-admin-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Gross Profit / Unit</div>
+            <div style={{ fontSize: '20px', fontWeight: 800, color: calcMetrics.isProfitable ? 'var(--color-success)' : 'var(--color-danger)' }}>
+              {formatCurrency(calcMetrics.netProfit)}
             </div>
           </div>
 
-          <div style={{ background: 'var(--color-admin-surface-2)', padding: '12px 16px', borderRadius: 'var(--radius-lg)' }}>
-            <div style={{ fontSize: '11px', color: 'var(--color-admin-muted)', textTransform: 'uppercase' }}>Profit Margin %</div>
-            <div style={{ fontSize: '20px', fontWeight: 800, color: 'var(--color-primary-light)' }}>
-              {marginPercent}% ({markupPercent}% Markup)
+          <div style={{ background: 'var(--color-admin-surface-2)', padding: '12px 16px', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-admin-border)' }}>
+            <div style={{ fontSize: '11px', color: 'var(--color-admin-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Margin & Markup</div>
+            <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--color-primary)' }}>
+              {calcMetrics.marginPercent}% <span style={{ fontSize: '12px', color: 'var(--color-admin-muted)', fontWeight: 600 }}>({calcMetrics.markupPercent}% markup)</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Stock Management Table */}
+      {/* Stock & Costing Table */}
       <div className="admin-card">
-        <h2 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--color-admin-text)', marginBottom: '16px' }}>
-          Product Stock Overview & Quick Restock
-        </h2>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+          <div>
+            <h2 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--color-admin-text)' }}>
+              Product Inventory & Unit Buying Prices
+            </h2>
+            <p style={{ fontSize: '12px', color: 'var(--color-admin-muted)', marginTop: '2px' }}>
+              Click any Buying Price to edit your costing on-the-fly.
+            </p>
+          </div>
+
+          {/* Search */}
+          <div style={{ position: 'relative', width: '280px', maxWidth: '100%' }}>
+            <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-admin-muted)' }} />
+            <input
+              type="text"
+              className="admin-input"
+              placeholder="Search product or SKU..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              style={{ paddingLeft: '34px', height: '36px', fontSize: '13px' }}
+            />
+          </div>
+        </div>
 
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '32px', color: 'var(--color-admin-muted)' }}>Loading stock table...</div>
-        ) : products.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '32px', color: 'var(--color-admin-muted)' }}>No products found in inventory.</div>
+          <div style={{ textAlign: 'center', padding: '32px', color: 'var(--color-admin-muted)' }}>Loading inventory data...</div>
+        ) : filteredProducts.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '32px', color: 'var(--color-admin-muted)' }}>No matching products found.</div>
         ) : (
           <div className="admin-table-container">
             <table className="admin-table">
@@ -132,16 +294,24 @@ export default function AdminInventoryPage() {
                 <tr>
                   <th>Product</th>
                   <th>SKU</th>
-                  <th>Price</th>
-                  <th>Total Sold</th>
+                  <th>Buying Cost (COGS)</th>
+                  <th>Selling Price</th>
+                  <th>Unit Profit (Margin)</th>
                   <th>Current Stock</th>
-                  <th>Alert Level</th>
-                  <th style={{ textAlign: 'right' }}>Quick Adjust</th>
+                  <th>Total Cost Valuation</th>
+                  <th style={{ textAlign: 'right' }}>Quick Restock</th>
                 </tr>
               </thead>
               <tbody>
-                {products.map(product => {
+                {filteredProducts.map(product => {
+                  const unitCost = getProductCostPrice(product);
+                  const unitSell = product.sale_price ?? product.base_price ?? 0;
+                  const metrics = calculateProfitMetrics(unitSell, unitCost);
                   const isLow = product.stock_quantity <= product.low_stock_threshold;
+                  const totalCostVal = unitCost * (product.stock_quantity || 0);
+
+                  const isEditingCost = editingCostId === product.id;
+
                   return (
                     <tr key={product.id}>
                       <td>
@@ -150,12 +320,87 @@ export default function AdminInventoryPage() {
                       <td>
                         <code style={{ fontSize: '12px', color: 'var(--color-admin-muted)' }}>{product.sku}</code>
                       </td>
-                      <td style={{ fontWeight: 700, color: 'var(--color-primary-light)' }}>
-                        {formatCurrency(product.sale_price ?? product.base_price)}
-                      </td>
+
+                      {/* Buying Price / Costing Cell with 1-Click Inline Edit */}
                       <td>
-                        <strong>{product.total_sold} units</strong>
+                        {isEditingCost ? (
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <input
+                              type="number"
+                              className="admin-input"
+                              value={editingCostVal}
+                              onChange={e => setEditingCostVal(e.target.value)}
+                              placeholder="৳ Cost"
+                              autoFocus
+                              style={{ width: '90px', height: '30px', fontSize: '12px', padding: '2px 8px' }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleSaveCostPrice(product)}
+                              className="btn btn-primary btn-sm"
+                              style={{ padding: '4px 6px', height: '30px' }}
+                              title="Save Buying Price"
+                            >
+                              <Check size={14} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setEditingCostId(null)}
+                              className="btn btn-secondary btn-sm"
+                              style={{ padding: '4px 6px', height: '30px' }}
+                              title="Cancel"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        ) : (
+                          <div
+                            onClick={() => {
+                              setEditingCostId(product.id);
+                              setEditingCostVal(unitCost || '');
+                            }}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              cursor: 'pointer',
+                              padding: '3px 8px',
+                              borderRadius: 'var(--radius-md)',
+                              border: '1px dashed var(--color-admin-border)',
+                              background: unitCost > 0 ? '#ffffff' : 'rgba(234, 179, 8, 0.08)',
+                            }}
+                            title="Click to change buying price"
+                          >
+                            <span style={{ fontWeight: 800, fontSize: '13px', color: unitCost > 0 ? 'var(--color-admin-text)' : 'var(--color-warning)' }}>
+                              {unitCost > 0 ? formatCurrency(unitCost) : 'Set Cost ৳'}
+                            </span>
+                            <Edit2 size={11} color="var(--color-admin-muted)" />
+                          </div>
+                        )}
                       </td>
+
+                      {/* Selling Price */}
+                      <td style={{ fontWeight: 700, color: 'var(--color-primary)' }}>
+                        {formatCurrency(unitSell)}
+                      </td>
+
+                      {/* Profit & Margin */}
+                      <td>
+                        {unitCost > 0 ? (
+                          <div>
+                            <strong style={{ fontSize: '13px', color: metrics.isProfitable ? 'var(--color-success)' : 'var(--color-danger)' }}>
+                              {formatCurrency(metrics.netProfit)}
+                            </strong>
+                            <div style={{ fontSize: '11px', color: 'var(--color-admin-muted)', fontWeight: 600 }}>
+                              {metrics.marginPercent}% margin
+                            </div>
+                          </div>
+                        ) : (
+                          <span style={{ fontSize: '11px', color: 'var(--color-admin-muted)' }}>Cost not set</span>
+                        )}
+                      </td>
+
+                      {/* Current Stock */}
                       <td>
                         <span style={{ fontWeight: 800, fontSize: '15px', color: isLow ? 'var(--color-danger)' : 'var(--color-success)' }}>
                           {product.stock_quantity}
@@ -164,9 +409,15 @@ export default function AdminInventoryPage() {
                           <span className="badge badge-danger" style={{ marginLeft: '8px' }}>Low Stock</span>
                         )}
                       </td>
-                      <td style={{ fontSize: '12px', color: 'var(--color-admin-muted)' }}>
-                        ≤ {product.low_stock_threshold} units
+
+                      {/* Total Cost Valuation */}
+                      <td>
+                        <strong style={{ color: 'var(--color-admin-text)', fontSize: '13px' }}>
+                          {unitCost > 0 ? formatCurrency(totalCostVal) : '—'}
+                        </strong>
                       </td>
+
+                      {/* Restock Actions */}
                       <td style={{ textAlign: 'right' }}>
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                           <button
@@ -174,7 +425,7 @@ export default function AdminInventoryPage() {
                             onClick={() => handleAdjustStock(product.id, -1, 'adjustment')}
                             disabled={product.stock_quantity <= 0}
                             className="btn btn-secondary btn-sm"
-                            style={{ background: 'var(--color-admin-surface-2)', color: 'var(--color-admin-text)', borderColor: 'var(--color-admin-border)', padding: '4px 8px' }}
+                            style={{ background: '#ffffff', color: 'var(--color-admin-text)', borderColor: 'var(--color-admin-border)', padding: '4px 8px' }}
                             title="Decrease 1"
                           >
                             <Minus size={12} />
@@ -183,7 +434,7 @@ export default function AdminInventoryPage() {
                             type="button"
                             onClick={() => handleAdjustStock(product.id, 5, 'restock')}
                             className="btn btn-secondary btn-sm"
-                            style={{ background: 'var(--color-admin-surface-2)', color: 'var(--color-admin-text)', borderColor: 'var(--color-admin-border)', padding: '4px 8px' }}
+                            style={{ background: '#ffffff', color: 'var(--color-admin-text)', borderColor: 'var(--color-admin-border)', padding: '4px 8px', fontWeight: 700 }}
                             title="Restock +5"
                           >
                             +5
@@ -192,7 +443,7 @@ export default function AdminInventoryPage() {
                             type="button"
                             onClick={() => handleAdjustStock(product.id, 20, 'restock')}
                             className="btn btn-primary btn-sm"
-                            style={{ padding: '4px 8px' }}
+                            style={{ padding: '4px 8px', fontWeight: 700 }}
                             title="Restock +20"
                           >
                             +20

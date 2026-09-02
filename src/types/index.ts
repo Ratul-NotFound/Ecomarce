@@ -95,6 +95,7 @@ export interface Product {
   sku: string;
   base_price: number;
   sale_price: number | null;
+  cost_price?: number | null;
   discount_percent: number | null;
   stock_quantity: number;
   low_stock_threshold: number;

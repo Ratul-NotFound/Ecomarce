@@ -18,14 +18,36 @@ export async function PUT(
     const body = await request.json();
     const { variants, ...productData } = body;
 
-    const { data: product, error } = await dbClient
+    // Ensure cost_price is encoded in tags
+    if (productData.cost_price !== undefined) {
+      if (productData.tags) {
+        const filtered = productData.tags.filter((t: string) => !t.startsWith('cost:'));
+        if (productData.cost_price != null && productData.cost_price > 0) {
+          filtered.push(`cost:${productData.cost_price}`);
+        }
+        productData.tags = filtered;
+      }
+    }
+
+    let updateRes = await dbClient
       .from('products')
       .update(productData)
       .eq('id', id)
       .select()
       .single();
 
-    if (error) throw error;
+    if (updateRes.error && updateRes.error.code === '42703') {
+      const { cost_price, ...cleanData } = productData;
+      updateRes = await dbClient
+        .from('products')
+        .update(cleanData)
+        .eq('id', id)
+        .select()
+        .single();
+    }
+
+    if (updateRes.error) throw updateRes.error;
+    const product = updateRes.data;
 
     // Update variants: delete old and recreate
     if (variants) {
