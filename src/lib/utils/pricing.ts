@@ -50,3 +50,26 @@ export function calculateProfitMetrics(sellingPrice: number, costPrice: number) 
     isProfitable: netProfit > 0,
   };
 }
+
+/**
+ * Calculates sale price given base price and discount percent (e.g. 1500 with 20% -> 1200)
+ */
+export function calculateDiscountPrice(basePrice: number, discountPercent: number): number {
+  const base = Number(basePrice) || 0;
+  const disc = Number(discountPercent) || 0;
+  if (base <= 0 || disc <= 0) return base;
+  if (disc >= 100) return 0;
+  return Math.round(base * (1 - disc / 100));
+}
+
+/**
+ * Calculates discount percentage given base price and sale price (e.g. 1500 and 1200 -> 20%)
+ */
+export function calculateDiscountPercent(basePrice: number, salePrice: number): number {
+  const base = Number(basePrice) || 0;
+  const sale = Number(salePrice) || 0;
+  if (base <= 0 || sale <= 0 || sale >= base) return 0;
+  const pct = ((base - sale) / base) * 100;
+  return Math.round(pct * 10) / 10;
+}
+

@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation';
 import ImageUploader from './ImageUploader';
 import { useToast } from '@/components/shared/ToastProvider';
 import { slugify, formatCurrency } from '@/lib/utils/format';
-import { getProductCostPrice, syncCostToTags, calculateProfitMetrics } from '@/lib/utils/pricing';
+import { getProductCostPrice, syncCostToTags, calculateProfitMetrics, calculateDiscountPrice, calculateDiscountPercent } from '@/lib/utils/pricing';
 import type { Product, Category, ProductVariant } from '@/types';
-import { Plus, Trash2, Calculator, TrendingUp } from 'lucide-react';
+import { Plus, Trash2, Calculator, TrendingUp, Percent, Tag, Sparkles } from 'lucide-react';
 
 interface ProductFormProps {
   initialProduct?: Product | null;
@@ -28,6 +28,13 @@ export default function ProductForm({ initialProduct, categories = [] }: Product
   const [sku, setSku] = useState(initialProduct?.sku || `SKU-${Date.now().toString().slice(-6)}`);
   const [basePrice, setBasePrice] = useState<number | string>(initialProduct?.base_price ?? '');
   const [salePrice, setSalePrice] = useState<number | string>(initialProduct?.sale_price ?? '');
+  const [discountPercent, setDiscountPercent] = useState<number | string>(
+    initialProduct?.discount_percent ?? (
+      initialProduct?.base_price && initialProduct?.sale_price
+        ? calculateDiscountPercent(initialProduct.base_price, initialProduct.sale_price)
+        : ''
+    )
+  );
   const [costPrice, setCostPrice] = useState<number | string>(
     initialProduct ? getProductCostPrice(initialProduct) || '' : ''
   );
@@ -40,6 +47,40 @@ export default function ProductForm({ initialProduct, categories = [] }: Product
   const [isFlashSale, setIsFlashSale] = useState(initialProduct?.is_flash_sale || false);
   const [displayOrder, setDisplayOrder] = useState<number | string>(initialProduct?.display_order ?? 0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Bidirectional Price & Discount Handlers
+  const handleBasePriceChange = (val: string) => {
+    setBasePrice(val);
+    const numBase = Number(val);
+    const numDisc = Number(discountPercent);
+    if (numBase > 0 && numDisc > 0) {
+      setSalePrice(calculateDiscountPrice(numBase, numDisc));
+    } else if (numBase > 0 && Number(salePrice) > 0) {
+      setDiscountPercent(calculateDiscountPercent(numBase, Number(salePrice)));
+    }
+  };
+
+  const handleSalePriceChange = (val: string) => {
+    setSalePrice(val);
+    const numSale = Number(val);
+    const numBase = Number(basePrice);
+    if (numBase > 0 && numSale > 0 && numSale < numBase) {
+      setDiscountPercent(calculateDiscountPercent(numBase, numSale));
+    } else if (!val || numSale >= numBase) {
+      setDiscountPercent('');
+    }
+  };
+
+  const handleDiscountPercentChange = (val: string | number) => {
+    setDiscountPercent(val);
+    const numDisc = Number(val);
+    const numBase = Number(basePrice);
+    if (numBase > 0 && numDisc > 0) {
+      setSalePrice(calculateDiscountPrice(numBase, numDisc));
+    } else if (!val || numDisc <= 0) {
+      setSalePrice('');
+    }
+  };
 
   // Dynamic variants
   const [variants, setVariants] = useState<Array<{ size: string; color: string; price_modifier: number; stock_quantity: number }>>(
@@ -374,6 +415,7 @@ export default function ProductForm({ initialProduct, categories = [] }: Product
                 </p>
               </div>
 
+              {/* Regular Base Price */}
               <div className="form-group">
                 <label className="admin-label" htmlFor="prod-base-price">Regular Base Price (৳) *</label>
                 <input
@@ -382,23 +424,158 @@ export default function ProductForm({ initialProduct, categories = [] }: Product
                   className="admin-input"
                   placeholder="1500"
                   value={basePrice}
-                  onChange={e => setBasePrice(e.target.value)}
+                  onChange={e => handleBasePriceChange(e.target.value)}
                   min="0"
                   required
                 />
               </div>
 
-              <div className="form-group">
-                <label className="admin-label" htmlFor="prod-sale-price">Offer / Discounted Sale Price (৳)</label>
-                <input
-                  id="prod-sale-price"
-                  type="number"
-                  className="admin-input"
-                  placeholder="1250"
-                  value={salePrice}
-                  onChange={e => setSalePrice(e.target.value)}
-                  min="0"
-                />
+              {/* Synced Discount Calculator Control */}
+              <div
+                style={{
+                  background: 'var(--color-admin-surface-2)',
+                  border: '1px solid var(--color-admin-border)',
+                  borderRadius: 'var(--radius-lg)',
+                  padding: '12px 14px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <label className="admin-label" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Percent size={14} color="var(--color-primary)" />
+                    <span>Discount Calculator & Sync</span>
+                  </label>
+                  {Boolean(Number(discountPercent) > 0) && (
+                    <span
+                      style={{
+                        fontSize: '11px',
+                        fontWeight: 800,
+                        padding: '2px 8px',
+                        borderRadius: 'var(--radius-full)',
+                        background: 'rgba(239, 68, 68, 0.12)',
+                        color: 'var(--color-danger)',
+                        border: '1px solid rgba(239, 68, 68, 0.3)',
+                      }}
+                    >
+                      -{discountPercent}% OFF
+                    </span>
+                  )}
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+                  <div>
+                    <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-admin-muted)' }}>
+                      Discount Percentage (%)
+                    </span>
+                    <div style={{ position: 'relative', marginTop: '4px' }}>
+                      <input
+                        type="number"
+                        className="admin-input"
+                        placeholder="e.g. 20"
+                        value={discountPercent}
+                        onChange={e => handleDiscountPercentChange(e.target.value)}
+                        min="0"
+                        max="99"
+                        style={{ height: '36px', fontSize: '13px', paddingRight: '28px' }}
+                      />
+                      <span style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '13px', fontWeight: 700, color: 'var(--color-admin-muted)' }}>
+                        %
+                      </span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-admin-muted)' }}>
+                      Offer Sale Price (৳)
+                    </span>
+                    <input
+                      id="prod-sale-price"
+                      type="number"
+                      className="admin-input"
+                      placeholder="e.g. 1200"
+                      value={salePrice}
+                      onChange={e => handleSalePriceChange(e.target.value)}
+                      min="0"
+                      style={{ height: '36px', fontSize: '13px', marginTop: '4px' }}
+                    />
+                  </div>
+                </div>
+
+                {/* Quick Preset Discount Chips */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '11px', color: 'var(--color-admin-muted)', fontWeight: 600, marginRight: '2px' }}>
+                    Presets:
+                  </span>
+                  {[5, 10, 15, 20, 25, 30, 50].map(pct => (
+                    <button
+                      key={pct}
+                      type="button"
+                      onClick={() => handleDiscountPercentChange(pct)}
+                      style={{
+                        padding: '3px 7px',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        borderRadius: 'var(--radius-md)',
+                        border: Number(discountPercent) === pct ? '1px solid var(--color-primary)' : '1px solid var(--color-admin-border)',
+                        background: Number(discountPercent) === pct ? 'var(--color-primary)' : '#ffffff',
+                        color: Number(discountPercent) === pct ? '#ffffff' : 'var(--color-admin-text)',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {pct}%
+                    </button>
+                  ))}
+                  {Boolean(salePrice || discountPercent) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDiscountPercent('');
+                        setSalePrice('');
+                      }}
+                      style={{
+                        padding: '3px 7px',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        borderRadius: 'var(--radius-md)',
+                        border: '1px solid var(--color-admin-border)',
+                        background: '#ffffff',
+                        color: 'var(--color-danger)',
+                        cursor: 'pointer',
+                        marginLeft: 'auto',
+                      }}
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
+
+                {/* Live Savings & Strikethrough Display */}
+                {Boolean(Number(basePrice) > 0 && Number(salePrice) > 0 && Number(salePrice) < Number(basePrice)) && (
+                  <div
+                    style={{
+                      marginTop: '10px',
+                      padding: '8px 10px',
+                      background: '#ffffff',
+                      borderRadius: 'var(--radius-md)',
+                      border: '1px solid var(--color-admin-border)',
+                      fontSize: '12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    <div>
+                      <span style={{ textDecoration: 'line-through', color: 'var(--color-admin-muted)', marginRight: '6px' }}>
+                        {formatCurrency(Number(basePrice))}
+                      </span>
+                      <strong style={{ color: 'var(--color-primary)', fontSize: '14px' }}>
+                        {formatCurrency(Number(salePrice))}
+                      </strong>
+                    </div>
+                    <span style={{ color: 'var(--color-success)', fontWeight: 800, fontSize: '11px' }}>
+                      Customer saves {formatCurrency(Number(basePrice) - Number(salePrice))}
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Dynamic Financial Intelligence Preview */}

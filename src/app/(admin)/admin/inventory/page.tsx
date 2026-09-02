@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { formatCurrency } from '@/lib/utils/format';
-import { getProductCostPrice, calculateProfitMetrics, syncCostToTags } from '@/lib/utils/pricing';
+import { getProductCostPrice, calculateProfitMetrics, syncCostToTags, calculateDiscountPrice, calculateDiscountPercent } from '@/lib/utils/pricing';
 import { useToast } from '@/components/shared/ToastProvider';
 import { createClient } from '@/lib/supabase/client';
 import {
@@ -20,6 +20,8 @@ import {
   Edit2,
   Check,
   X,
+  Percent,
+  Tag,
 } from 'lucide-react';
 import type { Product } from '@/types';
 
@@ -31,9 +33,42 @@ export default function AdminInventoryPage() {
   const [editingCostId, setEditingCostId] = useState<string | null>(null);
   const [editingCostVal, setEditingCostVal] = useState<number | string>('');
 
-  // Profit Margin Calculator state
-  const [calcCostPrice, setCalcCostPrice] = useState<number | string>(800);
+  // Pricing & Discount Calculator state
+  const [calcBasePrice, setCalcBasePrice] = useState<number | string>(1500);
+  const [calcDiscountPercent, setCalcDiscountPercent] = useState<number | string>(20);
   const [calcSellingPrice, setCalcSellingPrice] = useState<number | string>(1200);
+  const [calcCostPrice, setCalcCostPrice] = useState<number | string>(800);
+
+  const handleCalcBaseChange = (val: string) => {
+    setCalcBasePrice(val);
+    const b = Number(val);
+    const d = Number(calcDiscountPercent);
+    if (b > 0 && d > 0) {
+      setCalcSellingPrice(calculateDiscountPrice(b, d));
+    }
+  };
+
+  const handleCalcDiscountChange = (pct: number | string) => {
+    setCalcDiscountPercent(pct);
+    const b = Number(calcBasePrice);
+    const d = Number(pct);
+    if (b > 0 && d > 0) {
+      setCalcSellingPrice(calculateDiscountPrice(b, d));
+    } else if (!pct || d <= 0) {
+      setCalcSellingPrice(b);
+    }
+  };
+
+  const handleCalcSaleChange = (val: string) => {
+    setCalcSellingPrice(val);
+    const s = Number(val);
+    const b = Number(calcBasePrice);
+    if (b > 0 && s > 0 && s < b) {
+      setCalcDiscountPercent(calculateDiscountPercent(b, s));
+    } else if (!val || s >= b) {
+      setCalcDiscountPercent('');
+    }
+  };
 
   const cost = Number(calcCostPrice) || 0;
   const sell = Number(calcSellingPrice) || 0;
@@ -209,18 +244,76 @@ export default function AdminInventoryPage() {
         </div>
       </div>
 
-      {/* Live Profit Margin Calculator */}
+      {/* Interactive Discount, Margin & Pricing Calculator */}
       <div className="admin-card" style={{ background: '#ffffff', border: '1px solid var(--color-admin-border)', marginBottom: '20px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-          <Calculator size={18} color="var(--color-primary)" />
-          <h2 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--color-admin-text)' }}>
-            Interactive Unit Margin & Markup Calculator
-          </h2>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Calculator size={18} color="var(--color-primary)" />
+            <h2 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--color-admin-text)' }}>
+              Interactive Price, Discount & Margin Calculator
+            </h2>
+          </div>
+          {Boolean(Number(calcDiscountPercent) > 0) && (
+            <span
+              style={{
+                fontSize: '11px',
+                fontWeight: 800,
+                padding: '3px 10px',
+                borderRadius: 'var(--radius-full)',
+                background: 'rgba(239, 68, 68, 0.12)',
+                color: 'var(--color-danger)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+              }}
+            >
+              -{calcDiscountPercent}% DISCOUNT APPLIED
+            </span>
+          )}
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', alignItems: 'flex-end' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '14px', alignItems: 'flex-end', marginBottom: '14px' }}>
           <div className="form-group">
-            <label className="admin-label">Buying / Cost Price (৳)</label>
+            <label className="admin-label">Regular Base Price (৳)</label>
+            <input
+              type="number"
+              className="admin-input"
+              value={calcBasePrice}
+              onChange={e => handleCalcBaseChange(e.target.value)}
+              placeholder="e.g. 1500"
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="admin-label">Discount (%)</label>
+            <div style={{ position: 'relative' }}>
+              <input
+                type="number"
+                className="admin-input"
+                value={calcDiscountPercent}
+                onChange={e => handleCalcDiscountChange(e.target.value)}
+                placeholder="e.g. 20"
+                min="0"
+                max="99"
+                style={{ paddingRight: '28px' }}
+              />
+              <span style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '13px', fontWeight: 700, color: 'var(--color-admin-muted)' }}>
+                %
+              </span>
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label className="admin-label">Offer Sale Price (৳)</label>
+            <input
+              type="number"
+              className="admin-input"
+              value={calcSellingPrice}
+              onChange={e => handleCalcSaleChange(e.target.value)}
+              placeholder="e.g. 1200"
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="admin-label">Unit Buying Cost (৳)</label>
             <input
               type="number"
               className="admin-input"
@@ -229,29 +322,80 @@ export default function AdminInventoryPage() {
               placeholder="e.g. 800"
             />
           </div>
+        </div>
 
-          <div className="form-group">
-            <label className="admin-label">Retail Selling Price (৳)</label>
-            <input
-              type="number"
-              className="admin-input"
-              value={calcSellingPrice}
-              onChange={e => setCalcSellingPrice(e.target.value)}
-              placeholder="e.g. 1200"
-            />
+        {/* Preset Discount Chips Bar */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginBottom: '16px' }}>
+          <span style={{ fontSize: '12px', color: 'var(--color-admin-muted)', fontWeight: 600 }}>Quick Discounts:</span>
+          {[5, 10, 15, 20, 25, 30, 40, 50].map(pct => (
+            <button
+              key={pct}
+              type="button"
+              onClick={() => handleCalcDiscountChange(pct)}
+              style={{
+                padding: '3px 8px',
+                fontSize: '11px',
+                fontWeight: 700,
+                borderRadius: 'var(--radius-md)',
+                border: Number(calcDiscountPercent) === pct ? '1px solid var(--color-primary)' : '1px solid var(--color-admin-border)',
+                background: Number(calcDiscountPercent) === pct ? 'var(--color-primary)' : '#ffffff',
+                color: Number(calcDiscountPercent) === pct ? '#ffffff' : 'var(--color-admin-text)',
+                cursor: 'pointer',
+              }}
+            >
+              {pct}%
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => handleCalcDiscountChange(0)}
+            style={{
+              padding: '3px 8px',
+              fontSize: '11px',
+              fontWeight: 700,
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--color-admin-border)',
+              background: '#ffffff',
+              color: 'var(--color-danger)',
+              cursor: 'pointer',
+              marginLeft: '4px',
+            }}
+          >
+            No Discount
+          </button>
+        </div>
+
+        {/* Metrics Results Box */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
+          <div style={{ background: 'var(--color-admin-surface-2)', padding: '12px 14px', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-admin-border)' }}>
+            <div style={{ fontSize: '11px', color: 'var(--color-admin-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Customer Price</div>
+            <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--color-primary)' }}>
+              {formatCurrency(sell)}
+            </div>
+            {Number(calcBasePrice) > sell && (
+              <div style={{ fontSize: '11px', color: 'var(--color-success)', fontWeight: 700, marginTop: '2px' }}>
+                Customer saves {formatCurrency(Number(calcBasePrice) - sell)}
+              </div>
+            )}
           </div>
 
-          <div style={{ background: 'var(--color-admin-surface-2)', padding: '12px 16px', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-admin-border)' }}>
-            <div style={{ fontSize: '11px', color: 'var(--color-admin-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Gross Profit / Unit</div>
-            <div style={{ fontSize: '20px', fontWeight: 800, color: calcMetrics.isProfitable ? 'var(--color-success)' : 'var(--color-danger)' }}>
+          <div style={{ background: 'var(--color-admin-surface-2)', padding: '12px 14px', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-admin-border)' }}>
+            <div style={{ fontSize: '11px', color: 'var(--color-admin-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Unit Net Profit</div>
+            <div style={{ fontSize: '18px', fontWeight: 800, color: calcMetrics.isProfitable ? 'var(--color-success)' : 'var(--color-danger)' }}>
               {formatCurrency(calcMetrics.netProfit)}
+            </div>
+            <div style={{ fontSize: '11px', color: 'var(--color-admin-muted)', fontWeight: 600, marginTop: '2px' }}>
+              Selling {formatCurrency(sell)} - Cost {formatCurrency(cost)}
             </div>
           </div>
 
-          <div style={{ background: 'var(--color-admin-surface-2)', padding: '12px 16px', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-admin-border)' }}>
-            <div style={{ fontSize: '11px', color: 'var(--color-admin-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Margin & Markup</div>
+          <div style={{ background: 'var(--color-admin-surface-2)', padding: '12px 14px', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-admin-border)' }}>
+            <div style={{ fontSize: '11px', color: 'var(--color-admin-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Profit Margin %</div>
             <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--color-primary)' }}>
-              {calcMetrics.marginPercent}% <span style={{ fontSize: '12px', color: 'var(--color-admin-muted)', fontWeight: 600 }}>({calcMetrics.markupPercent}% markup)</span>
+              {calcMetrics.marginPercent}%
+            </div>
+            <div style={{ fontSize: '11px', color: 'var(--color-admin-muted)', fontWeight: 600, marginTop: '2px' }}>
+              {calcMetrics.markupPercent}% markup on cost
             </div>
           </div>
         </div>
