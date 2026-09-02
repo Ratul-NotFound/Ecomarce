@@ -1487,20 +1487,122 @@
 
 .chat-messages-body {
   flex: 1;
-  padding: var(--space-4);
+  padding: 14px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
-  background: var(--color-surface-2);
+  gap: 10px;
+  background: #f8fafc;
+}
+
+/* Chat Speech Bubbles */
+.chat-message {
+  display: flex;
+  flex-direction: column;
+  max-width: 82%;
+  animation: fadeIn 0.15s ease-out;
+}
+
+.chat-message--in {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+
+.chat-message--out {
+  align-self: flex-start;
+  align-items: flex-start;
+}
+
+.chat-message__bubble {
+  padding: 9px 13px;
+  font-size: 13px;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.chat-message--in .chat-message__bubble {
+  background: var(--color-primary);
+  color: #ffffff;
+  border-radius: 16px 16px 3px 16px;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+}
+
+.chat-message--out .chat-message__bubble {
+  background: #ffffff;
+  color: #0f172a;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px 16px 16px 3px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+.chat-message__meta {
+  font-size: 10px;
+  margin-top: 3px;
+  padding: 0 4px;
+  color: #94a3b8;
+}
+
+/* Quick Suggestion Chips */
+.chat-quick-chips {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 8px 12px;
+  background: #ffffff;
+  border-top: 1px solid #f1f5f9;
+  scrollbar-width: none;
+}
+
+.chat-quick-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.chat-quick-chip {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.chat-quick-chip:hover {
+  background: var(--color-primary-10);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
 }
 
 .chat-input-footer {
-  padding: var(--space-3);
+  padding: 10px 12px;
   background: #ffffff;
   border-top: 1px solid var(--color-border);
   display: flex;
   gap: var(--space-2);
+}
+
+/* Floating Notification Dot / Badge */
+.chat-unread-badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 18px;
+  height: 18px;
+  background: #ef4444;
+  color: #ffffff;
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  animation: pulse 1.5s infinite;
 }
 
 /* ────────────────────────────────────────────────────────────
