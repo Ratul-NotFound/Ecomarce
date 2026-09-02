@@ -60,11 +60,17 @@ function CheckoutContent() {
 
   // Check initial coupon if passed from cart
   useEffect(() => {
-    if (initialCoupon && subtotal > 0) {
+    if (initialCoupon && subtotal > 0 && cart.length > 0) {
+      const itemsPayload = cart.map(i => ({
+        product_id: i.product_id,
+        price: i.variant ? (i.product.sale_price ?? i.product.base_price) + i.variant.price_modifier : (i.product.sale_price ?? i.product.base_price),
+        quantity: i.quantity,
+      }));
+
       fetch('/api/coupons/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: initialCoupon, total: subtotal }),
+        body: JSON.stringify({ code: initialCoupon, total: subtotal, items: itemsPayload }),
       })
         .then(r => r.json())
         .then(res => {
@@ -73,7 +79,7 @@ function CheckoutContent() {
           }
         });
     }
-  }, [initialCoupon, subtotal]);
+  }, [initialCoupon, subtotal, cart]);
 
   const shippingFee = subtotal >= STORE_CONFIG.shipping.freeAbove ? 0 : getShippingFee(district);
   const grandTotal = Math.max(0, subtotal + shippingFee - discountAmount);
