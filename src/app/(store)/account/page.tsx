@@ -150,14 +150,14 @@ export default function AccountPage() {
   return (
     <div className="container" style={{ padding: '32px 16px 80px', maxWidth: '840px' }}>
       {/* Account Overview Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-2xl)', padding: '24px', marginBottom: '24px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{ width: '56px', height: '56px', borderRadius: '9999px', background: 'var(--color-primary-10)', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', fontWeight: 800 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-2xl)', padding: '20px', marginBottom: '24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', minWidth: '200px' }}>
+          <div style={{ width: '52px', height: '52px', minWidth: '52px', borderRadius: '9999px', background: 'var(--color-primary-10)', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: 800 }}>
             {profile?.full_name?.charAt(0) || user.email?.charAt(0)?.toUpperCase()}
           </div>
-          <div>
-            <h1 style={{ fontSize: '20px', fontWeight: 800 }}>{profile?.full_name || 'My Account'}</h1>
-            <div style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>{user.email}</div>
+          <div style={{ overflow: 'hidden' }}>
+            <h1 style={{ fontSize: '18px', fontWeight: 800, wordBreak: 'break-word' }}>{profile?.full_name || 'My Account'}</h1>
+            <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.email}</div>
           </div>
         </div>
 
@@ -166,18 +166,20 @@ export default function AccountPage() {
           onClick={handleSignOut}
           className="btn btn-secondary btn-sm"
           id="account-signout-btn"
+          style={{ whiteSpace: 'nowrap' }}
         >
           <LogOut size={14} />
           <span>Sign Out</span>
         </button>
       </div>
 
-      {/* Tabs Switcher */}
-      <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid var(--color-border)', paddingBottom: '12px', marginBottom: '24px' }}>
+      {/* Tabs Switcher - Horizontally scrollable on small mobile screens */}
+      <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', borderBottom: '1px solid var(--color-border)', paddingBottom: '12px', marginBottom: '24px' }}>
         <button
           type="button"
           onClick={() => setActiveTab('profile')}
           className={`btn ${activeTab === 'profile' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
+          style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
         >
           <User size={14} />
           <span>Profile Details</span>
@@ -187,6 +189,7 @@ export default function AccountPage() {
           type="button"
           onClick={() => setActiveTab('addresses')}
           className={`btn ${activeTab === 'addresses' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
+          style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
         >
           <MapPin size={14} />
           <span>Address Book ({addresses.length})</span>
@@ -196,6 +199,7 @@ export default function AccountPage() {
           type="button"
           onClick={() => setActiveTab('rewards')}
           className={`btn ${activeTab === 'rewards' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
+          style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
         >
           <Gift size={14} />
           <span>Rewards & Referral</span>

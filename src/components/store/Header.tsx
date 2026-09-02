@@ -82,10 +82,10 @@ export default function Header({ categories = [] }: HeaderProps) {
               {itemCount > 0 && <span className="header-badge">{itemCount}</span>}
             </Link>
 
-            {/* User Account / Auth */}
+            {/* User Account / Auth (Desktop only - mobile has bottom nav) */}
             <Link
               href={user ? '/account' : '/auth'}
-              className="header-action-btn"
+              className="header-action-btn hide-mobile"
               title={user ? 'My Account' : 'Sign In'}
               id="header-account-link"
             >
