@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
 
     // Trigger Telegram Order Notification
     try {
-      const { data: settingsData } = await supabase
+      const { data: settingsData } = await dbClient
         .from('store_settings')
         .select('key, value')
         .in('key', ['telegram_bot_token', 'telegram_chat_id', 'telegram_orders_topic_id']);
@@ -140,15 +140,27 @@ export async function POST(request: NextRequest) {
 
       if (token && chatId) {
         const telegram = new TelegramService(token, chatId, ordersTopicId);
-        telegram.notifyNewOrder({
+        await telegram.notifyNewOrder({
           order_number: order.order_number,
           total: order.total,
           payment_method: order.payment_method,
           customer_name: address.full_name,
           district: address.district,
-        }).catch(() => {});
+        });
+
+        // If manual bKash/Nagad TrxID was provided at checkout, notify in topic as well
+        if (paymentTransactionId) {
+          await telegram.notifyPaymentSubmitted({
+            order_number: order.order_number,
+            total: order.total,
+            transaction_id: paymentTransactionId,
+            method: paymentMethod || 'bKash/Nagad',
+          });
+        }
       }
-    } catch {}
+    } catch (telegramErr) {
+      console.warn('Telegram order notification error:', telegramErr);
+    }
 
     return NextResponse.json({
       success: true,
