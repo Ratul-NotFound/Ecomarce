@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { ProductRepository } from '@/lib/supabase/repositories/ProductRepository';
 import { CategoryRepository } from '@/lib/supabase/repositories/CategoryRepository';
+import { getStoreSettings } from '@/lib/store-settings';
 import ProductGrid from '@/components/store/ProductGrid';
 import FilterSidebar from '@/components/store/FilterSidebar';
 import MobileFilterDrawer from '@/components/store/MobileFilterDrawer';
@@ -43,7 +44,11 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   const productRepo = new ProductRepository(supabase);
   const categoryRepo = new CategoryRepository(supabase);
 
-  const categories = await categoryRepo.findAllActive();
+  const [settings, categories] = await Promise.all([
+    getStoreSettings(),
+    categoryRepo.findAllActive(),
+  ]);
+
   const selectedCategory = categorySlug
     ? categories.find(c => c.slug === categorySlug || c.id === categorySlug)
     : null;
@@ -57,6 +62,10 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     page_size: 32,
   });
 
+  const trendingTags = settings.explore_trending_tags
+    ? settings.explore_trending_tags.split(',').map(t => t.trim()).filter(Boolean)
+    : [];
+
   return (
     <div className="container" style={{ padding: '20px 16px 60px' }}>
       {/* Compact Clean Header Row */}
@@ -68,7 +77,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
               ? `"${query}"`
               : selectedCategory
               ? selectedCategory.name_en
-              : 'Explore Catalog'}
+              : settings.explore_title}
           </h1>
         </div>
 
@@ -76,6 +85,42 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           {count} {count === 1 ? 'item' : 'items'}
         </span>
       </div>
+
+      {/* Trending Search Keywords Pills */}
+      {trendingTags.length > 0 && !categorySlug && !query && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            overflowX: 'auto',
+            WebkitOverflowScrolling: 'touch',
+            scrollbarWidth: 'none',
+            marginBottom: '16px',
+            paddingBottom: '4px',
+          }}
+        >
+          <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+            Trending:
+          </span>
+          {trendingTags.map(tag => (
+            <Link
+              key={tag}
+              href={`/search?q=${encodeURIComponent(tag)}`}
+              className="btn btn-sm btn-secondary"
+              style={{
+                borderRadius: 'var(--radius-full)',
+                fontSize: '11px',
+                padding: '3px 10px',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+              }}
+            >
+              {tag}
+            </Link>
+          ))}
+        </div>
+      )}
 
       {/* Active Category Filter Pill if filtered */}
       {selectedCategory && (
@@ -107,7 +152,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       {!categorySlug && !query && (
         <div style={{ marginBottom: '24px' }}>
           <div style={{ fontSize: '14px', fontWeight: 800, marginBottom: '10px', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-            Explore Departments
+            {settings.explore_departments_title}
           </div>
           <div className="explore-category-grid">
             {categories.map((cat, idx) => {
