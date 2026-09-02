@@ -37,7 +37,7 @@ export async function PUT(
       .single();
 
     if (updateRes.error && updateRes.error.code === '42703') {
-      const { cost_price, ...cleanData } = productData;
+      const { cost_price, video_url, ...cleanData } = productData;
       updateRes = await dbClient
         .from('products')
         .update(cleanData)

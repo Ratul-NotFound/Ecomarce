@@ -30,9 +30,9 @@ export async function POST(request: NextRequest) {
       .select()
       .single();
 
-    // If cost_price column doesn't exist yet on remote db, retry without cost_price field
+    // If cost_price or video_url column doesn't exist yet on remote db, retry without them
     if (productResult.error && productResult.error.code === '42703') {
-      const { cost_price, ...cleanData } = productData;
+      const { cost_price, video_url, ...cleanData } = productData;
       productResult = await dbClient
         .from('products')
         .insert(cleanData)
@@ -93,7 +93,7 @@ export async function PUT(request: NextRequest) {
       .single();
 
     if (updateRes.error && updateRes.error.code === '42703') {
-      const { cost_price, ...cleanUpdates } = updates;
+      const { cost_price, video_url, ...cleanUpdates } = updates;
       updateRes = await dbClient
         .from('products')
         .update(cleanUpdates)

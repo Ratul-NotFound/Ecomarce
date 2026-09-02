@@ -3,9 +3,11 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import ImageUploader from './ImageUploader';
+import ProductMediaManager from './ProductMediaManager';
 import { useToast } from '@/components/shared/ToastProvider';
 import { slugify, formatCurrency } from '@/lib/utils/format';
 import { getProductCostPrice, syncCostToTags, calculateProfitMetrics, calculateDiscountPrice, calculateDiscountPercent } from '@/lib/utils/pricing';
+import { getProductVideoUrl, syncVideoToTags } from '@/lib/utils/video';
 import type { Product, Category, ProductVariant } from '@/types';
 import { Plus, Trash2, Calculator, TrendingUp, Percent, Tag, Sparkles } from 'lucide-react';
 
@@ -37,6 +39,9 @@ export default function ProductForm({ initialProduct, categories = [] }: Product
   );
   const [costPrice, setCostPrice] = useState<number | string>(
     initialProduct ? getProductCostPrice(initialProduct) || '' : ''
+  );
+  const [videoUrl, setVideoUrl] = useState<string>(
+    initialProduct ? getProductVideoUrl(initialProduct) || '' : ''
   );
   const [stockQuantity, setStockQuantity] = useState<number | string>(initialProduct?.stock_quantity ?? 10);
   const [lowStockThreshold, setLowStockThreshold] = useState<number | string>(initialProduct?.low_stock_threshold ?? 5);
@@ -128,6 +133,12 @@ export default function ProductForm({ initialProduct, categories = [] }: Product
     try {
       setIsSubmitting(true);
 
+      // Filter out empty slots, ensuring primary slot 0 is first
+      const cleanImages = images.filter(img => Boolean(img && img.trim()));
+
+      const costTags = syncCostToTags(initialProduct?.tags || [], costPrice ? Number(costPrice) : null);
+      const finalTags = syncVideoToTags(costTags, videoUrl.trim() || null);
+
       const payload = {
         name_en: nameEn.trim(),
         name_bn: nameBn.trim() || null,
@@ -138,12 +149,13 @@ export default function ProductForm({ initialProduct, categories = [] }: Product
         base_price: Number(basePrice),
         sale_price: salePrice ? Number(salePrice) : null,
         cost_price: costPrice ? Number(costPrice) : null,
-        tags: syncCostToTags(initialProduct?.tags || [], costPrice ? Number(costPrice) : null),
+        video_url: videoUrl.trim() || null,
+        tags: finalTags,
         stock_quantity: Number(stockQuantity) || 0,
         low_stock_threshold: Number(lowStockThreshold) || 5,
         description_en: descriptionEn.trim() || null,
         description_bn: descriptionBn.trim() || null,
-        images,
+        images: cleanImages,
         is_featured: isFeatured,
         is_flash_sale: isFlashSale,
         flash_sale_ends_at: isFlashSale ? new Date(Date.now() + 7 * 86400000).toISOString() : null,
@@ -677,12 +689,14 @@ export default function ProductForm({ initialProduct, categories = [] }: Product
             </div>
           </div>
 
-          {/* Media Images */}
+          {/* 4 Pictures & Video Media Manager */}
           <div className="admin-card">
-            <h2 style={{ fontSize: '16px', fontWeight: 800, color: '#ffffff', marginBottom: '16px' }}>
-              Product Gallery Images
-            </h2>
-            <ImageUploader images={images} onChange={setImages} />
+            <ProductMediaManager
+              images={images}
+              onChangeImages={setImages}
+              videoUrl={videoUrl}
+              onChangeVideoUrl={setVideoUrl}
+            />
           </div>
 
           {/* Submit / Cancel Actions */}

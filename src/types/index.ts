@@ -100,6 +100,7 @@ export interface Product {
   stock_quantity: number;
   low_stock_threshold: number;
   images: string[];
+  video_url?: string | null;
   tags: string[];
   has_variants: boolean;
   weight_grams: number | null;

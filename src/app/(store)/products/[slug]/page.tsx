@@ -9,6 +9,7 @@ import ProductDetailClientActions from './ProductDetailClientActions';
 import type { Metadata } from 'next';
 import { STORE_CONFIG } from '@/lib/store-config';
 import { ShieldCheck, Truck, RotateCcw } from 'lucide-react';
+import { getProductVideoUrl } from '@/lib/utils/video';
 
 interface ProductPageProps {
   params: Promise<{ slug: string }>;
@@ -53,8 +54,12 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
   return (
     <div className="container" style={{ paddingBottom: '60px' }}>
       <div className="pdp-layout">
-        {/* Left Column: Image Gallery */}
-        <ProductGallery images={product.images || []} productName={product.name_en} />
+        {/* Left Column: Image Gallery & Video Player */}
+        <ProductGallery
+          images={product.images || []}
+          productName={product.name_en}
+          videoUrl={product.video_url || getProductVideoUrl(product)}
+        />
 
         {/* Right Column: Information, Pricing & Interactive Island */}
         <div className="pdp-info">
