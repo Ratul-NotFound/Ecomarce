@@ -2,6 +2,7 @@ import React from 'react';
 import { createClient } from '@/lib/supabase/server';
 import { ProductRepository } from '@/lib/supabase/repositories/ProductRepository';
 import { CategoryRepository } from '@/lib/supabase/repositories/CategoryRepository';
+import { getStoreSettings } from '@/lib/store-settings';
 import HeroBanner from '@/components/store/HeroBanner';
 import CategoryGrid from '@/components/store/CategoryGrid';
 import FlashSale from '@/components/store/FlashSale';
@@ -21,6 +22,7 @@ export default async function HomePage() {
   let flashSaleProducts: Product[] = [];
   let featuredProducts: Product[] = [];
   let newArrivals: Product[] = [];
+  let settings = await getStoreSettings();
 
   try {
     const [bannersRes, cats, flash, feat, newest] = await Promise.all([
@@ -178,20 +180,18 @@ export default async function HomePage() {
     flashSaleProducts = demoSampleProducts.filter(p => p.is_flash_sale);
   }
 
-  return (
-    <div className="container" style={{ paddingBottom: '40px' }} suppressHydrationWarning>
-      {/* Hero Section Carousel */}
-      <HeroBanner banners={banners} />
-
-      {/* Trust & Guarantee Badges */}
-      <div className="trust-badges-grid">
+  // Dynamic Section Map for Sequence Customization
+  const sectionMap: Record<string, React.ReactNode> = {
+    hero: <HeroBanner key="hero" banners={banners} />,
+    trust_badges: (
+      <div key="trust_badges" className="trust-badges-grid">
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{ padding: '10px', background: 'var(--color-primary-10)', color: 'var(--color-primary)', borderRadius: 'var(--radius-lg)' }}>
             <Truck size={22} />
           </div>
           <div>
-            <div style={{ fontWeight: 700, fontSize: '13px' }}>All-BD Fast Delivery</div>
-            <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>60৳ Dhaka • 120৳ Out</div>
+            <div style={{ fontWeight: 700, fontSize: '13px' }}>{settings.trust_badge_1_title}</div>
+            <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>{settings.trust_badge_1_desc}</div>
           </div>
         </div>
 
@@ -200,8 +200,8 @@ export default async function HomePage() {
             <ShieldCheck size={22} />
           </div>
           <div>
-            <div style={{ fontWeight: 700, fontSize: '13px' }}>100% Genuine</div>
-            <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>Directly verified</div>
+            <div style={{ fontWeight: 700, fontSize: '13px' }}>{settings.trust_badge_2_title}</div>
+            <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>{settings.trust_badge_2_desc}</div>
           </div>
         </div>
 
@@ -210,8 +210,8 @@ export default async function HomePage() {
             <RotateCcw size={22} />
           </div>
           <div>
-            <div style={{ fontWeight: 700, fontSize: '13px' }}>7-Day Returns</div>
-            <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>Easy replacement</div>
+            <div style={{ fontWeight: 700, fontSize: '13px' }}>{settings.trust_badge_3_title}</div>
+            <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>{settings.trust_badge_3_desc}</div>
           </div>
         </div>
 
@@ -220,32 +220,30 @@ export default async function HomePage() {
             <Headphones size={22} />
           </div>
           <div>
-            <div style={{ fontWeight: 700, fontSize: '13px' }}>Live Support</div>
-            <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>Instant Telegram chat</div>
+            <div style={{ fontWeight: 700, fontSize: '13px' }}>{settings.trust_badge_4_title}</div>
+            <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>{settings.trust_badge_4_desc}</div>
           </div>
         </div>
       </div>
-
-      {/* Featured Categories */}
-      <CategoryGrid categories={categories} />
-
-      {/* Flash Sale Banner + Grid */}
-      {flashSaleProducts.length > 0 && <FlashSale products={flashSaleProducts} />}
-
-      {/* Featured Products Showcase */}
-      <section style={{ margin: '40px 0' }}>
+    ),
+    categories: <CategoryGrid key="categories" categories={categories} />,
+    flash_sale: settings.homepage_flash_sale_enabled && flashSaleProducts.length > 0 ? (
+      <FlashSale key="flash_sale" products={flashSaleProducts} />
+    ) : null,
+    featured: (
+      <section key="featured" style={{ margin: '40px 0' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Sparkles size={22} color="var(--color-primary)" />
-            <h2>Featured Products</h2>
+            <h2>{settings.homepage_featured_title}</h2>
           </div>
           <span style={{ fontSize: '14px', color: 'var(--color-primary)', fontWeight: 600 }}>Curated Top Picks</span>
         </div>
         <ProductGrid products={featuredProducts} />
       </section>
-
-      {/* New Arrivals Showcase */}
-      <section style={{ margin: '40px 0' }}>
+    ),
+    new_arrivals: (
+      <section key="new_arrivals" style={{ margin: '40px 0' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <TrendingUp size={22} color="var(--color-success)" />
@@ -255,6 +253,16 @@ export default async function HomePage() {
         </div>
         <ProductGrid products={newArrivals} />
       </section>
+    ),
+  };
+
+  return (
+    <div className="container" style={{ paddingBottom: '40px' }} suppressHydrationWarning>
+      {settings.homepage_sections_order.map(secKey => {
+        const isVisible = settings.homepage_section_visibility?.[secKey] !== false;
+        if (!isVisible) return null;
+        return sectionMap[secKey] || null;
+      })}
     </div>
   );
 }
