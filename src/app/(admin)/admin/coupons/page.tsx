@@ -21,13 +21,17 @@ export default function AdminCouponsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const loadCoupons = async () => {
-    const supabase = createClient();
-    const { data } = await supabase
-      .from('coupons')
-      .select('*')
-      .order('created_at', { ascending: false });
-    if (data) setCoupons(data as Coupon[]);
-    setLoading(false);
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('coupons')
+        .select('*');
+      if (data) setCoupons(data as Coupon[]);
+    } catch (err) {
+      console.warn('Failed to load coupons:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {

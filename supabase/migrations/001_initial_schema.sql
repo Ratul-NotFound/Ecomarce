@@ -244,7 +244,8 @@ CREATE TABLE coupons (
   max_uses         INTEGER,
   used_count       INTEGER       NOT NULL DEFAULT 0,
   expires_at       TIMESTAMPTZ,
-  is_active        BOOLEAN       NOT NULL DEFAULT true
+  is_active        BOOLEAN       NOT NULL DEFAULT true,
+  created_at       TIMESTAMPTZ   NOT NULL DEFAULT NOW()
 );
 
 -- ============================================================
