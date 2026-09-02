@@ -5,6 +5,7 @@ import { ProductRepository } from '@/lib/supabase/repositories/ProductRepository
 import { CategoryRepository } from '@/lib/supabase/repositories/CategoryRepository';
 import ProductGrid from '@/components/store/ProductGrid';
 import FilterSidebar from '@/components/store/FilterSidebar';
+import MobileFilterDrawer from '@/components/store/MobileFilterDrawer';
 import { Search, Zap, LayoutGrid, Flame } from 'lucide-react';
 import { STORE_CONFIG } from '@/lib/store-config';
 import type { Metadata } from 'next';
@@ -150,6 +151,9 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           );
         })}
       </div>
+
+      {/* Mobile Filter & Sort Bar (Opens Bottom Drawer) */}
+      <MobileFilterDrawer categories={categories} totalCount={count} />
 
       {/* Product Grid Layout */}
       <div className="search-page-layout">
