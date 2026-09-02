@@ -62,8 +62,7 @@ function AuthForm() {
 
         showToast('Account created successfully!', 'success');
         if (data.session) {
-          router.push(redirect);
-          router.refresh();
+          window.location.href = redirect;
         } else {
           showToast('Please check your email to confirm your account', 'info');
         }
@@ -75,8 +74,7 @@ function AuthForm() {
         if (error) throw error;
 
         showToast('Signed in successfully!', 'success');
-        router.push(redirect);
-        router.refresh();
+        window.location.href = redirect;
       }
     } catch (err: any) {
       showToast(err.message || 'Authentication failed', 'error');
