@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { SlidersHorizontal, ArrowUpDown, X, RotateCcw, Zap, Check } from 'lucide-react';
 import type { Category } from '@/types';
+import DualRangeSlider from './DualRangeSlider';
 
 interface MobileFilterDrawerProps {
   categories?: Category[];
@@ -11,10 +12,10 @@ interface MobileFilterDrawerProps {
 }
 
 const PRICE_PRESETS = [
-  { label: 'Under ৳1k', min: '', max: '1000' },
-  { label: '৳1k - ৳2.5k', min: '1000', max: '2500' },
-  { label: '৳2.5k - ৳5k', min: '2500', max: '5000' },
-  { label: '৳5k+', min: '5000', max: '' },
+  { label: 'Under ৳1k', min: 0, max: 1000 },
+  { label: '৳1k - ৳2.5k', min: 1000, max: 2500 },
+  { label: '৳2.5k - ৳5k', min: 2500, max: 5000 },
+  { label: '৳5k+', min: 5000, max: 10000 },
 ];
 
 export default function MobileFilterDrawer({
@@ -27,19 +28,16 @@ export default function MobileFilterDrawer({
 
   const [isOpen, setIsOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || '');
-  const [minPrice, setMinPrice] = useState(searchParams.get('min_price') || '');
-  const [maxPrice, setMaxPrice] = useState(searchParams.get('max_price') || '10000');
-  const [sliderMax, setSliderMax] = useState<number>(Number(searchParams.get('max_price')) || 10000);
+  const [minPrice, setMinPrice] = useState<number>(Number(searchParams.get('min_price')) || 0);
+  const [maxPrice, setMaxPrice] = useState<number>(Number(searchParams.get('max_price')) || 10000);
   const [isFlashSale, setIsFlashSale] = useState(searchParams.get('flash_sale') === 'true');
   const [sort, setSort] = useState(searchParams.get('sort') || 'newest');
 
   // Sync state when URL params change
   useEffect(() => {
     setSelectedCategory(searchParams.get('category') || '');
-    setMinPrice(searchParams.get('min_price') || '');
-    const currentMax = searchParams.get('max_price');
-    setMaxPrice(currentMax || '');
-    setSliderMax(currentMax ? Number(currentMax) : 10000);
+    setMinPrice(Number(searchParams.get('min_price')) || 0);
+    setMaxPrice(Number(searchParams.get('max_price')) || 10000);
     setIsFlashSale(searchParams.get('flash_sale') === 'true');
     setSort(searchParams.get('sort') || 'newest');
   }, [searchParams]);
@@ -47,8 +45,8 @@ export default function MobileFilterDrawer({
   // Calculate active filter count
   const activeFilterCount = [
     selectedCategory,
-    minPrice,
-    maxPrice && maxPrice !== '10000' ? maxPrice : null,
+    minPrice > 0 ? minPrice : null,
+    maxPrice < 10000 ? maxPrice : null,
     isFlashSale,
     sort !== 'newest' ? sort : null,
   ].filter(Boolean).length;
@@ -59,12 +57,11 @@ export default function MobileFilterDrawer({
     if (selectedCategory) params.set('category', selectedCategory);
     else params.delete('category');
 
-    if (minPrice) params.set('min_price', minPrice);
+    if (minPrice > 0) params.set('min_price', String(minPrice));
     else params.delete('min_price');
 
-    if (maxPrice && Number(maxPrice) < 10000) params.set('max_price', maxPrice);
-    else if (maxPrice && Number(maxPrice) >= 10000 && searchParams.get('max_price')) params.delete('max_price');
-    else if (!maxPrice) params.delete('max_price');
+    if (maxPrice < 10000) params.set('max_price', String(maxPrice));
+    else params.delete('max_price');
 
     if (isFlashSale) params.set('flash_sale', 'true');
     else params.delete('flash_sale');
@@ -87,9 +84,8 @@ export default function MobileFilterDrawer({
 
   const handleReset = () => {
     setSelectedCategory('');
-    setMinPrice('');
-    setMaxPrice('');
-    setSliderMax(10000);
+    setMinPrice(0);
+    setMaxPrice(10000);
     setIsFlashSale(false);
     setSort('newest');
     const query = searchParams.get('q');
@@ -101,11 +97,14 @@ export default function MobileFilterDrawer({
     setIsOpen(false);
   };
 
-  const handlePresetClick = (min: string, max: string) => {
+  const handleSliderChange = (newMin: number, newMax: number) => {
+    setMinPrice(newMin);
+    setMaxPrice(newMax);
+  };
+
+  const handlePresetClick = (min: number, max: number) => {
     setMinPrice(min);
     setMaxPrice(max);
-    if (max) setSliderMax(Number(max));
-    else setSliderMax(10000);
   };
 
   return (
@@ -211,43 +210,36 @@ export default function MobileFilterDrawer({
             </div>
           </div>
 
-          {/* 2. Adjustable Price Bar & Slider */}
+          {/* 2. Smooth Two-Sided Adjustable Price Range Bar */}
           <div className="drawer-filter-section">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '8px' }}>
               <h4 className="drawer-section-title" style={{ margin: 0 }}>Price Range</h4>
               <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-primary)' }}>
-                ৳{minPrice || 0} — ৳{sliderMax >= 10000 ? '10,000+' : sliderMax.toLocaleString()}
+                ৳{minPrice.toLocaleString()} — ৳{maxPrice >= 10000 ? '10,000+' : maxPrice.toLocaleString()}
               </span>
             </div>
 
-            {/* Adjustable Slider Range Bar */}
-            <div className="price-slider-container">
-              <input
-                type="range"
-                min="100"
-                max="10000"
-                step="100"
-                value={sliderMax}
-                onChange={e => {
-                  const val = Number(e.target.value);
-                  setSliderMax(val);
-                  setMaxPrice(val >= 10000 ? '' : String(val));
-                }}
-                className="price-range-slider"
-                id="mobile-price-slider"
-              />
-              <div className="price-slider-ticks">
-                <span>৳100</span>
-                <span>৳2,500</span>
-                <span>৳5,000</span>
-                <span>৳10k+</span>
-              </div>
+            {/* Smooth Two-Sided Dual Range Slider */}
+            <DualRangeSlider
+              min={0}
+              max={10000}
+              step={100}
+              minVal={minPrice}
+              maxVal={maxPrice}
+              onChange={handleSliderChange}
+            />
+            <div className="price-slider-ticks">
+              <span>৳0</span>
+              <span>৳2,500</span>
+              <span>৳5,000</span>
+              <span>৳7,500</span>
+              <span>৳10k+</span>
             </div>
 
             {/* Quick Price Presets */}
             <div className="drawer-chips-grid" style={{ marginTop: '12px' }}>
               {PRICE_PRESETS.map((preset, idx) => {
-                const isActive = minPrice === preset.min && (maxPrice === preset.max || (!maxPrice && preset.max === ''));
+                const isActive = minPrice === preset.min && maxPrice === preset.max;
                 return (
                   <button
                     key={idx}
@@ -261,7 +253,7 @@ export default function MobileFilterDrawer({
               })}
             </div>
 
-            {/* Custom Inputs */}
+            {/* Numeric Custom Inputs */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '12px' }}>
               <div>
                 <label style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 600 }}>Min Price (৳)</label>
@@ -269,9 +261,10 @@ export default function MobileFilterDrawer({
                   type="number"
                   placeholder="0"
                   className="form-input"
-                  value={minPrice}
-                  onChange={e => setMinPrice(e.target.value)}
+                  value={minPrice === 0 ? '' : minPrice}
+                  onChange={e => setMinPrice(Number(e.target.value) || 0)}
                   min="0"
+                  max={maxPrice}
                   style={{ height: '36px', fontSize: '13px' }}
                 />
               </div>
@@ -281,12 +274,10 @@ export default function MobileFilterDrawer({
                   type="number"
                   placeholder="10000"
                   className="form-input"
-                  value={maxPrice}
-                  onChange={e => {
-                    setMaxPrice(e.target.value);
-                    if (e.target.value) setSliderMax(Number(e.target.value));
-                  }}
-                  min="0"
+                  value={maxPrice === 10000 ? '' : maxPrice}
+                  onChange={e => setMaxPrice(Number(e.target.value) || 10000)}
+                  min={minPrice}
+                  max="10000"
                   style={{ height: '36px', fontSize: '13px' }}
                 />
               </div>
