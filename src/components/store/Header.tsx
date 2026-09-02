@@ -94,26 +94,6 @@ export default function Header({ categories = [] }: HeaderProps) {
           </div>
         </div>
       </header>
-
-      {/* Category Nav Bar */}
-      {categories.length > 0 && (
-        <nav className="category-nav hide-mobile" aria-label="Product Categories">
-          <div className="container category-nav__list">
-            <Link href="/" className="category-nav__item category-nav__item--active">
-              All Categories
-            </Link>
-            {categories.map(cat => (
-              <Link
-                key={cat.id}
-                href={`/category/${cat.slug}`}
-                className="category-nav__item"
-              >
-                {cat.name_en}
-              </Link>
-            ))}
-          </div>
-        </nav>
-      )}
     </>
   );
 }
