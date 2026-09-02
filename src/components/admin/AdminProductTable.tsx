@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Plus, Edit3, Trash2, ExternalLink, Package, Eye, EyeOff, Search } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils/format';
+import { getOptimizedImageUrl } from '@/lib/utils/images';
 import { useToast } from '@/components/shared/ToastProvider';
 import type { Product } from '@/types';
 
@@ -166,7 +167,7 @@ export default function AdminProductTable({ initialProducts, categories = [] }: 
             </thead>
             <tbody>
               {filteredProducts.map(p => {
-                const img = p.images?.[0] || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=100&q=80';
+                const img = getOptimizedImageUrl(p.images?.[0], 'thumb');
                 const isLoading = loadingId === p.id;
                 return (
                   <tr key={p.id} style={{ opacity: p.is_active ? 1 : 0.65 }}>

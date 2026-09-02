@@ -18,6 +18,7 @@ import {
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/components/shared/ToastProvider';
 import { parseVideoEmbedUrl } from '@/lib/utils/video';
+import { createDualResolutionUpload, getOptimizedImageUrl } from '@/lib/utils/images';
 
 interface ProductMediaManagerProps {
   images: string[];
@@ -75,7 +76,7 @@ export default function ProductMediaManager({
     showToast(`Slot #${index + 1} promoted to Main Cover!`, 'success');
   };
 
-  // Handle file upload for a specific slot
+  // Handle file upload for a specific slot with automatic 2-tier dual resolution compression
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, slotIdx: number) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -83,32 +84,35 @@ export default function ProductMediaManager({
     try {
       setUploadingSlot(slotIdx);
       const file = files[0];
+
+      // Automatically generate Tier 1 (ultra-compressed thumb) & Tier 2 (HD detail)
+      const { thumb, full, originalSizeBytes } = await createDualResolutionUpload(file);
+
       const supabase = createClient();
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}_slot${slotIdx}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
-      const filePath = `products/${fileName}`;
+      const baseId = `${Date.now()}_slot${slotIdx}_${Math.random().toString(36).substring(2, 6)}`;
+      const filePathThumb = `products/${baseId}_thumb.webp`;
+      const filePathFull = `products/${baseId}_full.webp`;
 
-      let uploadRes = await supabase.storage.from('products').upload(filePath, file, { cacheControl: '3600', upsert: true });
-      if (uploadRes.error) {
-        uploadRes = await supabase.storage.from('Products').upload(filePath, file, { cacheControl: '3600', upsert: true });
+      // Upload both WebP variants to Supabase storage
+      let bucket = 'products';
+      let uploadThumbRes = await supabase.storage.from(bucket).upload(filePathThumb, thumb.blob, { contentType: 'image/webp', cacheControl: '31536000', upsert: true });
+      if (uploadThumbRes.error) {
+        bucket = 'Products';
+        uploadThumbRes = await supabase.storage.from(bucket).upload(filePathThumb, thumb.blob, { contentType: 'image/webp', cacheControl: '31536000', upsert: true });
       }
 
-      if (uploadRes.error) {
-        // Fallback to FileReader base64
-        const reader = new FileReader();
-        const base64Promise = new Promise<string>(resolve => {
-          reader.onload = () => resolve(reader.result as string);
-          reader.readAsDataURL(file);
-        });
-        const base64 = await base64Promise;
-        updateSlot(slotIdx, base64);
+      const uploadFullRes = await supabase.storage.from(bucket).upload(filePathFull, full.blob, { contentType: 'image/webp', cacheControl: '31536000', upsert: true });
+
+      if (uploadFullRes.error || uploadThumbRes.error) {
+        // Storage bucket fallback to compressed WebP dataUrl
+        updateSlot(slotIdx, full.dataUrl);
+        showToast('Image compressed & saved (Client WebP mode)', 'success');
       } else {
-        const bucket = uploadRes.data ? 'products' : 'Products';
-        const { data: publicUrlData } = supabase.storage.from(bucket).getPublicUrl(filePath);
+        const { data: publicUrlData } = supabase.storage.from(bucket).getPublicUrl(filePathFull);
         updateSlot(slotIdx, publicUrlData.publicUrl);
+        const savedPercent = Math.round(((originalSizeBytes - thumb.sizeBytes) / originalSizeBytes) * 100);
+        showToast(`Optimized! Thumbnail is ${Math.round(thumb.sizeBytes / 1024)}KB (${savedPercent}% smaller)`, 'success');
       }
-
-      showToast(`Slot #${slotIdx + 1} image uploaded!`, 'success');
     } catch (err: any) {
       showToast(err.message || 'Image upload failed', 'error');
     } finally {

@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { ShoppingBag, Zap, Flame, Check } from 'lucide-react';
 import type { Product } from '@/types';
 import { formatCurrency, calcDiscountPercent } from '@/lib/utils/format';
+import { getOptimizedImageUrl } from '@/lib/utils/images';
 import { useCart } from '@/hooks/useCart';
 import { useToast } from '@/components/shared/ToastProvider';
 
@@ -22,11 +23,11 @@ export default function DealProductCard({ product }: DealProductCardProps) {
 
   const effectivePrice = product.sale_price ?? product.base_price;
   const hasDiscount = Boolean(product.sale_price && product.sale_price < product.base_price);
-  const discountPercent = hasDiscount
-    ? calcDiscountPercent(product.base_price, product.sale_price!)
-    : Math.max(15, Math.floor(((product.id.charCodeAt(0) % 30) + 15)));
+  const discountPercent = product.sale_price
+    ? calcDiscountPercent(product.base_price, product.sale_price)
+    : 15;
 
-  const savingsAmount = hasDiscount
+  const savingsAmount = product.sale_price
     ? product.base_price - product.sale_price!
     : Math.round(product.base_price * (discountPercent / 100));
 
@@ -35,10 +36,8 @@ export default function DealProductCard({ product }: DealProductCardProps) {
   const stockLeft = Math.max(2, (product.id.charCodeAt(2) % 12) + 2);
   const percentClaimed = Math.min(95, Math.max(65, Math.round((soldCount / (soldCount + stockLeft)) * 100)));
 
-  const imageUrl =
-    product.images && product.images.length > 0
-      ? product.images[0]
-      : 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&q=80';
+  const rawImage = product.images && product.images.length > 0 ? product.images[0] : null;
+  const imageUrl = getOptimizedImageUrl(rawImage, 'thumb');
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();

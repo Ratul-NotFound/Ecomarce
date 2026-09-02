@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Heart, ShoppingBag, Star, Check, Zap } from 'lucide-react';
 import type { Product } from '@/types';
 import { formatCurrency, calcDiscountPercent } from '@/lib/utils/format';
+import { getOptimizedImageUrl } from '@/lib/utils/images';
 import { useCart } from '@/hooks/useCart';
 import { useAuth } from '@/hooks/useAuth';
 import { createClient } from '@/lib/supabase/client';
@@ -30,10 +31,9 @@ export default function ProductCard({ product }: ProductCardProps) {
     ? calcDiscountPercent(product.base_price, product.sale_price!)
     : 0;
 
-  const imageUrl =
-    product.images && product.images.length > 0
-      ? product.images[0]
-      : 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&q=80';
+  // Ultra-optimized Tier 1 thumbnail (~20KB)
+  const rawImage = product.images && product.images.length > 0 ? product.images[0] : null;
+  const imageUrl = getOptimizedImageUrl(rawImage, 'thumb');
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
