@@ -1,9 +1,8 @@
-'use client';
-
 import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Heart, ShoppingBag, Star, Check } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Heart, ShoppingBag, Star, Check, Zap } from 'lucide-react';
 import type { Product } from '@/types';
 import { formatCurrency, calcDiscountPercent } from '@/lib/utils/format';
 import { useCart } from '@/hooks/useCart';
@@ -16,6 +15,7 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
+  const router = useRouter();
   const { add } = useCart();
   const { user } = useAuth();
   const { showToast } = useToast();
@@ -40,6 +40,13 @@ export default function ProductCard({ product }: ProductCardProps) {
     setAddedAnim(true);
     showToast(`Added "${product.name_en}" to cart!`, 'success');
     setTimeout(() => setAddedAnim(false), 1500);
+  };
+
+  const handleBuyNow = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    add(product, null, 1);
+    router.push('/checkout');
   };
 
   const handleToggleWishlist = async (e: React.MouseEvent) => {
@@ -133,28 +140,43 @@ export default function ProductCard({ product }: ProductCardProps) {
           )}
         </div>
 
-        {/* Add to Cart Button */}
-        <button
-          type="button"
-          onClick={handleAddToCart}
-          disabled={product.stock_quantity <= 0}
-          className="product-card__action-btn"
-          id={`add-btn-${product.id}`}
-        >
-          {addedAnim ? (
-            <>
-              <Check size={14} />
-              <span>Added!</span>
-            </>
-          ) : product.stock_quantity <= 0 ? (
-            <span>Out of Stock</span>
-          ) : (
-            <>
-              <ShoppingBag size={14} />
-              <span>Add to Cart</span>
-            </>
-          )}
-        </button>
+        {/* Dual Actions: Add to Cart + Buy Now */}
+        <div className="product-card__btn-group">
+          <button
+            type="button"
+            onClick={handleAddToCart}
+            disabled={product.stock_quantity <= 0}
+            className="product-card__btn product-card__btn--cart"
+            title="Add to Cart"
+            id={`add-btn-${product.id}`}
+          >
+            {addedAnim ? (
+              <>
+                <Check size={14} />
+                <span>Added</span>
+              </>
+            ) : product.stock_quantity <= 0 ? (
+              <span>Out of Stock</span>
+            ) : (
+              <>
+                <ShoppingBag size={14} />
+                <span>Cart</span>
+              </>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleBuyNow}
+            disabled={product.stock_quantity <= 0}
+            className="product-card__btn product-card__btn--buy"
+            title="Buy Now"
+            id={`buy-btn-${product.id}`}
+          >
+            <Zap size={14} fill="currentColor" />
+            <span>Buy Now</span>
+          </button>
+        </div>
       </div>
     </div>
   );
