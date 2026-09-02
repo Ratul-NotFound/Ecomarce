@@ -36,18 +36,20 @@ export default function AccountPage() {
       setFullName(profile.full_name || '');
       setPhone(profile.phone || '');
     }
-    if (user) {
-      const supabase = createClient();
-      supabase
-        .from('addresses')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('is_default', { ascending: false })
-        .then(({ data }) => {
-          if (data) setAddresses(data as Address[]);
-        });
-    }
-  }, [user, profile]);
+  }, [profile]);
+
+  useEffect(() => {
+    if (!user) return;
+    const supabase = createClient();
+    supabase
+      .from('addresses')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('is_default', { ascending: false })
+      .then(({ data }) => {
+        if (data) setAddresses(data as Address[]);
+      });
+  }, [user?.id]);
 
   if (loading) {
     return (

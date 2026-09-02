@@ -33,11 +33,22 @@ export function useAuth() {
 
     const initAuth = async () => {
       try {
+        // 1. Instant local session lookup (0ms latency)
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user && isMounted) {
+          setUser(session.user);
+          setLoading(false);
+          fetchProfile(session.user.id);
+        }
+
+        // 2. Validate user in background
         const { data: { user } } = await supabase.auth.getUser();
         if (isMounted) {
           setUser(user);
           if (user) {
             await fetchProfile(user.id);
+          } else {
+            setProfile(null);
           }
         }
       } catch (err) {
@@ -54,7 +65,7 @@ export function useAuth() {
       const currentUser = session?.user ?? null;
       setUser(currentUser);
       if (currentUser) {
-        await fetchProfile(currentUser.id);
+        fetchProfile(currentUser.id);
       } else {
         setProfile(null);
       }
