@@ -733,6 +733,144 @@
   }
 }
 
+/* Responsive Cart Item Card */
+.cart-item-card {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  align-items: flex-start;
+  transition: border-color var(--transition-fast);
+}
+
+@media (min-width: 640px) {
+  .cart-item-card {
+    gap: 16px;
+    padding: 16px;
+    align-items: center;
+  }
+}
+
+.cart-item-thumb {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--color-surface-2);
+}
+
+@media (min-width: 640px) {
+  .cart-item-thumb {
+    width: 84px;
+    height: 84px;
+  }
+}
+
+.cart-item-details {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cart-item-top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.cart-item-title {
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--color-text-primary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-decoration: none;
+}
+
+@media (min-width: 640px) {
+  .cart-item-title {
+    font-size: 14px;
+  }
+}
+
+.cart-item-trash-btn {
+  color: var(--color-text-muted);
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all var(--transition-fast);
+}
+
+.cart-item-trash-btn:hover {
+  color: var(--color-danger);
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.cart-item-bottom-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 6px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cart-item-price {
+  font-weight: 800;
+  color: var(--color-primary);
+  font-size: 15px;
+}
+
+.cart-item-stepper {
+  display: flex;
+  align-items: center;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.cart-item-stepper button {
+  padding: 4px 8px;
+  min-width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.cart-item-stepper button:hover {
+  background: var(--color-border);
+  color: var(--color-text-primary);
+}
+
+.cart-item-stepper span {
+  font-size: 12px;
+  font-weight: 700;
+  min-width: 24px;
+  text-align: center;
+}
+
 /* ────────────────────────────────────────────────────────────
    SEARCH & CATEGORY RESPONSIVE LAYOUTS
    ──────────────────────────────────────────────────────────── */

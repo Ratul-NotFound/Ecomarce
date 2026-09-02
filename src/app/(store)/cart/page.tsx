@@ -66,14 +66,14 @@ export default function CartPage() {
   }
 
   return (
-    <div className="container" style={{ padding: '24px 16px 80px' }}>
-      <h1 style={{ fontSize: '24px', fontWeight: 800, marginBottom: '20px' }}>
+    <div className="container" style={{ padding: '24px 16px 120px' }}>
+      <h1 style={{ fontSize: '22px', fontWeight: 800, marginBottom: '16px' }}>
         Shopping Cart ({itemCount} {itemCount === 1 ? 'item' : 'items'})
       </h1>
 
       <div className="cart-layout">
         {/* Cart Items List */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {cart.map(item => {
               const unitPrice = item.variant
                 ? (item.product.sale_price ?? item.product.base_price) + item.variant.price_modifier
@@ -83,79 +83,79 @@ export default function CartPage() {
               return (
                 <div
                   key={`${item.product_id}_${item.variant_id || 'base'}`}
-                  style={{
-                    display: 'flex',
-                    gap: '16px',
-                    padding: '16px',
-                    background: 'var(--color-surface)',
-                    border: '1px solid var(--color-border)',
-                    borderRadius: 'var(--radius-xl)',
-                    alignItems: 'center',
-                  }}
+                  className="cart-item-card"
                 >
-                  <div style={{ position: 'relative', width: '80px', height: '80px', borderRadius: 'var(--radius-md)', overflow: 'hidden', flexShrink: 0, background: 'var(--color-surface-2)' }}>
+                  <div className="cart-item-thumb">
                     <Image src={imgUrl} alt={item.product.name_en} fill style={{ objectFit: 'cover' }} />
                   </div>
 
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <Link href={`/products/${item.product.slug}`} style={{ fontWeight: 700, fontSize: '14px', color: 'var(--color-text-primary)' }}>
-                      <div className="truncate">{item.product.name_en}</div>
-                    </Link>
+                  <div className="cart-item-details">
+                    <div className="cart-item-top-row">
+                      <Link href={`/products/${item.product.slug}`} className="cart-item-title">
+                        {item.product.name_en}
+                      </Link>
+
+                      {/* Delete Item */}
+                      <button
+                        type="button"
+                        onClick={() => remove(item.product_id, item.variant_id)}
+                        className="cart-item-trash-btn"
+                        aria-label="Remove item"
+                        title="Remove item"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+
                     {item.variant && (
-                      <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+                      <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
                         Variant: {item.variant.size || item.variant.color}
                       </div>
                     )}
-                    <div style={{ fontWeight: 800, color: 'var(--color-primary)', fontSize: '15px', marginTop: '6px' }}>
-                      {formatCurrency(unitPrice)}
+
+                    <div className="cart-item-bottom-row">
+                      <div className="cart-item-price">
+                        {formatCurrency(unitPrice * item.quantity)}
+                        {item.quantity > 1 && (
+                          <span style={{ fontSize: '11px', fontWeight: 500, color: 'var(--color-text-muted)', marginLeft: '4px' }}>
+                            ({formatCurrency(unitPrice)}/ea)
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Quantity Stepper */}
+                      <div className="cart-item-stepper">
+                        <button
+                          type="button"
+                          onClick={() => updateQuantity(item.product_id, item.variant_id, item.quantity - 1)}
+                          aria-label="Decrease quantity"
+                        >
+                          <Minus size={11} />
+                        </button>
+                        <span>{item.quantity}</span>
+                        <button
+                          type="button"
+                          onClick={() => updateQuantity(item.product_id, item.variant_id, item.quantity + 1)}
+                          aria-label="Increase quantity"
+                        >
+                          <Plus size={11} />
+                        </button>
+                      </div>
                     </div>
                   </div>
-
-                  {/* Quantity Stepper */}
-                  <div style={{ display: 'flex', alignItems: 'center', background: 'var(--color-surface-2)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)' }}>
-                    <button
-                      type="button"
-                      onClick={() => updateQuantity(item.product_id, item.variant_id, item.quantity - 1)}
-                      style={{ padding: '6px 8px', color: 'var(--color-text-secondary)' }}
-                      aria-label="Decrease"
-                    >
-                      <Minus size={12} />
-                    </button>
-                    <span style={{ fontSize: '13px', fontWeight: 700, minWidth: '24px', textAlign: 'center' }}>
-                      {item.quantity}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => updateQuantity(item.product_id, item.variant_id, item.quantity + 1)}
-                      style={{ padding: '6px 8px', color: 'var(--color-text-secondary)' }}
-                      aria-label="Increase"
-                    >
-                      <Plus size={12} />
-                    </button>
-                  </div>
-
-                  {/* Delete Item */}
-                  <button
-                    type="button"
-                    onClick={() => remove(item.product_id, item.variant_id)}
-                    style={{ color: 'var(--color-text-muted)', background: 'none', border: 'none', padding: '8px', cursor: 'pointer' }}
-                    aria-label="Remove item"
-                  >
-                    <Trash2 size={18} />
-                  </button>
                 </div>
               );
             })}
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px', padding: '0 4px' }}>
               <button
                 type="button"
                 onClick={clear}
-                style={{ fontSize: '13px', color: 'var(--color-danger)', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}
+                style={{ fontSize: '12px', color: 'var(--color-danger)', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}
               >
                 Clear Cart
               </button>
-              <Link href="/" style={{ fontSize: '13px', color: 'var(--color-primary)', fontWeight: 600 }}>
+              <Link href="/" style={{ fontSize: '12px', color: 'var(--color-primary)', fontWeight: 600 }}>
                 ← Continue Shopping
               </Link>
             </div>
@@ -172,7 +172,7 @@ export default function CartPage() {
                   type="text"
                   placeholder="Coupon code (e.g. SAVE10)"
                   className="form-input"
-                  style={{ height: '40px', textTransform: 'uppercase' }}
+                  style={{ height: '40px', textTransform: 'uppercase', flex: 1, minWidth: 0 }}
                   value={couponInput}
                   onChange={e => setCouponInput(e.target.value)}
                 />
@@ -180,6 +180,7 @@ export default function CartPage() {
                   type="submit"
                   disabled={isValidatingCoupon || !couponInput.trim()}
                   className="btn btn-secondary btn-sm"
+                  style={{ flexShrink: 0, padding: '0 16px', height: '40px' }}
                   id="cart-apply-coupon-btn"
                 >
                   {isValidatingCoupon ? '...' : 'Apply'}

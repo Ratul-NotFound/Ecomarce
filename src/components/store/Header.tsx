@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { ShoppingBag, Heart, User, Search, ShieldCheck } from 'lucide-react';
 import { STORE_CONFIG } from '@/lib/store-config';
 import { useCart } from '@/hooks/useCart';
@@ -14,6 +14,8 @@ interface HeaderProps {
 
 export default function Header({ categories = [] }: HeaderProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const isCartOrCheckout = pathname === '/cart' || pathname === '/checkout';
   const { itemCount } = useCart();
   const { user, profile, isAdmin, isModerator } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
@@ -104,18 +106,20 @@ export default function Header({ categories = [] }: HeaderProps) {
           </div>
         </div>
 
-        {/* Mobile Dedicated Search Bar */}
-        <form onSubmit={handleSearchSubmit} className="store-header__mobile-search">
-          <Search className="store-header__mobile-search-icon" size={16} />
-          <input
-            type="text"
-            placeholder="Search products, brands, categories..."
-            className="store-header__mobile-search-input"
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            id="mobile-header-search-input"
-          />
-        </form>
+        {/* Mobile Dedicated Search Bar (Hidden on Cart & Checkout to prevent overlap) */}
+        {!isCartOrCheckout && (
+          <form onSubmit={handleSearchSubmit} className="store-header__mobile-search">
+            <Search className="store-header__mobile-search-icon" size={16} />
+            <input
+              type="text"
+              placeholder="Search products, brands, categories..."
+              className="store-header__mobile-search-input"
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              id="mobile-header-search-input"
+            />
+          </form>
+        )}
       </div>
     </header>
   );

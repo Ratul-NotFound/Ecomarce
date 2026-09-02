@@ -136,8 +136,8 @@ function CheckoutContent() {
   };
 
   return (
-    <div className="container" style={{ padding: '24px 16px 80px' }}>
-      <h1 style={{ fontSize: '24px', fontWeight: 800, marginBottom: '20px' }}>Checkout</h1>
+    <div className="container" style={{ padding: '24px 16px 120px' }}>
+      <h1 style={{ fontSize: '22px', fontWeight: 800, marginBottom: '16px' }}>Checkout</h1>
 
       <form onSubmit={handlePlaceOrder} className="checkout-layout">
         {/* Left Column: Address & Payment */}
