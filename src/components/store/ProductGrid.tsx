@@ -31,15 +31,7 @@ export default function ProductGrid({
   }
 
   return (
-    <div
-      style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(2, 1fr)',
-        gap: 'var(--space-4)',
-        margin: 'var(--space-4) 0 var(--space-8)',
-      }}
-      className="product-grid"
-    >
+    <div className="product-grid">
       {products.map(product => (
         <ProductCard key={product.id} product={product} />
       ))}

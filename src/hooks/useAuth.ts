@@ -10,7 +10,7 @@ export function useAuth() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Memoize browser Supabase client
+  // Memoize browser Supabase client so it never triggers re-render dependency cascades
   const supabase = useMemo(() => createClient(), []);
 
   const fetchProfile = useCallback(async (userId: string) => {
@@ -22,11 +22,9 @@ export function useAuth() {
         .single();
       if (!error && data) {
         setProfile(data as Profile);
-      } else {
-        setProfile(null);
       }
-    } catch {
-      setProfile(null);
+    } catch (err) {
+      console.error('Failed to load profile:', err);
     }
   }, [supabase]);
 
@@ -35,21 +33,15 @@ export function useAuth() {
 
     const initAuth = async () => {
       try {
-        const { data, error } = await supabase.auth.getUser();
+        const { data: { user } } = await supabase.auth.getUser();
         if (isMounted) {
-          if (!error && data?.user) {
-            setUser(data.user);
-            await fetchProfile(data.user.id);
-          } else {
-            setUser(null);
-            setProfile(null);
+          setUser(user);
+          if (user) {
+            await fetchProfile(user.id);
           }
         }
-      } catch {
-        if (isMounted) {
-          setUser(null);
-          setProfile(null);
-        }
+      } catch (err) {
+        console.error('Error fetching auth user:', err);
       } finally {
         if (isMounted) setLoading(false);
       }

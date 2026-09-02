@@ -184,35 +184,44 @@ export default async function HomePage() {
       <HeroBanner banners={banners} />
 
       {/* Trust & Guarantee Badges */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(2, 1fr)',
-          gap: 'var(--space-3)',
-          margin: 'var(--space-6) 0',
-          background: 'var(--color-surface)',
-          padding: '20px',
-          borderRadius: 'var(--radius-xl)',
-          border: '1px solid var(--color-border)',
-        }}
-      >
+      <div className="trust-badges-grid">
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{ padding: '10px', background: 'var(--color-primary-10)', color: 'var(--color-primary)', borderRadius: 'var(--radius-lg)' }}>
-            <Truck size={24} />
+            <Truck size={22} />
           </div>
           <div>
-            <div style={{ fontWeight: 700, fontSize: '14px' }}>All-BD Fast Delivery</div>
-            <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>60৳ Dhaka • 120৳ Outside</div>
+            <div style={{ fontWeight: 700, fontSize: '13px' }}>All-BD Fast Delivery</div>
+            <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>60৳ Dhaka • 120৳ Out</div>
           </div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{ padding: '10px', background: 'var(--color-success-light)', color: 'var(--color-success)', borderRadius: 'var(--radius-lg)' }}>
-            <ShieldCheck size={24} />
+            <ShieldCheck size={22} />
           </div>
           <div>
-            <div style={{ fontWeight: 700, fontSize: '14px' }}>100% Genuine Products</div>
-            <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>Directly sourced & verified</div>
+            <div style={{ fontWeight: 700, fontSize: '13px' }}>100% Genuine</div>
+            <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>Directly verified</div>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ padding: '10px', background: 'rgba(245, 158, 11, 0.12)', color: '#f59e0b', borderRadius: 'var(--radius-lg)' }}>
+            <RotateCcw size={22} />
+          </div>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: '13px' }}>7-Day Returns</div>
+            <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>Easy replacement</div>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ padding: '10px', background: 'rgba(147, 51, 234, 0.12)', color: '#9333ea', borderRadius: 'var(--radius-lg)' }}>
+            <Headphones size={22} />
+          </div>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: '13px' }}>Live Support</div>
+            <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>Instant Telegram chat</div>
           </div>
         </div>
       </div>

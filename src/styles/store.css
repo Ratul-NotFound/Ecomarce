@@ -249,6 +249,28 @@
 }
 
 /* ────────────────────────────────────────────────────────────
+   TRUST BADGES
+   ──────────────────────────────────────────────────────────── */
+.trust-badges-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-3);
+  margin: var(--space-6) 0;
+  background: var(--color-surface);
+  padding: 16px 20px;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--color-border);
+}
+
+@media (min-width: 768px) {
+  .trust-badges-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-4);
+    padding: 20px 24px;
+  }
+}
+
+/* ────────────────────────────────────────────────────────────
    CATEGORY GRID
    ──────────────────────────────────────────────────────────── */
 .category-grid {
@@ -323,8 +345,36 @@
 }
 
 /* ────────────────────────────────────────────────────────────
-   PRODUCT CARD
+   PRODUCT GRID & CARDS
    ──────────────────────────────────────────────────────────── */
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-3);
+  margin: var(--space-4) 0 var(--space-8);
+}
+
+@media (min-width: 640px) {
+  .product-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-4);
+  }
+}
+
+@media (min-width: 1024px) {
+  .product-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-5);
+  }
+}
+
+@media (min-width: 1400px) {
+  .product-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-6);
+  }
+}
+
 .product-card {
   position: relative;
   background: var(--color-surface);
