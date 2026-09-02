@@ -93,6 +93,21 @@ export default function Header({ categories = [] }: HeaderProps) {
             </Link>
           </div>
         </div>
+
+        {/* Mobile Dedicated Search Row */}
+        <div className="container store-header__mobile-search show-mobile-only">
+          <form onSubmit={handleSearchSubmit} className="store-header__search">
+            <Search className="store-header__search-icon" size={16} />
+            <input
+              type="text"
+              placeholder="Search products, brands, categories..."
+              className="store-header__search-input"
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              id="header-search-input-mobile"
+            />
+          </form>
+        </div>
       </header>
     </>
   );
