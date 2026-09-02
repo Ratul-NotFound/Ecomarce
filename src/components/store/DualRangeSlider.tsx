@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useCallback, useEffect, useState, useRef } from 'react';
+import React, { useRef, useState, useCallback, useEffect } from 'react';
 
 interface DualRangeSliderProps {
-  min: number;
-  max: number;
+  min?: number;
+  max?: number;
   step?: number;
   minVal: number;
   maxVal: number;
@@ -14,98 +14,128 @@ interface DualRangeSliderProps {
 export default function DualRangeSlider({
   min = 0,
   max = 10000,
-  step = 100,
-  minVal: initialMin,
-  maxVal: initialMax,
+  step = 50,
+  minVal,
+  maxVal,
   onChange,
 }: DualRangeSliderProps) {
-  const [minVal, setMinVal] = useState(initialMin);
-  const [maxVal, setMaxVal] = useState(initialMax);
-  const minValRef = useRef(initialMin);
-  const maxValRef = useRef(initialMax);
-  const rangeRef = useRef<HTMLDivElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [activeThumb, setActiveThumb] = useState<'min' | 'max' | null>(null);
 
-  // Convert to percentage
-  const getPercent = useCallback(
-    (value: number) => Math.round(((value - min) / (max - min)) * 100),
-    [min, max]
+  // Helper to round value to step
+  const snapToStep = useCallback((val: number) => {
+    const stepped = Math.round((val - min) / step) * step + min;
+    return Math.max(min, Math.min(max, stepped));
+  }, [min, max, step]);
+
+  // Convert clientX into a stepped value
+  const getValueFromPosition = useCallback(
+    (clientX: number) => {
+      if (!trackRef.current) return 0;
+      const rect = trackRef.current.getBoundingClientRect();
+      const pos = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+      const rawValue = min + pos * (max - min);
+      return snapToStep(rawValue);
+    },
+    [min, max, snapToStep]
   );
 
-  // Update internal state when props change
-  useEffect(() => {
-    setMinVal(initialMin);
-    minValRef.current = initialMin;
-  }, [initialMin]);
-
-  useEffect(() => {
-    setMaxVal(initialMax);
-    maxValRef.current = initialMax;
-  }, [initialMax]);
-
-  // Set width of the range to decrease from the left side
-  useEffect(() => {
-    const minPercent = getPercent(minVal);
-    const maxPercent = getPercent(maxValRef.current);
-
-    if (rangeRef.current) {
-      rangeRef.current.style.left = `${minPercent}%`;
-      rangeRef.current.style.width = `${maxPercent - minPercent}%`;
-    }
-  }, [minVal, getPercent]);
-
-  // Set width of the range to decrease from the right side
-  useEffect(() => {
-    const minPercent = getPercent(minValRef.current);
-    const maxPercent = getPercent(maxVal);
-
-    if (rangeRef.current) {
-      rangeRef.current.style.width = `${maxPercent - minPercent}%`;
-    }
-  }, [maxVal, getPercent]);
-
-  const handleMinChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const value = Math.min(Number(event.target.value), maxVal - step);
-    setMinVal(value);
-    minValRef.current = value;
-    onChange(value, maxVal);
+  const handlePointerDown = (thumb: 'min' | 'max', e: React.PointerEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    setActiveThumb(thumb);
   };
 
-  const handleMaxChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const value = Math.max(Number(event.target.value), minVal + step);
-    setMaxVal(value);
-    maxValRef.current = value;
-    onChange(minVal, value);
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!activeThumb) return;
+    const newVal = getValueFromPosition(e.clientX);
+
+    if (activeThumb === 'min') {
+      const boundedMin = Math.min(newVal, maxVal - step);
+      onChange(boundedMin, maxVal);
+    } else {
+      const boundedMax = Math.max(newVal, minVal + step);
+      onChange(minVal, boundedMax);
+    }
   };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (activeThumb) {
+      try {
+        (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+      } catch {}
+      setActiveThumb(null);
+    }
+  };
+
+  // Track click to jump nearest thumb
+  const handleTrackClick = (e: React.MouseEvent) => {
+    const clickVal = getValueFromPosition(e.clientX);
+    const distToMin = Math.abs(clickVal - minVal);
+    const distToMax = Math.abs(clickVal - maxVal);
+
+    if (distToMin < distToMax) {
+      const boundedMin = Math.min(clickVal, maxVal - step);
+      onChange(boundedMin, maxVal);
+    } else {
+      const boundedMax = Math.max(clickVal, minVal + step);
+      onChange(minVal, boundedMax);
+    }
+  };
+
+  const minPercent = Math.max(0, Math.min(100, ((minVal - min) / (max - min)) * 100));
+  const maxPercent = Math.max(0, Math.min(100, ((maxVal - min) / (max - min)) * 100));
 
   return (
-    <div className="dual-slider-wrapper">
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={minVal}
-        onChange={handleMinChange}
-        className="dual-slider-thumb dual-slider-thumb--left"
-        style={{ zIndex: minVal > max - 100 ? 5 : 3 }}
-        aria-label="Minimum Price"
-      />
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={maxVal}
-        onChange={handleMaxChange}
-        className="dual-slider-thumb dual-slider-thumb--right"
-        style={{ zIndex: 4 }}
-        aria-label="Maximum Price"
+    <div
+      className="custom-dual-slider"
+      ref={trackRef}
+      onClick={handleTrackClick}
+    >
+      {/* Background Track Rail */}
+      <div className="custom-dual-slider__rail" />
+
+      {/* Active Range Highlight */}
+      <div
+        className="custom-dual-slider__fill"
+        style={{
+          left: `${minPercent}%`,
+          width: `${Math.max(0, maxPercent - minPercent)}%`,
+        }}
       />
 
-      <div className="dual-slider-track">
-        <div className="dual-slider-track__rail" />
-        <div ref={rangeRef} className="dual-slider-track__fill" />
-      </div>
+      {/* Left Thumb (Min) */}
+      <div
+        className={`custom-dual-slider__thumb ${activeThumb === 'min' ? 'custom-dual-slider__thumb--active' : ''}`}
+        style={{ left: `${minPercent}%` }}
+        onPointerDown={e => handlePointerDown('min', e)}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+        role="slider"
+        aria-valuemin={min}
+        aria-valuemax={maxVal - step}
+        aria-valuenow={minVal}
+        tabIndex={0}
+        aria-label="Minimum Price"
+      />
+
+      {/* Right Thumb (Max) */}
+      <div
+        className={`custom-dual-slider__thumb ${activeThumb === 'max' ? 'custom-dual-slider__thumb--active' : ''}`}
+        style={{ left: `${maxPercent}%` }}
+        onPointerDown={e => handlePointerDown('max', e)}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+        role="slider"
+        aria-valuemin={minVal + step}
+        aria-valuemax={max}
+        aria-valuenow={maxVal}
+        tabIndex={0}
+        aria-label="Maximum Price"
+      />
     </div>
   );
 }

@@ -11,13 +11,6 @@ interface MobileFilterDrawerProps {
   totalCount?: number;
 }
 
-const PRICE_PRESETS = [
-  { label: 'Under ৳1k', min: 0, max: 1000 },
-  { label: '৳1k - ৳2.5k', min: 1000, max: 2500 },
-  { label: '৳2.5k - ৳5k', min: 2500, max: 5000 },
-  { label: '৳5k+', min: 5000, max: 10000 },
-];
-
 export default function MobileFilterDrawer({
   categories = [],
   totalCount = 0,
@@ -100,11 +93,6 @@ export default function MobileFilterDrawer({
   const handleSliderChange = (newMin: number, newMax: number) => {
     setMinPrice(newMin);
     setMaxPrice(newMax);
-  };
-
-  const handlePresetClick = (min: number, max: number) => {
-    setMinPrice(min);
-    setMaxPrice(max);
   };
 
   return (
@@ -210,53 +198,31 @@ export default function MobileFilterDrawer({
             </div>
           </div>
 
-          {/* 2. Smooth Two-Sided Adjustable Price Range Bar */}
+          {/* 2. Clean & Smooth Two-Sided Adjustable Price Range */}
           <div className="drawer-filter-section">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '8px' }}>
               <h4 className="drawer-section-title" style={{ margin: 0 }}>Price Range</h4>
-              <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-primary)' }}>
+              <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--color-primary)' }}>
                 ৳{minPrice.toLocaleString()} — ৳{maxPrice >= 10000 ? '10,000+' : maxPrice.toLocaleString()}
               </span>
             </div>
 
-            {/* Smooth Two-Sided Dual Range Slider */}
+            {/* Custom Smooth Dual Range Slider */}
             <DualRangeSlider
               min={0}
               max={10000}
-              step={100}
+              step={50}
               minVal={minPrice}
               maxVal={maxPrice}
               onChange={handleSliderChange}
             />
-            <div className="price-slider-ticks">
-              <span>৳0</span>
-              <span>৳2,500</span>
-              <span>৳5,000</span>
-              <span>৳7,500</span>
-              <span>৳10k+</span>
-            </div>
 
-            {/* Quick Price Presets */}
-            <div className="drawer-chips-grid" style={{ marginTop: '12px' }}>
-              {PRICE_PRESETS.map((preset, idx) => {
-                const isActive = minPrice === preset.min && maxPrice === preset.max;
-                return (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => handlePresetClick(preset.min, preset.max)}
-                    className={`drawer-chip ${isActive ? 'drawer-chip--active' : ''}`}
-                  >
-                    {preset.label}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Numeric Custom Inputs */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '12px' }}>
+            {/* Clean Min/Max Inputs */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '14px' }}>
               <div>
-                <label style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 600 }}>Min Price (৳)</label>
+                <label style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
+                  Min Price (৳)
+                </label>
                 <input
                   type="number"
                   placeholder="0"
@@ -265,11 +231,13 @@ export default function MobileFilterDrawer({
                   onChange={e => setMinPrice(Number(e.target.value) || 0)}
                   min="0"
                   max={maxPrice}
-                  style={{ height: '36px', fontSize: '13px' }}
+                  style={{ height: '38px', fontSize: '13px', borderRadius: 'var(--radius-lg)' }}
                 />
               </div>
               <div>
-                <label style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 600 }}>Max Price (৳)</label>
+                <label style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
+                  Max Price (৳)
+                </label>
                 <input
                   type="number"
                   placeholder="10000"
@@ -278,7 +246,7 @@ export default function MobileFilterDrawer({
                   onChange={e => setMaxPrice(Number(e.target.value) || 10000)}
                   min={minPrice}
                   max="10000"
-                  style={{ height: '36px', fontSize: '13px' }}
+                  style={{ height: '38px', fontSize: '13px', borderRadius: 'var(--radius-lg)' }}
                 />
               </div>
             </div>
@@ -287,13 +255,13 @@ export default function MobileFilterDrawer({
           {/* 3. Special Promotions Toggle */}
           <div className="drawer-filter-section">
             <label className="drawer-toggle-row">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div style={{ width: '28px', height: '28px', borderRadius: 'var(--radius-md)', background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '32px', height: '32px', borderRadius: 'var(--radius-md)', background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Zap size={16} />
                 </div>
                 <div>
                   <div style={{ fontSize: '13px', fontWeight: 700 }}>Flash Sale Deals Only</div>
-                  <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>Show limited-time discounts</div>
+                  <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>Show discounted items</div>
                 </div>
               </div>
 
@@ -301,7 +269,7 @@ export default function MobileFilterDrawer({
                 type="checkbox"
                 checked={isFlashSale}
                 onChange={e => setIsFlashSale(e.target.checked)}
-                style={{ width: '18px', height: '18px', accentColor: 'var(--color-primary)' }}
+                style={{ width: '18px', height: '18px', accentColor: 'var(--color-primary)', cursor: 'pointer' }}
               />
             </label>
           </div>
@@ -313,7 +281,7 @@ export default function MobileFilterDrawer({
             type="button"
             onClick={handleApply}
             className="btn btn-primary"
-            style={{ width: '100%', padding: '12px', borderRadius: 'var(--radius-xl)', fontSize: '14px', fontWeight: 800 }}
+            style={{ width: '100%', padding: '13px', borderRadius: 'var(--radius-xl)', fontSize: '14px', fontWeight: 800 }}
             id="mobile-apply-filters-btn"
           >
             Apply Filters

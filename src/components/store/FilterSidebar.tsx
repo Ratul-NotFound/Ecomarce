@@ -11,13 +11,6 @@ interface FilterSidebarProps {
   currentCategory?: string;
 }
 
-const PRICE_PRESETS = [
-  { label: 'Under ৳1k', min: 0, max: 1000 },
-  { label: '৳1k - ৳2.5k', min: 1000, max: 2500 },
-  { label: '৳2.5k - ৳5k', min: 2500, max: 5000 },
-  { label: '৳5k+', min: 5000, max: 10000 },
-];
-
 export default function FilterSidebar({ categories = [], currentCategory }: FilterSidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -65,11 +58,6 @@ export default function FilterSidebar({ categories = [], currentCategory }: Filt
   const handleSliderChange = (newMin: number, newMax: number) => {
     setMinPrice(newMin);
     setMaxPrice(newMax);
-  };
-
-  const handlePresetClick = (min: number, max: number) => {
-    setMinPrice(min);
-    setMaxPrice(max);
   };
 
   return (
@@ -157,11 +145,11 @@ export default function FilterSidebar({ categories = [], currentCategory }: Filt
           </div>
         )}
 
-        {/* Two-Sided Smooth Adjustable Price Range Slider */}
+        {/* Smooth Adjustable Price Range Slider */}
         <div className="form-group">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '6px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '8px' }}>
             <label className="form-label" style={{ margin: 0 }}>Price Range</label>
-            <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-primary)' }}>
+            <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--color-primary)' }}>
               ৳{minPrice.toLocaleString()} — ৳{maxPrice >= 10000 ? '10k+' : maxPrice.toLocaleString()}
             </span>
           </div>
@@ -169,39 +157,14 @@ export default function FilterSidebar({ categories = [], currentCategory }: Filt
           <DualRangeSlider
             min={0}
             max={10000}
-            step={100}
+            step={50}
             minVal={minPrice}
             maxVal={maxPrice}
             onChange={handleSliderChange}
           />
-          <div className="price-slider-ticks">
-            <span>৳0</span>
-            <span>৳2.5k</span>
-            <span>৳5k</span>
-            <span>৳7.5k</span>
-            <span>৳10k+</span>
-          </div>
 
-          {/* Quick Presets */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '10px' }}>
-            {PRICE_PRESETS.map((preset, idx) => {
-              const isActive = minPrice === preset.min && maxPrice === preset.max;
-              return (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => handlePresetClick(preset.min, preset.max)}
-                  className={`drawer-chip ${isActive ? 'drawer-chip--active' : ''}`}
-                  style={{ fontSize: '11px', padding: '4px 8px' }}
-                >
-                  {preset.label}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Numeric Custom Inputs */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '10px' }}>
+          {/* Clean Inputs */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '12px' }}>
             <input
               type="number"
               placeholder="Min (৳)"
@@ -210,7 +173,7 @@ export default function FilterSidebar({ categories = [], currentCategory }: Filt
               onChange={e => setMinPrice(Number(e.target.value) || 0)}
               min="0"
               max={maxPrice}
-              style={{ height: '36px', fontSize: '12px' }}
+              style={{ height: '36px', fontSize: '12px', borderRadius: 'var(--radius-lg)' }}
             />
             <input
               type="number"
@@ -220,12 +183,12 @@ export default function FilterSidebar({ categories = [], currentCategory }: Filt
               onChange={e => setMaxPrice(Number(e.target.value) || 10000)}
               min={minPrice}
               max="10000"
-              style={{ height: '36px', fontSize: '12px' }}
+              style={{ height: '36px', fontSize: '12px', borderRadius: 'var(--radius-lg)' }}
             />
           </div>
         </div>
 
-        <button type="submit" className="btn btn-primary btn-sm" id="apply-filter-btn" style={{ width: '100%', padding: '10px' }}>
+        <button type="submit" className="btn btn-primary btn-sm" id="apply-filter-btn" style={{ width: '100%', padding: '11px', borderRadius: 'var(--radius-xl)', fontWeight: 700 }}>
           Apply Filters
         </button>
       </form>
