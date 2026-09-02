@@ -17,12 +17,13 @@ export default async function AdminProductsPage() {
     }
   } catch {}
 
-  const { data, error } = await dbClient
-    .from('products')
-    .select('*, category:categories(name_en)')
-    .order('created_at', { ascending: false });
+  const [productsRes, categoriesRes] = await Promise.all([
+    dbClient.from('products').select('*, category:categories(name_en)').order('created_at', { ascending: false }),
+    dbClient.from('categories').select('id, name_en').order('display_order', { ascending: true }),
+  ]);
 
-  const products = (data as Product[]) || [];
+  const products = (productsRes.data as Product[]) || [];
+  const categories = categoriesRes.data || [];
 
   return (
     <div>
@@ -41,7 +42,7 @@ export default async function AdminProductsPage() {
       </div>
 
       <div className="admin-card">
-        <AdminProductTable initialProducts={products} />
+        <AdminProductTable initialProducts={products} categories={categories} />
       </div>
     </div>
   );

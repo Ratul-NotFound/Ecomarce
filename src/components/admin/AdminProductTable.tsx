@@ -10,13 +10,15 @@ import type { Product } from '@/types';
 
 interface AdminProductTableProps {
   initialProducts: Product[];
+  categories?: { id: string; name_en: string }[];
 }
 
-export default function AdminProductTable({ initialProducts }: AdminProductTableProps) {
+export default function AdminProductTable({ initialProducts, categories = [] }: AdminProductTableProps) {
   const { showToast } = useToast();
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'hidden'>('all');
+  const [selectedCategory, setSelectedCategory] = useState('all');
   const [loadingId, setLoadingId] = useState<string | null>(null);
 
   const filteredProducts = products.filter(p => {
@@ -26,6 +28,7 @@ export default function AdminProductTable({ initialProducts }: AdminProductTable
       p.sku.toLowerCase().includes(search.toLowerCase());
 
     if (!matchesSearch) return false;
+    if (selectedCategory !== 'all' && p.category_id !== selectedCategory) return false;
     if (statusFilter === 'active') return p.is_active;
     if (statusFilter === 'hidden') return !p.is_active;
     return true;
@@ -89,16 +92,33 @@ export default function AdminProductTable({ initialProducts }: AdminProductTable
           flexWrap: 'wrap',
         }}
       >
-        <div style={{ position: 'relative', width: '320px', maxWidth: '100%' }}>
-          <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-admin-muted)' }} />
-          <input
-            type="text"
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ position: 'relative', width: '280px', maxWidth: '100%' }}>
+            <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-admin-muted)' }} />
+            <input
+              type="text"
+              className="admin-input"
+              placeholder="Search by title or SKU..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              style={{ paddingLeft: '36px', height: '38px', fontSize: '13px' }}
+            />
+          </div>
+
+          {/* Category Filter Dropdown */}
+          <select
             className="admin-input"
-            placeholder="Search by title or SKU..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            style={{ paddingLeft: '36px', height: '38px', fontSize: '13px' }}
-          />
+            value={selectedCategory}
+            onChange={e => setSelectedCategory(e.target.value)}
+            style={{ width: '200px', height: '38px', fontSize: '13px', cursor: 'pointer', fontWeight: 600 }}
+          >
+            <option value="all">All Categories</option>
+            {categories.map(cat => (
+              <option key={cat.id} value={cat.id}>
+                {cat.name_en}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div style={{ display: 'flex', gap: '8px' }}>
