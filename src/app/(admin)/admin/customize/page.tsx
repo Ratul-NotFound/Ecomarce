@@ -85,6 +85,15 @@ export default function AdminCustomizePage() {
   // Tag Chips Input State
   const [newTagInput, setNewTagInput] = useState('');
 
+  // Category Form State
+  const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
+  const [newCatNameEn, setNewCatNameEn] = useState('');
+  const [newCatNameBn, setNewCatNameBn] = useState('');
+  const [newCatSlug, setNewCatSlug] = useState('');
+  const [newCatImage, setNewCatImage] = useState('');
+  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+  const [categorySearch, setCategorySearch] = useState('');
+
   // Product Search for Sequencing
   const [productSearch, setProductSearch] = useState('');
 
@@ -364,6 +373,82 @@ export default function AdminCustomizePage() {
     }
   };
 
+  // Toggle Category Active (Hide / Show)
+  const handleToggleCategoryActive = async (cat: Category) => {
+    const nextStatus = !cat.is_active;
+    setCategories(prev => prev.map(c => (c.id === cat.id ? { ...c, is_active: nextStatus } : c)));
+
+    try {
+      const res = await fetch('/api/admin/categories', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: cat.id, is_active: nextStatus }),
+      });
+      if (!res.ok) throw new Error('Failed to update category visibility');
+
+      showToast(
+        nextStatus ? `Category "${cat.name_en}" is now VISIBLE in store.` : `Category "${cat.name_en}" is now HIDDEN from store.`,
+        'success'
+      );
+    } catch (err: any) {
+      setCategories(prev => prev.map(c => (c.id === cat.id ? { ...c, is_active: cat.is_active } : c)));
+      showToast(err.message || 'Failed to update category', 'error');
+    }
+  };
+
+  // Delete Category
+  const handleDeleteCategory = async (id: string, name: string) => {
+    if (!confirm(`Are you sure you want to permanently delete category "${name}"?`)) return;
+    try {
+      const res = await fetch(`/api/admin/categories?id=${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete category');
+
+      setCategories(prev => prev.filter(c => c.id !== id));
+      showToast(`Category "${name}" deleted.`, 'info');
+    } catch (err: any) {
+      showToast(err.message || 'Failed to delete category', 'error');
+    }
+  };
+
+  // Create New Category
+  const handleCreateCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCatNameEn.trim()) {
+      showToast('Category name in English is required', 'error');
+      return;
+    }
+
+    try {
+      setIsCreatingCategory(true);
+      const res = await fetch('/api/admin/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name_en: newCatNameEn.trim(),
+          name_bn: newCatNameBn.trim() || null,
+          slug: newCatSlug.trim() || undefined,
+          image_url: newCatImage.trim() || null,
+          display_order: categories.length + 1,
+          is_active: true,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      setCategories(prev => [...prev, data.category]);
+      showToast(`Category "${data.category.name_en}" created successfully!`, 'success');
+      setShowAddCategoryModal(false);
+      setNewCatNameEn('');
+      setNewCatNameBn('');
+      setNewCatSlug('');
+      setNewCatImage('');
+    } catch (err: any) {
+      showToast(err.message || 'Failed to create category', 'error');
+    } finally {
+      setIsCreatingCategory(false);
+    }
+  };
+
   // Move Product
   const handleMoveProduct = async (idx: number, direction: 'up' | 'down') => {
     const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
@@ -384,6 +469,29 @@ export default function AdminCustomizePage() {
       showToast('Product sequence updated!', 'success');
     } catch {
       showToast('Failed to update product sequence', 'error');
+    }
+  };
+
+  // Toggle Product Active (Hide / Show)
+  const handleToggleProductActive = async (p: Product) => {
+    const nextStatus = !p.is_active;
+    setProducts(prev => prev.map(item => (item.id === p.id ? { ...item, is_active: nextStatus } : item)));
+
+    try {
+      const res = await fetch('/api/admin/products', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: p.id, is_active: nextStatus }),
+      });
+      if (!res.ok) throw new Error('Failed to update product visibility');
+
+      showToast(
+        nextStatus ? `"${p.name_en}" is now VISIBLE in store.` : `"${p.name_en}" is now HIDDEN from store.`,
+        'success'
+      );
+    } catch (err: any) {
+      setProducts(prev => prev.map(item => (item.id === p.id ? { ...item, is_active: p.is_active } : item)));
+      showToast(err.message || 'Failed to update product', 'error');
     }
   };
 
@@ -1221,41 +1329,132 @@ export default function AdminCustomizePage() {
       )}
 
       {/* ────────────────────────────────────────────────────────────
-         TAB 5: CATEGORIES DISPLAY SEQUENCE
+         TAB 5: CATEGORIES DISPLAY SEQUENCE & VISIBILITY
          ──────────────────────────────────────────────────────────── */}
       {activeTab === 'categories' && (
-        <div style={{ maxWidth: '640px' }}>
+        <div style={{ maxWidth: '780px' }}>
           <div className="admin-card">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-              <Layers size={18} color="var(--color-primary-light)" />
-              <h2 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--color-admin-text)' }}>Category Display Sequence</h2>
-            </div>
-            <p style={{ fontSize: '13px', color: 'var(--color-admin-muted)', marginBottom: '16px' }}>
-              Move categories up or down. Changes sync immediately to the Explore Department Cards and Homepage Grid!
-            </p>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '12px' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Layers size={20} color="var(--color-primary)" />
+                  <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--color-admin-text)' }}>
+                    Categories Manager & Visibility
+                  </h2>
+                </div>
+                <p style={{ fontSize: '13px', color: 'var(--color-admin-muted)', marginTop: '4px' }}>
+                  Add new store categories, toggle visibility (Hide / Show) on storefront navigation, and reorder sequence.
+                </p>
+              </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {categories.map((cat, idx) => (
+              <button
+                type="button"
+                onClick={() => setShowAddCategoryModal(true)}
+                className="btn btn-primary btn-sm"
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}
+              >
+                <Plus size={16} />
+                <span>+ Add New Category</span>
+              </button>
+            </div>
+
+            {/* Category Search & Counter */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginBottom: '16px', flexWrap: 'wrap' }}>
+              <input
+                type="text"
+                className="admin-input"
+                placeholder="Filter categories..."
+                value={categorySearch}
+                onChange={e => setCategorySearch(e.target.value)}
+                style={{ height: '36px', fontSize: '13px', maxWidth: '300px' }}
+              />
+              <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-admin-muted)' }}>
+                {categories.length} Categories ({categories.filter(c => c.is_active).length} Visible, {categories.filter(c => !c.is_active).length} Hidden)
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {categories
+                .filter(c => !categorySearch.trim() || c.name_en.toLowerCase().includes(categorySearch.toLowerCase()) || (c.name_bn && c.name_bn.toLowerCase().includes(categorySearch.toLowerCase())))
+                .map((cat, idx) => (
                 <div
                   key={cat.id}
                   style={{
-                    background: 'var(--color-admin-surface-2)',
+                    background: '#ffffff',
                     border: '1px solid var(--color-admin-border)',
                     borderRadius: 'var(--radius-lg)',
-                    padding: '10px 14px',
+                    padding: '12px 16px',
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
+                    gap: '12px',
+                    opacity: cat.is_active ? 1 : 0.65,
+                    boxShadow: '0 1px 2px rgba(15, 23, 42, 0.03)',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--color-primary-light)', minWidth: '20px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--color-primary)', minWidth: '24px' }}>
                       #{idx + 1}
                     </span>
-                    <strong style={{ color: 'var(--color-admin-text)', fontSize: '14px' }}>{cat.name_en}</strong>
+                    {cat.image_url ? (
+                      <div style={{ position: 'relative', width: '36px', height: '36px', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--color-admin-border)' }}>
+                        <Image src={cat.image_url} alt={cat.name_en} fill style={{ objectFit: 'cover' }} />
+                      </div>
+                    ) : (
+                      <div style={{ width: '36px', height: '36px', borderRadius: 'var(--radius-md)', background: 'var(--color-admin-surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-admin-muted)' }}>
+                        <Layers size={18} />
+                      </div>
+                    )}
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <strong style={{ color: 'var(--color-admin-text)', fontSize: '14px' }}>{cat.name_en}</strong>
+                        <span
+                          style={{
+                            fontSize: '10px',
+                            fontWeight: 800,
+                            padding: '1px 6px',
+                            borderRadius: 'var(--radius-full)',
+                            background: cat.is_active ? 'rgba(34, 197, 94, 0.12)' : 'rgba(239, 68, 68, 0.12)',
+                            color: cat.is_active ? 'var(--color-success)' : 'var(--color-danger)',
+                            border: `1px solid ${cat.is_active ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
+                          }}
+                        >
+                          {cat.is_active ? 'VISIBLE' : 'HIDDEN'}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '11px', color: 'var(--color-admin-muted)' }}>
+                        Slug: /{cat.slug} {cat.name_bn ? `• ${cat.name_bn}` : ''}
+                      </div>
+                    </div>
                   </div>
 
-                  <div style={{ display: 'flex', gap: '6px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {/* Hide / Show 1-Click Button */}
+                    <button
+                      type="button"
+                      onClick={() => handleToggleCategoryActive(cat)}
+                      className="btn btn-sm"
+                      style={{
+                        padding: '4px 10px',
+                        height: '30px',
+                        fontSize: '11px',
+                        fontWeight: 800,
+                        borderRadius: 'var(--radius-md)',
+                        background: cat.is_active ? '#ffffff' : 'var(--color-primary)',
+                        color: cat.is_active ? 'var(--color-danger)' : '#ffffff',
+                        border: `1px solid ${cat.is_active ? 'rgba(239, 68, 68, 0.4)' : 'var(--color-primary)'}`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        cursor: 'pointer',
+                      }}
+                      title={cat.is_active ? 'Click to HIDE this category from storefront' : 'Click to SHOW this category in storefront'}
+                    >
+                      {cat.is_active ? <EyeOff size={13} /> : <Eye size={13} />}
+                      <span>{cat.is_active ? 'Hide' : 'Show'}</span>
+                    </button>
+
+                    {/* Reorder Arrows */}
                     <button
                       type="button"
                       disabled={idx === 0}
@@ -1270,6 +1469,7 @@ export default function AdminCustomizePage() {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
+                        height: '30px',
                       }}
                       title="Move Up"
                     >
@@ -1289,10 +1489,32 @@ export default function AdminCustomizePage() {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
+                        height: '30px',
                       }}
                       title="Move Down"
                     >
                       <ArrowDown size={14} />
+                    </button>
+
+                    {/* Delete Category */}
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteCategory(cat.id, cat.name_en)}
+                      style={{
+                        background: '#ffffff',
+                        border: '1px solid var(--color-admin-border)',
+                        color: 'var(--color-danger)',
+                        padding: '4px 8px',
+                        borderRadius: 'var(--radius-md)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        height: '30px',
+                      }}
+                      title="Delete Category"
+                    >
+                      <Trash2 size={13} />
                     </button>
                   </div>
                 </div>
@@ -1303,58 +1525,125 @@ export default function AdminCustomizePage() {
       )}
 
       {/* ────────────────────────────────────────────────────────────
-         TAB 6: PRODUCTS DISPLAY SEQUENCE
+         TAB 6: PRODUCTS DISPLAY SEQUENCE & VISIBILITY
          ──────────────────────────────────────────────────────────── */}
       {activeTab === 'products' && (
-        <div style={{ maxWidth: '640px' }}>
+        <div style={{ maxWidth: '780px' }}>
           <div className="admin-card">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-              <Package size={18} color="var(--color-primary-light)" />
-              <h2 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--color-admin-text)' }}>Products Display Sequence</h2>
-            </div>
-            <p style={{ fontSize: '13px', color: 'var(--color-admin-muted)', marginBottom: '14px' }}>
-              The products at the top will be showcased first across your storefront and catalog.
-            </p>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '12px' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Package size={20} color="var(--color-primary)" />
+                  <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--color-admin-text)' }}>
+                    Products Manager & Sequence
+                  </h2>
+                </div>
+                <p style={{ fontSize: '13px', color: 'var(--color-admin-muted)', marginTop: '4px' }}>
+                  Toggle product visibility (Hide / Show) and reorder which products appear first on storefront.
+                </p>
+              </div>
 
-            {/* Product Search */}
-            <div style={{ marginBottom: '12px' }}>
+              <Link
+                href="/admin/products/new"
+                className="btn btn-primary btn-sm"
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}
+              >
+                <Plus size={16} />
+                <span>+ Add New Product</span>
+              </Link>
+            </div>
+
+            {/* Product Search & Counters */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginBottom: '16px', flexWrap: 'wrap' }}>
               <input
                 type="text"
                 className="admin-input"
                 placeholder="Search products..."
                 value={productSearch}
                 onChange={e => setProductSearch(e.target.value)}
-                style={{ height: '34px', fontSize: '12px' }}
+                style={{ height: '36px', fontSize: '13px', maxWidth: '300px' }}
               />
+              <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-admin-muted)' }}>
+                {filteredProducts.length} Products ({filteredProducts.filter(p => p.is_active).length} Visible, {filteredProducts.filter(p => !p.is_active).length} Hidden)
+              </div>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '500px', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '560px', overflowY: 'auto' }}>
               {filteredProducts.map((p, idx) => (
                 <div
                   key={p.id}
                   style={{
-                    background: 'var(--color-admin-surface-2)',
+                    background: '#ffffff',
                     border: '1px solid var(--color-admin-border)',
                     borderRadius: 'var(--radius-lg)',
-                    padding: '8px 12px',
+                    padding: '10px 14px',
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
+                    gap: '12px',
+                    opacity: p.is_active ? 1 : 0.65,
+                    boxShadow: '0 1px 2px rgba(15, 23, 42, 0.03)',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--color-primary-light)', minWidth: '22px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--color-primary)', minWidth: '24px' }}>
                       #{idx + 1}
                     </span>
+                    {p.images?.[0] && (
+                      <div style={{ position: 'relative', width: '38px', height: '38px', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--color-admin-border)' }}>
+                        <Image src={p.images[0]} alt={p.name_en} fill style={{ objectFit: 'cover' }} />
+                      </div>
+                    )}
                     <div>
-                      <strong style={{ color: 'var(--color-admin-text)', fontSize: '13px' }}>{p.name_en}</strong>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <strong style={{ color: 'var(--color-admin-text)', fontSize: '13px' }}>{p.name_en}</strong>
+                        <span
+                          style={{
+                            fontSize: '10px',
+                            fontWeight: 800,
+                            padding: '1px 6px',
+                            borderRadius: 'var(--radius-full)',
+                            background: p.is_active ? 'rgba(34, 197, 94, 0.12)' : 'rgba(239, 68, 68, 0.12)',
+                            color: p.is_active ? 'var(--color-success)' : 'var(--color-danger)',
+                            border: `1px solid ${p.is_active ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
+                          }}
+                        >
+                          {p.is_active ? 'VISIBLE' : 'HIDDEN'}
+                        </span>
+                      </div>
                       <div style={{ fontSize: '11px', color: 'var(--color-admin-muted)' }}>
                         ৳{p.sale_price ?? p.base_price} {p.is_flash_sale ? '• ⚡ Flash' : ''} {p.is_featured ? '• ⭐ Featured' : ''}
                       </div>
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', gap: '6px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    {/* Hide / Show 1-Click Button */}
+                    <button
+                      type="button"
+                      onClick={() => handleToggleProductActive(p)}
+                      className="btn btn-sm"
+                      style={{
+                        padding: '4px 10px',
+                        height: '30px',
+                        fontSize: '11px',
+                        fontWeight: 800,
+                        borderRadius: 'var(--radius-md)',
+                        background: p.is_active ? '#ffffff' : 'var(--color-primary)',
+                        color: p.is_active ? 'var(--color-danger)' : '#ffffff',
+                        border: `1px solid ${p.is_active ? 'rgba(239, 68, 68, 0.4)' : 'var(--color-primary)'}`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        cursor: 'pointer',
+                      }}
+                      title={p.is_active ? 'Click to HIDE product from storefront' : 'Click to SHOW product on storefront'}
+                    >
+                      {p.is_active ? <EyeOff size={13} /> : <Eye size={13} />}
+                      <span>{p.is_active ? 'Hide' : 'Show'}</span>
+                    </button>
+
+                    {/* Reorder Arrows */}
                     <button
                       type="button"
                       disabled={idx === 0}
@@ -1369,6 +1658,7 @@ export default function AdminCustomizePage() {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
+                        height: '30px',
                       }}
                       title="Move Up"
                     >
@@ -1388,6 +1678,7 @@ export default function AdminCustomizePage() {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
+                        height: '30px',
                       }}
                       title="Move Down"
                     >
@@ -1494,6 +1785,121 @@ export default function AdminCustomizePage() {
                   style={{ flex: 1 }}
                 >
                   {isUpdatingSlide ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ────────────────────────────────────────────────────────────
+         ADD CATEGORY MODAL
+         ──────────────────────────────────────────────────────────── */}
+      {showAddCategoryModal && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.6)',
+            zIndex: 100,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px',
+            backdropFilter: 'blur(3px)',
+          }}
+          onClick={() => setShowAddCategoryModal(false)}
+        >
+          <div
+            className="admin-card"
+            style={{
+              width: '100%',
+              maxWidth: '520px',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              background: '#ffffff',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Layers size={20} color="var(--color-primary)" />
+                <h3 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--color-admin-text)' }}>
+                  Create New Category
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAddCategoryModal(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-admin-muted)' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateCategory} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div className="form-group">
+                <label className="admin-label">Category Name (English) *</label>
+                <input
+                  type="text"
+                  className="admin-input"
+                  placeholder="e.g. Smart Watches & Wearables"
+                  value={newCatNameEn}
+                  onChange={e => setNewCatNameEn(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="admin-label">Category Name (Bangla / Optional)</label>
+                <input
+                  type="text"
+                  className="admin-input"
+                  placeholder="e.g. স্মার্ট ওয়াচ"
+                  value={newCatNameBn}
+                  onChange={e => setNewCatNameBn(e.target.value)}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="admin-label">Custom Slug (Optional)</label>
+                <input
+                  type="text"
+                  className="admin-input"
+                  placeholder="Leave empty for auto-generated slug"
+                  value={newCatSlug}
+                  onChange={e => setNewCatSlug(e.target.value)}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="admin-label">Category Thumbnail Image URL (Optional)</label>
+                <input
+                  type="url"
+                  className="admin-input"
+                  placeholder="https://images.unsplash.com/..."
+                  value={newCatImage}
+                  onChange={e => setNewCatImage(e.target.value)}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', marginTop: '12px' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowAddCategoryModal(false)}
+                  className="btn btn-secondary"
+                  style={{ flex: 1 }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isCreatingCategory}
+                  className="btn btn-primary"
+                  style={{ flex: 1, fontWeight: 700 }}
+                >
+                  {isCreatingCategory ? 'Creating Category...' : 'Save & Publish Category'}
                 </button>
               </div>
             </form>

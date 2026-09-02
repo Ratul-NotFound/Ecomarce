@@ -40,3 +40,34 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: err.message || 'Failed to create product' }, { status: 500 });
   }
 }
+
+export async function PUT(request: NextRequest) {
+  try {
+    const supabase = await createClient();
+    let dbClient = supabase;
+    if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      dbClient = createAdminClient();
+    }
+
+    const body = await request.json();
+    const { id, ...updates } = body;
+
+    if (!id) {
+      return NextResponse.json({ error: 'Product ID is required' }, { status: 400 });
+    }
+
+    const { data: product, error } = await dbClient
+      .from('products')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return NextResponse.json({ success: true, product });
+  } catch (err: any) {
+    console.error('Error updating product:', err);
+    return NextResponse.json({ error: err.message || 'Failed to update product' }, { status: 500 });
+  }
+}
+
