@@ -15,7 +15,7 @@ interface HeaderProps {
 export default function Header({ categories = [] }: HeaderProps) {
   const router = useRouter();
   const { itemCount } = useCart();
-  const { user, isAdmin, isModerator } = useAuth();
+  const { user, profile, isAdmin, isModerator } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
 
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -26,16 +26,17 @@ export default function Header({ categories = [] }: HeaderProps) {
   };
 
   return (
-    <>
-      <header className="store-header">
-        <div className="container store-header__inner">
+    <header className="store-header">
+      <div className="container store-header__container">
+        {/* Main Row */}
+        <div className="store-header__inner">
           {/* Logo */}
           <Link href="/" className="store-header__logo" id="header-logo-link">
             <span>{STORE_CONFIG.name}</span>
           </Link>
 
-          {/* Search Bar */}
-          <form onSubmit={handleSearchSubmit} className="store-header__search hide-mobile">
+          {/* Desktop Search Bar */}
+          <form onSubmit={handleSearchSubmit} className="store-header__search desktop-search">
             <Search className="store-header__search-icon" size={18} />
             <input
               type="text"
@@ -57,43 +58,65 @@ export default function Header({ categories = [] }: HeaderProps) {
                 title="Admin Dashboard"
                 id="header-admin-link"
               >
-                <ShieldCheck size={22} color="var(--color-primary)" />
+                <ShieldCheck size={20} color="var(--color-primary)" />
               </Link>
             )}
 
             {/* Wishlist */}
             <Link
               href="/wishlist"
-              className="header-action-btn hide-mobile"
+              className="header-action-btn"
               title="Wishlist"
               id="header-wishlist-link"
             >
-              <Heart size={22} />
+              <Heart size={20} />
             </Link>
 
-            {/* Cart */}
+            {/* Cart (Desktop only - mobile uses bottom nav) */}
             <Link
               href="/cart"
-              className="header-action-btn"
+              className="header-action-btn desktop-only-cart"
               title="Shopping Cart"
               id="header-cart-link"
             >
-              <ShoppingBag size={22} />
+              <ShoppingBag size={20} />
               {itemCount > 0 && <span className="header-badge">{itemCount}</span>}
             </Link>
 
-            {/* User Account / Auth (Desktop only - mobile has bottom nav) */}
+            {/* User Account / Profile Button */}
             <Link
               href={user ? '/account' : '/auth'}
-              className="header-action-btn hide-mobile"
+              className="header-user-btn"
               title={user ? 'My Account' : 'Sign In'}
               id="header-account-link"
             >
-              <User size={22} />
+              {user ? (
+                <div className="header-user-avatar">
+                  {profile?.full_name?.charAt(0) || user.email?.charAt(0)?.toUpperCase() || 'U'}
+                </div>
+              ) : (
+                <div className="header-signin-pill">
+                  <User size={15} />
+                  <span>Sign In</span>
+                </div>
+              )}
             </Link>
           </div>
         </div>
-      </header>
-    </>
+
+        {/* Mobile Dedicated Search Bar */}
+        <form onSubmit={handleSearchSubmit} className="store-header__mobile-search">
+          <Search className="store-header__mobile-search-icon" size={16} />
+          <input
+            type="text"
+            placeholder="Search products, brands, categories..."
+            className="store-header__mobile-search-input"
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            id="mobile-header-search-input"
+          />
+        </form>
+      </div>
+    </header>
   );
 }

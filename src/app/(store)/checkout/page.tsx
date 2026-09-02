@@ -136,13 +136,12 @@ function CheckoutContent() {
   };
 
   return (
-    <div className="container" style={{ padding: '32px 16px 80px' }}>
-      <h1 style={{ fontSize: '26px', fontWeight: 800, marginBottom: '24px' }}>Checkout</h1>
+    <div className="container" style={{ padding: '24px 16px 80px' }}>
+      <h1 style={{ fontSize: '24px', fontWeight: 800, marginBottom: '20px' }}>Checkout</h1>
 
-      <form onSubmit={handlePlaceOrder} style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '32px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '32px' }}>
-          {/* Left Column: Address & Payment */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <form onSubmit={handlePlaceOrder} className="checkout-layout">
+        {/* Left Column: Address & Payment */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             {/* 1. Shipping Address Section */}
             <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-xl)', padding: '24px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
@@ -357,29 +356,32 @@ function CheckoutContent() {
           </div>
 
           {/* Right Column: Order Summary Review & Final CTA */}
-          <div style={{ height: 'fit-content' }}>
-            <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-2xl)', padding: '24px', boxShadow: 'var(--shadow-sm)' }}>
-              <h2 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '16px' }}>Order Review</h2>
+          <div className="checkout-summary-sticky">
+            <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-xl)', padding: '24px' }}>
+              <h2 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '16px' }}>Order Summary</h2>
 
-              {/* Items in order preview */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '220px', overflowY: 'auto', borderBottom: '1px solid var(--color-border)', paddingBottom: '16px', marginBottom: '16px' }}>
+              {/* Items preview list */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '240px', overflowY: 'auto', marginBottom: '20px', paddingRight: '4px' }}>
                 {cart.map(item => {
                   const unitPrice = item.variant
                     ? (item.product.sale_price ?? item.product.base_price) + item.variant.price_modifier
                     : item.product.sale_price ?? item.product.base_price;
                   return (
-                    <div key={`${item.product_id}_${item.variant_id || 'base'}`} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                      <span className="truncate" style={{ maxWidth: '200px' }}>
-                        {item.quantity}x {item.product.name_en}
-                      </span>
-                      <span style={{ fontWeight: 700 }}>{formatCurrency(unitPrice * item.quantity)}</span>
+                    <div key={`${item.product_id}_${item.variant_id || 'base'}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px' }}>
+                      <div style={{ flex: 1, paddingRight: '12px' }}>
+                        <div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.product.name_en}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
+                          Qty: {item.quantity} {item.variant ? `• ${[item.variant.size, item.variant.color].filter(Boolean).join(' / ')}` : ''}
+                        </div>
+                      </div>
+                      <div style={{ fontWeight: 700 }}>{formatCurrency(unitPrice * item.quantity)}</div>
                     </div>
                   );
                 })}
               </div>
 
-              {/* Cost Breakdown */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', borderBottom: '1px solid var(--color-border)', paddingBottom: '16px', marginBottom: '16px', fontSize: '14px', color: 'var(--color-text-secondary)' }}>
+              {/* Totals Breakdown */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', borderTop: '1px solid var(--color-border)', paddingTop: '16px', marginBottom: '20px', fontSize: '14px', color: 'var(--color-text-secondary)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span>Subtotal</span>
                   <span style={{ fontWeight: 700, color: 'var(--color-text-primary)' }}>{formatCurrency(subtotal)}</span>
@@ -392,26 +394,25 @@ function CheckoutContent() {
 
                 {discountAmount > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--color-danger)' }}>
-                    <span>Discount</span>
+                    <span>Coupon Discount</span>
                     <span>-{formatCurrency(discountAmount)}</span>
                   </div>
                 )}
               </div>
 
-              {/* Total Payable */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '24px' }}>
-                <span style={{ fontSize: '16px', fontWeight: 700 }}>Total Payable</span>
+              {/* Grand Total */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', borderTop: '1px solid var(--color-border)', paddingTop: '16px', marginBottom: '24px' }}>
+                <span style={{ fontSize: '16px', fontWeight: 700 }}>Grand Total</span>
                 <span style={{ fontSize: '24px', fontWeight: 800, color: 'var(--color-primary)' }}>
                   {formatCurrency(grandTotal)}
                 </span>
               </div>
 
-              {/* Confirm Order Button */}
               <button
                 type="submit"
                 disabled={isSubmitting}
                 className="btn btn-primary"
-                style={{ width: '100%', padding: '16px', borderRadius: 'var(--radius-xl)', fontSize: '16px' }}
+                style={{ width: '100%', padding: '16px', borderRadius: 'var(--radius-xl)', fontSize: '15px' }}
                 id="place-order-submit-btn"
               >
                 <span>{isSubmitting ? 'Placing Order...' : 'Place Order / অর্ডার কনফার্ম করুন'}</span>
@@ -424,11 +425,10 @@ function CheckoutContent() {
               </div>
             </div>
           </div>
-        </div>
-      </form>
-    </div>
-  );
-}
+        </form>
+      </div>
+    );
+  }
 
 export default function CheckoutPage() {
   return (

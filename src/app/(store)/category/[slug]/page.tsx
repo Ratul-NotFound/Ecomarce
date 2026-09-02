@@ -66,19 +66,14 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
         </div>
       </div>
 
-      {/* Two-column layout: Filter Sidebar + Product Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '24px' }} className="category-layout">
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: '24px' }} className="hide-mobile">
-            <FilterSidebar currentCategory={category.slug} />
-            <div>
-              <ProductGrid products={products} emptyMessage={`No products found in ${category.name_en}`} />
-            </div>
-          </div>
+      {/* Category Layout */}
+      <div className="search-page-layout">
+        <div className="search-sidebar-wrapper">
+          <FilterSidebar currentCategory={category.slug} />
+        </div>
 
-          <div className="hide-desktop">
-            <ProductGrid products={products} emptyMessage={`No products found in ${category.name_en}`} />
-          </div>
+        <div className="search-products-wrapper">
+          <ProductGrid products={products} emptyMessage={`No products found in ${category.name_en}`} />
         </div>
       </div>
     </div>

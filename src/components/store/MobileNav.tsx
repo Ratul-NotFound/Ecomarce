@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Grid, Search, ShoppingBag, User } from 'lucide-react';
+import { Home, LayoutGrid, Zap, ShoppingBag, User } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
 
 export default function MobileNav() {
@@ -23,11 +23,20 @@ export default function MobileNav() {
 
       <Link
         href="/search"
-        className={`mobile-nav-tab ${pathname.startsWith('/search') ? 'mobile-nav-tab--active' : ''}`}
-        id="mobile-nav-search"
+        className={`mobile-nav-tab ${pathname === '/search' && !pathname.includes('flash_sale') ? 'mobile-nav-tab--active' : ''}`}
+        id="mobile-nav-categories"
       >
-        <Search size={20} />
-        <span>Search</span>
+        <LayoutGrid size={20} />
+        <span>Explore</span>
+      </Link>
+
+      <Link
+        href="/search?flash_sale=true"
+        className={`mobile-nav-tab ${pathname.includes('flash_sale') ? 'mobile-nav-tab--active' : ''}`}
+        id="mobile-nav-deals"
+      >
+        <Zap size={20} />
+        <span>Deals</span>
       </Link>
 
       <Link
