@@ -23,7 +23,7 @@ export default function MobileNav() {
 
       <Link
         href="/search"
-        className={`mobile-nav-tab ${pathname === '/search' && !pathname.includes('flash_sale') ? 'mobile-nav-tab--active' : ''}`}
+        className={`mobile-nav-tab ${pathname === '/search' ? 'mobile-nav-tab--active' : ''}`}
         id="mobile-nav-categories"
       >
         <LayoutGrid size={20} />
@@ -31,8 +31,8 @@ export default function MobileNav() {
       </Link>
 
       <Link
-        href="/search?flash_sale=true"
-        className={`mobile-nav-tab ${pathname.includes('flash_sale') ? 'mobile-nav-tab--active' : ''}`}
+        href="/deals"
+        className={`mobile-nav-tab ${pathname.startsWith('/deals') ? 'mobile-nav-tab--active' : ''}`}
         id="mobile-nav-deals"
       >
         <Zap size={20} />

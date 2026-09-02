@@ -10,6 +10,8 @@ import { Search, Zap, LayoutGrid, Flame } from 'lucide-react';
 import { STORE_CONFIG } from '@/lib/store-config';
 import type { Metadata } from 'next';
 
+import { redirect } from 'next/navigation';
+
 interface SearchPageProps {
   searchParams: Promise<{ [key: string]: string | undefined }>;
 }
@@ -17,11 +19,8 @@ interface SearchPageProps {
 export async function generateMetadata({ searchParams }: SearchPageProps): Promise<Metadata> {
   const sParams = await searchParams;
   const query = sParams.q || '';
-  const isDeals = sParams.flash_sale === 'true' || sParams.deals === 'true';
   return {
-    title: isDeals
-      ? `Flash Deals & Special Offers | ${STORE_CONFIG.name}`
-      : query
+    title: query
       ? `Search results for "${query}" | ${STORE_CONFIG.name}`
       : `Explore Products & Categories | ${STORE_CONFIG.name}`,
   };
@@ -29,8 +28,12 @@ export async function generateMetadata({ searchParams }: SearchPageProps): Promi
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {
   const sParams = await searchParams;
+  // If user navigated to flash sale via search query, send directly to Deals Hub!
+  if (sParams.flash_sale === 'true' || sParams.deals === 'true') {
+    redirect('/deals');
+  }
+
   const query = sParams.q || '';
-  const isDeals = sParams.flash_sale === 'true' || sParams.deals === 'true';
   const categorySlug = sParams.category || '';
   const minPrice = sParams.min_price ? Number(sParams.min_price) : undefined;
   const maxPrice = sParams.max_price ? Number(sParams.max_price) : undefined;
@@ -48,7 +51,6 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   const { data: products, count } = await productRepo.findAll({
     search: query || undefined,
     category_id: selectedCategory?.id,
-    is_flash_sale: isDeals ? true : undefined,
     min_price: minPrice,
     max_price: maxPrice,
     sort,
@@ -60,19 +62,13 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       {/* Compact Clean Header Row */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {isDeals ? (
-            <Zap size={20} color="#f59e0b" fill="#f59e0b" />
-          ) : (
-            <LayoutGrid size={20} color="var(--color-primary)" />
-          )}
+          <LayoutGrid size={20} color="var(--color-primary)" />
           <h1 style={{ fontSize: '18px', fontWeight: 800, margin: 0 }}>
-            {isDeals
-              ? '⚡ Flash Deals'
-              : query
+            {query
               ? `"${query}"`
               : selectedCategory
               ? selectedCategory.name_en
-              : 'Explore Products'}
+              : 'Explore Catalog'}
           </h1>
         </div>
 
@@ -81,7 +77,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         </span>
       </div>
 
-      {/* Horizontal Category & Deals Quick Filter Chips */}
+      {/* Horizontal Category Quick Filter Chips */}
       <div
         style={{
           display: 'flex',
@@ -95,26 +91,32 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       >
         <Link
           href="/search"
-          className={`btn btn-sm ${!isDeals && !categorySlug ? 'btn-primary' : 'btn-secondary'}`}
+          className={`btn btn-sm ${!categorySlug ? 'btn-primary' : 'btn-secondary'}`}
           style={{ whiteSpace: 'nowrap', flexShrink: 0, borderRadius: 'var(--radius-full)', fontSize: '12px', padding: '5px 12px' }}
         >
           ✨ All
         </Link>
 
+        {/* Link to dedicated Deals Hub */}
         <Link
-          href="/search?flash_sale=true"
-          className={`btn btn-sm ${isDeals ? 'btn-primary' : 'btn-secondary'}`}
+          href="/deals"
+          className="btn btn-sm btn-secondary"
           style={{
             whiteSpace: 'nowrap',
             flexShrink: 0,
             borderRadius: 'var(--radius-full)',
             fontSize: '12px',
             padding: '5px 12px',
-            color: isDeals ? '#ffffff' : '#f59e0b',
-            borderColor: isDeals ? 'var(--color-primary)' : 'rgba(245, 158, 11, 0.4)',
+            color: '#ef4444',
+            borderColor: 'rgba(239, 68, 68, 0.4)',
+            background: 'rgba(239, 68, 68, 0.06)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px',
           }}
         >
-          ⚡ Deals
+          <Zap size={13} fill="#ef4444" />
+          <span>Flash Deals Hub</span>
         </Link>
 
         {categories.map(cat => {
@@ -132,6 +134,34 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         })}
       </div>
 
+      {/* Visual Category Showcase (when browsing general catalog) */}
+      {!categorySlug && !query && (
+        <div style={{ marginBottom: '24px' }}>
+          <div style={{ fontSize: '14px', fontWeight: 800, marginBottom: '10px', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            Explore Departments
+          </div>
+          <div className="explore-category-grid">
+            {categories.map((cat, idx) => {
+              const icons = ['👕', '🎧', '🛋️', '⚽', '🎒', '💄', '⌚', '🏠'];
+              const icon = icons[idx % icons.length];
+              return (
+                <Link
+                  key={cat.id}
+                  href={`/search?category=${cat.slug}`}
+                  className="explore-category-card"
+                >
+                  <div className="explore-category-icon">{icon}</div>
+                  <div className="explore-category-info">
+                    <div className="explore-category-name">{cat.name_en}</div>
+                    <div className="explore-category-sub">Browse items ➔</div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Mobile Filter & Sort Bar (Opens Bottom Drawer) */}
       <MobileFilterDrawer categories={categories} totalCount={count} />
 
@@ -145,9 +175,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           <ProductGrid
             products={products}
             emptyMessage={
-              isDeals
-                ? 'No active flash sale products right now. Check back soon!'
-                : query
+              query
                 ? `No items found matching "${query}"`
                 : 'No products available in this collection.'
             }
