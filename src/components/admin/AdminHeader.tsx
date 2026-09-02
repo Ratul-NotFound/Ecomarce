@@ -16,8 +16,7 @@ export default function AdminHeader({ onToggleSidebar }: AdminHeaderProps) {
   const { profile, user, signOut } = useAuth();
 
   const handleSignOut = async () => {
-    await signOut();
-    router.push('/auth');
+    await signOut('/auth');
   };
 
   return (

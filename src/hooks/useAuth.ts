@@ -1,7 +1,7 @@
 'use client';
 
 import { createClient } from '@/lib/supabase/client';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import type { User } from '@supabase/supabase-js';
 import type { Profile } from '@/types';
 
@@ -9,7 +9,9 @@ export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
-  const supabase = createClient();
+
+  // Memoize browser Supabase client so it never triggers re-render dependency cascades
+  const supabase = useMemo(() => createClient(), []);
 
   const fetchProfile = useCallback(async (userId: string) => {
     try {
@@ -65,17 +67,28 @@ export function useAuth() {
     };
   }, [supabase, fetchProfile]);
 
-  const signOut = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setProfile(null);
+  const signOut = async (redirectTo: string = '/auth') => {
+    try {
+      setLoading(true);
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.warn('Sign out warning:', err);
+    } finally {
+      setUser(null);
+      setProfile(null);
+      setLoading(false);
+      if (typeof window !== 'undefined') {
+        window.location.href = redirectTo;
+      }
+    }
   };
 
   const signInWithGoogle = async (redirectTo?: string) => {
-    const callbackUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/auth/callback${
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const callbackUrl = `${origin}/auth/callback${
       redirectTo ? `?redirect=${encodeURIComponent(redirectTo)}` : ''
     }`;
-    await supabase.auth.signInWithOAuth({
+    return supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: callbackUrl,

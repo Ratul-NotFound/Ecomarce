@@ -30,25 +30,27 @@ ALTER TABLE chat_messages     ENABLE ROW LEVEL SECURITY;
 -- HELPER SECURITY FUNCTIONS
 -- ============================================================
 
--- Returns true if current user has admin or moderator role
-CREATE OR REPLACE FUNCTION is_admin_or_moderator()
+-- Returns true if current user has admin or moderator role (bypasses RLS to avoid recursion)
+CREATE OR REPLACE FUNCTION public.is_admin_or_moderator()
 RETURNS BOOLEAN AS $$
-  SELECT EXISTS (
-    SELECT 1 FROM profiles
-    WHERE id = auth.uid()
-    AND role IN ('admin', 'moderator')
-  );
-$$ LANGUAGE SQL SECURITY DEFINER STABLE;
+DECLARE
+  current_role TEXT;
+BEGIN
+  SELECT role INTO current_role FROM public.profiles WHERE id = auth.uid();
+  RETURN current_role IN ('admin', 'moderator');
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
--- Returns true if current user is admin only
-CREATE OR REPLACE FUNCTION is_admin()
+-- Returns true if current user is admin only (bypasses RLS to avoid recursion)
+CREATE OR REPLACE FUNCTION public.is_admin()
 RETURNS BOOLEAN AS $$
-  SELECT EXISTS (
-    SELECT 1 FROM profiles
-    WHERE id = auth.uid()
-    AND role = 'admin'
-  );
-$$ LANGUAGE SQL SECURITY DEFINER STABLE;
+DECLARE
+  current_role TEXT;
+BEGIN
+  SELECT role INTO current_role FROM public.profiles WHERE id = auth.uid();
+  RETURN current_role = 'admin';
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- ============================================================
 -- PROFILES

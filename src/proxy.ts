@@ -47,13 +47,30 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(url);
     }
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
+    // Verify role using service role if available for maximum reliability and security
+    let role = 'customer';
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (serviceRoleKey) {
+      const { createClient: createAdmin } = await import('@supabase/supabase-js');
+      const adminClient = createAdmin(supabaseUrl, serviceRoleKey, {
+        auth: { autoRefreshToken: false, persistSession: false },
+      });
+      const { data: adminProfile } = await adminClient
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+      role = adminProfile?.role || 'customer';
+    } else {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+      role = profile?.role || 'customer';
+    }
 
-    if (!profile || (profile.role !== 'admin' && profile.role !== 'moderator')) {
+    if (role !== 'admin' && role !== 'moderator') {
       return NextResponse.redirect(new URL('/', request.url));
     }
   }
