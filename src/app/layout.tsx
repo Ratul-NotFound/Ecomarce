@@ -44,6 +44,8 @@ export const viewport: Viewport = {
   themeColor:   '#2563eb',
 };
 
+import ExtensionSanitizer from '@/components/shared/ExtensionSanitizer';
+
 export default function RootLayout({
   children,
 }: {
@@ -55,30 +57,11 @@ export default function RootLayout({
         {/* Preconnect to Google Fonts for faster loading */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        {/* Neutralize Bitdefender extension attribute injections to ensure flawless hydration */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function() {
-                try {
-                  var clean = function(el) {
-                    if (el && el.removeAttribute) el.removeAttribute('bis_skin_checked');
-                  };
-                  document.querySelectorAll('[bis_skin_checked]').forEach(clean);
-                  var observer = new MutationObserver(function(mutations) {
-                    for (var i = 0; i < mutations.length; i++) {
-                      var m = mutations[i];
-                      if (m.attributeName === 'bis_skin_checked') clean(m.target);
-                    }
-                  });
-                  observer.observe(document.documentElement, { attributes: true, subtree: true, attributeFilter: ['bis_skin_checked'] });
-                } catch (e) {}
-              })();
-            `,
-          }}
-        />
       </head>
-      <body suppressHydrationWarning>{children}</body>
+      <body suppressHydrationWarning>
+        <ExtensionSanitizer />
+        {children}
+      </body>
     </html>
   );
 }
