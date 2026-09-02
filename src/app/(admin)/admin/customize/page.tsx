@@ -618,17 +618,20 @@ export default function AdminCustomizePage() {
                       disabled={idx === 0}
                       onClick={() => handleMoveSection(idx, 'up')}
                       style={{
-                        background: 'none',
+                        background: idx === 0 ? 'var(--color-admin-surface-2)' : '#ffffff',
                         border: '1px solid var(--color-admin-border)',
-                        color: idx === 0 ? '#4b5563' : '#ffffff',
+                        color: idx === 0 ? '#cbd5e1' : 'var(--color-admin-text)',
                         padding: '4px 8px',
                         borderRadius: 'var(--radius-md)',
                         cursor: idx === 0 ? 'not-allowed' : 'pointer',
                         height: '30px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                       }}
                       title="Move Up"
                     >
-                      <ArrowUp size={13} />
+                      <ArrowUp size={14} />
                     </button>
 
                     {/* Down Arrow */}
@@ -637,17 +640,20 @@ export default function AdminCustomizePage() {
                       disabled={idx === settings.homepage_sections_order.length - 1}
                       onClick={() => handleMoveSection(idx, 'down')}
                       style={{
-                        background: 'none',
+                        background: idx === settings.homepage_sections_order.length - 1 ? 'var(--color-admin-surface-2)' : '#ffffff',
                         border: '1px solid var(--color-admin-border)',
-                        color: idx === settings.homepage_sections_order.length - 1 ? '#4b5563' : '#ffffff',
+                        color: idx === settings.homepage_sections_order.length - 1 ? '#cbd5e1' : 'var(--color-admin-text)',
                         padding: '4px 8px',
                         borderRadius: 'var(--radius-md)',
                         cursor: idx === settings.homepage_sections_order.length - 1 ? 'not-allowed' : 'pointer',
                         height: '30px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                       }}
                       title="Move Down"
                     >
-                      <ArrowDown size={13} />
+                      <ArrowDown size={14} />
                     </button>
 
                     {/* Expand/Collapse Icon */}
@@ -1255,12 +1261,15 @@ export default function AdminCustomizePage() {
                       disabled={idx === 0}
                       onClick={() => handleMoveCategory(idx, 'up')}
                       style={{
-                        background: 'none',
+                        background: idx === 0 ? 'var(--color-admin-surface-2)' : '#ffffff',
                         border: '1px solid var(--color-admin-border)',
-                        color: idx === 0 ? '#4b5563' : '#ffffff',
+                        color: idx === 0 ? '#cbd5e1' : 'var(--color-admin-text)',
                         padding: '4px 8px',
                         borderRadius: 'var(--radius-md)',
                         cursor: idx === 0 ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                       }}
                       title="Move Up"
                     >
@@ -1271,12 +1280,15 @@ export default function AdminCustomizePage() {
                       disabled={idx === categories.length - 1}
                       onClick={() => handleMoveCategory(idx, 'down')}
                       style={{
-                        background: 'none',
+                        background: idx === categories.length - 1 ? 'var(--color-admin-surface-2)' : '#ffffff',
                         border: '1px solid var(--color-admin-border)',
-                        color: idx === categories.length - 1 ? '#4b5563' : '#ffffff',
+                        color: idx === categories.length - 1 ? '#cbd5e1' : 'var(--color-admin-text)',
                         padding: '4px 8px',
                         borderRadius: 'var(--radius-md)',
                         cursor: idx === categories.length - 1 ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                       }}
                       title="Move Down"
                     >
@@ -1348,12 +1360,15 @@ export default function AdminCustomizePage() {
                       disabled={idx === 0}
                       onClick={() => handleMoveProduct(idx, 'up')}
                       style={{
-                        background: 'none',
+                        background: idx === 0 ? 'var(--color-admin-surface-2)' : '#ffffff',
                         border: '1px solid var(--color-admin-border)',
-                        color: idx === 0 ? '#4b5563' : '#ffffff',
+                        color: idx === 0 ? '#cbd5e1' : 'var(--color-admin-text)',
                         padding: '4px 8px',
                         borderRadius: 'var(--radius-md)',
                         cursor: idx === 0 ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                       }}
                       title="Move Up"
                     >
@@ -1364,12 +1379,15 @@ export default function AdminCustomizePage() {
                       disabled={idx === filteredProducts.length - 1}
                       onClick={() => handleMoveProduct(idx, 'down')}
                       style={{
-                        background: 'none',
+                        background: idx === filteredProducts.length - 1 ? 'var(--color-admin-surface-2)' : '#ffffff',
                         border: '1px solid var(--color-admin-border)',
-                        color: idx === filteredProducts.length - 1 ? '#4b5563' : '#ffffff',
+                        color: idx === filteredProducts.length - 1 ? '#cbd5e1' : 'var(--color-admin-text)',
                         padding: '4px 8px',
                         borderRadius: 'var(--radius-md)',
                         cursor: idx === filteredProducts.length - 1 ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                       }}
                       title="Move Down"
                     >

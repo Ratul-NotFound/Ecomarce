@@ -115,11 +115,11 @@ export default function ImageUploader({ images = [], onChange }: ImageUploaderPr
             cursor: 'pointer',
           }}
         />
-        <UploadCloud size={36} color="var(--color-primary-light)" style={{ margin: '0 auto 8px', opacity: 0.8 }} />
-        <div style={{ fontSize: '14px', fontWeight: 700, color: '#ffffff' }}>
+        <UploadCloud size={36} color="var(--color-primary)" style={{ margin: '0 auto 8px', opacity: 0.9 }} />
+        <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--color-admin-text)' }}>
           {uploading ? 'Uploading media...' : 'Click or Drag images to upload'}
         </div>
-        <div style={{ fontSize: '12px', color: 'var(--color-admin-muted)', marginTop: '4px' }}>
+        <div style={{ fontSize: '12px', color: 'var(--color-admin-muted)', marginTop: '4px', fontWeight: 500 }}>
           PNG, JPG, WEBP up to 5MB
         </div>
       </div>
@@ -138,7 +138,7 @@ export default function ImageUploader({ images = [], onChange }: ImageUploaderPr
           onClick={handleAddUrl}
           disabled={!customUrl.trim()}
           className="btn btn-secondary btn-sm"
-          style={{ background: 'var(--color-admin-surface-2)', color: '#ffffff', borderColor: 'var(--color-admin-border)' }}
+          style={{ background: '#ffffff', color: 'var(--color-admin-text)', borderColor: 'var(--color-admin-border)', fontWeight: 700 }}
         >
           <Plus size={14} />
           <span>Add URL</span>
