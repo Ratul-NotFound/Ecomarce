@@ -173,4 +173,5 @@ Open **[http://localhost:3000](http://localhost:3000)** in your browser!
 
 ## 📄 License
 
-This project is licensed under the **MIT License** — feel free to use it for personal or commercial projects.
+This project is licensed under the **MIT License** — feel free to use it for personal or commercial projects.#   m u l t i - v e n d o r -  
+ 
