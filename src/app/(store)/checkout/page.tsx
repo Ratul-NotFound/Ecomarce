@@ -11,6 +11,7 @@ import { useToast } from '@/components/shared/ToastProvider';
 import { createClient } from '@/lib/supabase/client';
 import { CheckCircle2, ShieldCheck, Truck, CreditCard, ArrowRight } from 'lucide-react';
 import type { Address, PaymentMethod } from '@/types';
+import { DEFAULT_PAYMENT_SETTINGS, getMergedPaymentSettings, PaymentSettings } from '@/lib/utils/payment-config';
 
 function CheckoutContent() {
   const router = useRouter();
@@ -20,6 +21,7 @@ function CheckoutContent() {
   const { user, profile } = useAuth();
   const { showToast } = useToast();
 
+  const [paymentSettings, setPaymentSettings] = useState<PaymentSettings>(DEFAULT_PAYMENT_SETTINGS);
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [district, setDistrict] = useState('Dhaka');
@@ -57,6 +59,24 @@ function CheckoutContent() {
         });
     }
   }, [user, profile]);
+
+  // Load dynamic payment settings from store settings (respecting Admin Hide/Unhide)
+  useEffect(() => {
+    fetch('/api/admin/settings')
+      .then(r => r.json())
+      .then(res => {
+        if (res.settings && res.settings.payment_methods) {
+          const merged = getMergedPaymentSettings(res.settings.payment_methods);
+          setPaymentSettings(merged);
+          // If current selected payment method is disabled/hidden, switch to first active method
+          if (!merged[paymentMethod]?.enabled) {
+            const firstActive = (['cod', 'bkash', 'nagad', 'rocket'] as const).find(k => merged[k]?.enabled);
+            if (firstActive) setPaymentMethod(firstActive as any);
+          }
+        }
+      })
+      .catch(() => {});
+  }, [paymentMethod]);
 
   // Check initial coupon if passed from cart
   useEffect(() => {
@@ -239,124 +259,189 @@ function CheckoutContent() {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {/* Cash on Delivery */}
-                <label
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                    padding: '14px',
-                    border: `2px solid ${paymentMethod === 'cod' ? 'var(--color-primary)' : 'var(--color-border)'}`,
-                    borderRadius: 'var(--radius-lg)',
-                    cursor: 'pointer',
-                    background: paymentMethod === 'cod' ? 'var(--color-primary-10)' : '#ffffff',
-                  }}
-                >
-                  <input
-                    type="radio"
-                    name="payment_method"
-                    value="cod"
-                    checked={paymentMethod === 'cod'}
-                    onChange={() => setPaymentMethod('cod')}
-                  />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 700, fontSize: '14px' }}>Cash on Delivery (ক্যাশ অন ডেলিভারি)</div>
-                    <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>Pay when you receive the product at your door</div>
-                  </div>
-                </label>
+                {paymentSettings.cod.enabled && (
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      padding: '14px',
+                      border: `2px solid ${paymentMethod === 'cod' ? 'var(--color-primary)' : 'var(--color-border)'}`,
+                      borderRadius: 'var(--radius-lg)',
+                      cursor: 'pointer',
+                      background: paymentMethod === 'cod' ? 'var(--color-primary-10)' : '#ffffff',
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      name="payment_method"
+                      value="cod"
+                      checked={paymentMethod === 'cod'}
+                      onChange={() => setPaymentMethod('cod')}
+                    />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 700, fontSize: '14px' }}>
+                        {paymentSettings.cod.title_en} {paymentSettings.cod.title_bn ? `(${paymentSettings.cod.title_bn})` : ''}
+                      </div>
+                      <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                        {paymentSettings.cod.description_en}
+                      </div>
+                    </div>
+                  </label>
+                )}
 
                 {/* bKash */}
-                <label
-                  style={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: '12px',
-                    padding: '14px',
-                    border: `2px solid ${paymentMethod === 'bkash' ? '#e2136e' : 'var(--color-border)'}`,
-                    borderRadius: 'var(--radius-lg)',
-                    cursor: 'pointer',
-                    background: paymentMethod === 'bkash' ? 'rgba(226, 19, 110, 0.05)' : '#ffffff',
-                  }}
-                >
-                  <input
-                    type="radio"
-                    name="payment_method"
-                    value="bkash"
-                    checked={paymentMethod === 'bkash'}
-                    onChange={() => setPaymentMethod('bkash')}
-                    style={{ marginTop: '3px' }}
-                  />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 700, fontSize: '14px', color: '#e2136e' }}>bKash Personal / বিকাশ সেন্ড মানি</div>
-                    <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginTop: '2px' }}>
-                      Send <strong>{formatCurrency(grandTotal)}</strong> to <strong>{STORE_CONFIG.payment.bkash.number}</strong> (Personal)
-                    </div>
-
-                    {paymentMethod === 'bkash' && (
-                      <div style={{ marginTop: '12px' }}>
-                        <label className="form-label" style={{ fontSize: '12px' }} htmlFor="bkash-trx-id">
-                          Enter bKash TrxID (ট্রানজেকশন আইডি) *
-                        </label>
-                        <input
-                          id="bkash-trx-id"
-                          type="text"
-                          className="form-input"
-                          placeholder="e.g. 9J87AKL12"
-                          value={transactionId}
-                          onChange={e => setTransactionId(e.target.value)}
-                          style={{ textTransform: 'uppercase' }}
-                          required
-                        />
+                {paymentSettings.bkash.enabled && (
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '12px',
+                      padding: '14px',
+                      border: `2px solid ${paymentMethod === 'bkash' ? '#e2136e' : 'var(--color-border)'}`,
+                      borderRadius: 'var(--radius-lg)',
+                      cursor: 'pointer',
+                      background: paymentMethod === 'bkash' ? 'rgba(226, 19, 110, 0.05)' : '#ffffff',
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      name="payment_method"
+                      value="bkash"
+                      checked={paymentMethod === 'bkash'}
+                      onChange={() => setPaymentMethod('bkash')}
+                      style={{ marginTop: '3px' }}
+                    />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 700, fontSize: '14px', color: '#e2136e' }}>
+                        {paymentSettings.bkash.title_en} ({paymentSettings.bkash.account_type || 'Personal'})
                       </div>
-                    )}
-                  </div>
-                </label>
+                      <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginTop: '2px' }}>
+                        Send <strong>{formatCurrency(grandTotal)}</strong> to <strong>{paymentSettings.bkash.number || STORE_CONFIG.payment.bkash.number}</strong> ({paymentSettings.bkash.account_type || 'Personal'})
+                      </div>
+
+                      {paymentMethod === 'bkash' && (
+                        <div style={{ marginTop: '12px' }}>
+                          <label className="form-label" style={{ fontSize: '12px' }} htmlFor="bkash-trx-id">
+                            Enter bKash TrxID (ট্রানজেকশন আইডি) *
+                          </label>
+                          <input
+                            id="bkash-trx-id"
+                            type="text"
+                            className="form-input"
+                            placeholder="e.g. 9J87AKL12"
+                            value={transactionId}
+                            onChange={e => setTransactionId(e.target.value)}
+                            style={{ textTransform: 'uppercase' }}
+                            required
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </label>
+                )}
 
                 {/* Nagad */}
-                <label
-                  style={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: '12px',
-                    padding: '14px',
-                    border: `2px solid ${paymentMethod === 'nagad' ? '#f7941d' : 'var(--color-border)'}`,
-                    borderRadius: 'var(--radius-lg)',
-                    cursor: 'pointer',
-                    background: paymentMethod === 'nagad' ? 'rgba(247, 148, 29, 0.05)' : '#ffffff',
-                  }}
-                >
-                  <input
-                    type="radio"
-                    name="payment_method"
-                    value="nagad"
-                    checked={paymentMethod === 'nagad'}
-                    onChange={() => setPaymentMethod('nagad')}
-                    style={{ marginTop: '3px' }}
-                  />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 700, fontSize: '14px', color: '#f7941d' }}>Nagad Personal / নগদ সেন্ড মানি</div>
-                    <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginTop: '2px' }}>
-                      Send <strong>{formatCurrency(grandTotal)}</strong> to <strong>{STORE_CONFIG.payment.nagad.number}</strong> (Personal)
-                    </div>
-
-                    {paymentMethod === 'nagad' && (
-                      <div style={{ marginTop: '12px' }}>
-                        <label className="form-label" style={{ fontSize: '12px' }} htmlFor="nagad-trx-id">
-                          Enter Nagad TrxID (ট্রানজেকশন আইডি) *
-                        </label>
-                        <input
-                          id="nagad-trx-id"
-                          type="text"
-                          className="form-input"
-                          placeholder="e.g. 7X32LM89"
-                          value={transactionId}
-                          onChange={e => setTransactionId(e.target.value)}
-                          style={{ textTransform: 'uppercase' }}
-                          required
-                        />
+                {paymentSettings.nagad.enabled && (
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '12px',
+                      padding: '14px',
+                      border: `2px solid ${paymentMethod === 'nagad' ? '#f7941d' : 'var(--color-border)'}`,
+                      borderRadius: 'var(--radius-lg)',
+                      cursor: 'pointer',
+                      background: paymentMethod === 'nagad' ? 'rgba(247, 148, 29, 0.05)' : '#ffffff',
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      name="payment_method"
+                      value="nagad"
+                      checked={paymentMethod === 'nagad'}
+                      onChange={() => setPaymentMethod('nagad')}
+                      style={{ marginTop: '3px' }}
+                    />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 700, fontSize: '14px', color: '#f7941d' }}>
+                        {paymentSettings.nagad.title_en} ({paymentSettings.nagad.account_type || 'Personal'})
                       </div>
-                    )}
-                  </div>
-                </label>
+                      <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginTop: '2px' }}>
+                        Send <strong>{formatCurrency(grandTotal)}</strong> to <strong>{paymentSettings.nagad.number || STORE_CONFIG.payment.nagad.number}</strong> ({paymentSettings.nagad.account_type || 'Personal'})
+                      </div>
+
+                      {paymentMethod === 'nagad' && (
+                        <div style={{ marginTop: '12px' }}>
+                          <label className="form-label" style={{ fontSize: '12px' }} htmlFor="nagad-trx-id">
+                            Enter Nagad TrxID (ট্রানজেকশন আইডি) *
+                          </label>
+                          <input
+                            id="nagad-trx-id"
+                            type="text"
+                            className="form-input"
+                            placeholder="e.g. 7X32LM89"
+                            value={transactionId}
+                            onChange={e => setTransactionId(e.target.value)}
+                            style={{ textTransform: 'uppercase' }}
+                            required
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </label>
+                )}
+
+                {/* Rocket */}
+                {paymentSettings.rocket?.enabled && (
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '12px',
+                      padding: '14px',
+                      border: `2px solid ${paymentMethod === ('rocket' as any) ? '#8b5cf6' : 'var(--color-border)'}`,
+                      borderRadius: 'var(--radius-lg)',
+                      cursor: 'pointer',
+                      background: paymentMethod === ('rocket' as any) ? 'rgba(139, 92, 246, 0.05)' : '#ffffff',
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      name="payment_method"
+                      value="rocket"
+                      checked={paymentMethod === ('rocket' as any)}
+                      onChange={() => setPaymentMethod('rocket' as any)}
+                      style={{ marginTop: '3px' }}
+                    />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 700, fontSize: '14px', color: '#8b5cf6' }}>
+                        {paymentSettings.rocket.title_en}
+                      </div>
+                      <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginTop: '2px' }}>
+                        Send <strong>{formatCurrency(grandTotal)}</strong> to <strong>{paymentSettings.rocket.number}</strong>
+                      </div>
+
+                      {paymentMethod === ('rocket' as any) && (
+                        <div style={{ marginTop: '12px' }}>
+                          <label className="form-label" style={{ fontSize: '12px' }} htmlFor="rocket-trx-id">
+                            Enter Rocket Transaction ID *
+                          </label>
+                          <input
+                            id="rocket-trx-id"
+                            type="text"
+                            className="form-input"
+                            placeholder="e.g. RCK198762"
+                            value={transactionId}
+                            onChange={e => setTransactionId(e.target.value)}
+                            style={{ textTransform: 'uppercase' }}
+                            required
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </label>
+                )}
               </div>
             </div>
           </div>
