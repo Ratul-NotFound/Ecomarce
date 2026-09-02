@@ -116,23 +116,20 @@ export default function ProductCard({ product }: ProductCardProps) {
 
       {/* Content */}
       <div className="product-card__content">
-        {product.category && (
-          <div className="product-card__category">{product.category.name_en}</div>
-        )}
+        {/* Category & Rating in one sleek line */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+          <span className="product-card__category">{product.category?.name_en || 'Top Pick'}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+            <Star size={11} fill="#f59e0b" color="#f59e0b" />
+            <span style={{ fontSize: '10px', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+              {product.total_sold > 0 ? `${product.total_sold} sold` : 'New'}
+            </span>
+          </div>
+        </div>
 
         <Link href={`/products/${product.slug}`}>
           <h3 className="product-card__title">{product.name_en}</h3>
         </Link>
-
-        {/* Rating preview */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '8px' }}>
-          <div className="stars">
-            <Star size={13} fill="currentColor" />
-          </div>
-          <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 600 }}>
-            {product.total_sold > 0 ? `${product.total_sold} sold` : 'New'}
-          </span>
-        </div>
 
         {/* Price Row */}
         <div className="product-card__price-row">
@@ -154,14 +151,14 @@ export default function ProductCard({ product }: ProductCardProps) {
           >
             {addedAnim ? (
               <>
-                <Check size={14} />
+                <Check size={13} />
                 <span>Added</span>
               </>
             ) : product.stock_quantity <= 0 ? (
-              <span>Out of Stock</span>
+              <span>Out</span>
             ) : (
               <>
-                <ShoppingBag size={14} />
+                <ShoppingBag size={13} />
                 <span>Cart</span>
               </>
             )}
@@ -175,7 +172,7 @@ export default function ProductCard({ product }: ProductCardProps) {
             title="Buy Now"
             id={`buy-btn-${product.id}`}
           >
-            <Zap size={14} fill="currentColor" />
+            <Zap size={13} fill="currentColor" />
             <span>Buy Now</span>
           </button>
         </div>
