@@ -10,10 +10,25 @@ export class TelegramService {
     ordersTopicId?: number,
     messagesTopicId?: number
   ) {
-    this.botToken = botToken || process.env.TELEGRAM_BOT_TOKEN || '';
-    this.chatId = chatId || process.env.TELEGRAM_CHAT_ID || '';
-    this.ordersTopicId = ordersTopicId || (process.env.TELEGRAM_ORDERS_TOPIC_ID ? parseInt(process.env.TELEGRAM_ORDERS_TOPIC_ID, 10) : undefined);
-    this.messagesTopicId = messagesTopicId || (process.env.TELEGRAM_MESSAGES_TOPIC_ID ? parseInt(process.env.TELEGRAM_MESSAGES_TOPIC_ID, 10) : undefined);
+    const sanitize = (val?: any) => {
+      if (!val) return '';
+      let str = String(val).trim();
+      if ((str.startsWith('"') && str.endsWith('"')) || (str.startsWith("'") && str.endsWith("'"))) {
+        str = str.slice(1, -1).trim();
+      }
+      return str;
+    };
+
+    const parseTopic = (val?: any) => {
+      const sanitized = sanitize(val);
+      const parsed = parseInt(sanitized, 10);
+      return isNaN(parsed) ? undefined : parsed;
+    };
+
+    this.botToken = sanitize(botToken || process.env.TELEGRAM_BOT_TOKEN);
+    this.chatId = sanitize(chatId || process.env.TELEGRAM_CHAT_ID);
+    this.ordersTopicId = parseTopic(ordersTopicId ?? process.env.TELEGRAM_ORDERS_TOPIC_ID);
+    this.messagesTopicId = parseTopic(messagesTopicId ?? process.env.TELEGRAM_MESSAGES_TOPIC_ID);
   }
 
   async sendMessage(text: string, customChatId?: string, threadId?: number): Promise<boolean> {
