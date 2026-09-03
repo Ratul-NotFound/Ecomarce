@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { useToast } from '@/components/shared/ToastProvider';
 import { createClient } from '@/lib/supabase/client';
 import ImageUploader from '@/components/admin/ImageUploader';
+import { getOptimizedImageUrl } from '@/lib/utils/images';
 import {
   Plus,
   Trash2,
@@ -1591,7 +1592,7 @@ export default function AdminCustomizePage() {
                     </span>
                     {p.images?.[0] && (
                       <div style={{ position: 'relative', width: '38px', height: '38px', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--color-admin-border)' }}>
-                        <Image src={p.images[0]} alt={p.name_en} fill style={{ objectFit: 'cover' }} />
+                        <Image src={getOptimizedImageUrl(p.images[0], 'thumb')} alt={p.name_en} fill style={{ objectFit: 'cover' }} />
                       </div>
                     )}
                     <div>

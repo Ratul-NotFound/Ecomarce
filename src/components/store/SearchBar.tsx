@@ -6,6 +6,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Search, X, ArrowRight, Package, TrendingUp, Sparkles, Folder } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils/format';
+import { getOptimizedImageUrl } from '@/lib/utils/images';
 
 interface SearchBarProps {
   placeholder?: string;
@@ -313,7 +314,7 @@ export default function SearchBar({
                 Products ({safeProducts.length})
               </div>
               {safeProducts.map(prod => {
-                const img = prod.images?.[0];
+                const img = getOptimizedImageUrl(prod.images?.[0], 'thumb');
                 return (
                   <Link
                     key={prod.id}

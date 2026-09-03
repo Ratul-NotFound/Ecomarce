@@ -41,12 +41,12 @@ export function getOptimizedImageUrl(
     if (url.includes('images.unsplash.com') || url.includes('plus.unsplash.com')) {
       const parsed = new URL(url);
       if (variant === 'thumb') {
-        parsed.searchParams.set('w', '380');
-        parsed.searchParams.set('q', '72');
+        parsed.searchParams.set('w', '320');
+        parsed.searchParams.set('q', '70');
         parsed.searchParams.set('auto', 'format');
       } else {
-        parsed.searchParams.set('w', '1200');
-        parsed.searchParams.set('q', '88');
+        parsed.searchParams.set('w', '900');
+        parsed.searchParams.set('q', '85');
         parsed.searchParams.set('auto', 'format');
       }
       return parsed.toString();
@@ -54,22 +54,25 @@ export function getOptimizedImageUrl(
 
     // 4. Supabase Storage URLs (with Image Transformations API)
     if (url.includes('.supabase.co/storage/v1/object/public/')) {
-      if (variant === 'full') {
-        return url;
-      }
-      // Supabase supports image transformation via /storage/v1/render/image/public/
       const renderBase = url.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/');
       const parsed = new URL(renderBase);
-      parsed.searchParams.set('width', '400');
-      parsed.searchParams.set('height', '400');
-      parsed.searchParams.set('resize', 'contain');
-      parsed.searchParams.set('quality', '80');
+      if (variant === 'thumb') {
+        parsed.searchParams.set('width', '320');
+        parsed.searchParams.set('height', '320');
+        parsed.searchParams.set('resize', 'contain');
+        parsed.searchParams.set('quality', '70');
+      } else {
+        parsed.searchParams.set('width', '900');
+        parsed.searchParams.set('height', '900');
+        parsed.searchParams.set('resize', 'contain');
+        parsed.searchParams.set('quality', '85');
+      }
       return parsed.toString();
     }
 
     // 5. Cloudinary URLs
     if (url.includes('res.cloudinary.com')) {
-      const transform = variant === 'thumb' ? 'c_scale,w_380,q_auto:eco' : 'c_scale,w_1200,q_auto:good';
+      const transform = variant === 'thumb' ? 'c_scale,w_320,q_auto:eco' : 'c_scale,w_900,q_auto:good';
       return url.replace('/upload/', `/upload/${transform}/`);
     }
   } catch {

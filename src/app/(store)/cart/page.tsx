@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { Trash2, ShoppingBag, ArrowRight, Minus, Plus, Tag, ShieldCheck } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
 import { formatCurrency } from '@/lib/utils/format';
+import { getOptimizedImageUrl } from '@/lib/utils/images';
 import { STORE_CONFIG } from '@/lib/store-config';
 import { useToast } from '@/components/shared/ToastProvider';
 
@@ -88,7 +89,8 @@ export default function CartPage() {
               const unitPrice = item.variant
                 ? (item.product.sale_price ?? item.product.base_price) + item.variant.price_modifier
                 : item.product.sale_price ?? item.product.base_price;
-              const imgUrl = item.product.images?.[0] || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200&q=80';
+              const rawImg = item.variant?.images?.[0] || item.product.images?.[0];
+              const imgUrl = getOptimizedImageUrl(rawImg, 'thumb');
 
               return (
                 <div

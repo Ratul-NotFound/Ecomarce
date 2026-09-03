@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/components/shared/ToastProvider';
 import { DISTRICTS } from '@/lib/utils/bangladesh-districts';
 import { formatCurrency, formatDate, getStatusLabel } from '@/lib/utils/format';
+import { getOptimizedImageUrl } from '@/lib/utils/images';
 import {
   User,
   MapPin,
@@ -701,7 +702,7 @@ function AccountContent() {
                           >
                             {firstItem.image_snapshot ? (
                               <Image
-                                src={firstItem.image_snapshot}
+                                src={getOptimizedImageUrl(firstItem.image_snapshot, 'thumb')}
                                 alt={firstItem.name_snapshot || 'Product'}
                                 fill
                                 sizes="54px"

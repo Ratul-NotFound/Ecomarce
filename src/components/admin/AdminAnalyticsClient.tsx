@@ -18,6 +18,7 @@ import {
   Globe,
 } from 'lucide-react';
 import KPICard from '@/components/admin/KPICard';
+import { getOptimizedImageUrl } from '@/lib/utils/images';
 import SalesAnalyticsChart from '@/components/admin/SalesAnalyticsChart';
 import TrafficAnalyticsView from '@/components/admin/TrafficAnalyticsView';
 import { formatCurrency } from '@/lib/utils/format';
@@ -398,7 +399,7 @@ export default function AdminAnalyticsClient({ orders, products }: AdminAnalytic
                   </span>
                   {p.images?.[0] && (
                     <div style={{ position: 'relative', width: '36px', height: '36px', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--color-admin-border)' }}>
-                      <Image src={p.images[0]} alt={p.name_en} fill style={{ objectFit: 'cover' }} />
+                      <Image src={getOptimizedImageUrl(p.images[0], 'thumb')} alt={p.name_en} fill style={{ objectFit: 'cover' }} />
                     </div>
                   )}
                   <div>
