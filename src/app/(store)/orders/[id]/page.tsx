@@ -112,14 +112,25 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
 
         {/* Items List */}
         <h3 style={{ fontSize: '16px', fontWeight: 800, marginBottom: '16px' }}>Order Items</h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', borderBottom: '1px solid var(--color-border)', paddingBottom: '20px', marginBottom: '20px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', borderBottom: '1px solid var(--color-border)', paddingBottom: '20px', marginBottom: '20px' }}>
           {(order.items_snapshot || []).map((item, idx) => (
-            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px' }}>
+            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px', flexWrap: 'wrap', gap: '8px' }}>
               <div>
                 <strong>{item.quantity}x</strong> {item.name_snapshot}
               </div>
-              <div style={{ fontWeight: 700 }}>
-                {formatCurrency(item.total_price)}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <span style={{ fontWeight: 700 }}>
+                  {formatCurrency(item.total_price)}
+                </span>
+                {order.status === 'delivered' && (
+                  <Link
+                    href={`/products/${item.product_id}#reviews`}
+                    className="btn btn-secondary btn-sm"
+                    style={{ fontSize: '11px', padding: '3px 10px', borderRadius: 'var(--radius-full)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                  >
+                    <span>⭐ Rate & Review</span>
+                  </Link>
+                )}
               </div>
             </div>
           ))}

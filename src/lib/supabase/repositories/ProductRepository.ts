@@ -32,14 +32,20 @@ export class ProductRepository extends BaseRepository<Product> {
     super(supabase, 'products');
   }
 
-  async findBySlug(slug: string): Promise<Product | null> {
-    const { data } = await this.supabase
+  async findBySlug(slugOrId: string): Promise<Product | null> {
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slugOrId);
+    let query = this.supabase
       .from('products')
       .select('*, category:categories(id, name_en, name_bn, slug), variants:product_variants(*), reviews:product_reviews(*, profile:profiles(full_name, avatar_url))')
-      .eq('slug', slug)
-      .eq('is_active', true)
-      .single();
+      .eq('is_active', true);
 
+    if (isUuid) {
+      query = query.or(`slug.eq.${slugOrId},id.eq.${slugOrId}`);
+    } else {
+      query = query.eq('slug', slugOrId);
+    }
+
+    const { data } = await query.maybeSingle();
     return data ? attachProductMetrics(data) : null;
   }
 
