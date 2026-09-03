@@ -57,6 +57,19 @@ export default function HeroBanner({ banners = [] }: HeroBannerProps) {
       starts_at: null,
       ends_at: null,
     },
+    {
+      id: 'default-gadgets',
+      title_en: 'Aesthetic Ambient Living & Smart Gadgets',
+      title_bn: 'অ্যাস্থেটিক অ্যাম্বিয়েন্ট লাইটিং ও ফ্যান্সি গ্যাজেটস',
+      subtitle: '✨ 3D MOOD LAMPS & DECOR · FLAT 30% OFF',
+      image_url: '/images/banners/hero-gadgets.jpg',
+      link_url: '/category/electronics',
+      type: 'hero_banner',
+      display_order: 4,
+      is_active: true,
+      starts_at: null,
+      ends_at: null,
+    },
   ];
 
   const activeBanners = banners && banners.length > 0 ? banners : defaultBanners;
