@@ -54,16 +54,16 @@ export function getOptimizedImageUrl(
 
     // 4. Supabase Storage URLs (with Image Transformations API)
     if (url.includes('.supabase.co/storage/v1/object/public/')) {
+      if (variant === 'full') {
+        return url;
+      }
       // Supabase supports image transformation via /storage/v1/render/image/public/
       const renderBase = url.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/');
       const parsed = new URL(renderBase);
-      if (variant === 'thumb') {
-        parsed.searchParams.set('width', '380');
-        parsed.searchParams.set('quality', '70');
-      } else {
-        parsed.searchParams.set('width', '1200');
-        parsed.searchParams.set('quality', '88');
-      }
+      parsed.searchParams.set('width', '400');
+      parsed.searchParams.set('height', '400');
+      parsed.searchParams.set('resize', 'contain');
+      parsed.searchParams.set('quality', '80');
       return parsed.toString();
     }
 
