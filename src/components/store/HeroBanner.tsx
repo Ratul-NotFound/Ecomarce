@@ -59,9 +59,9 @@ export default function HeroBanner({ banners = [] }: HeroBannerProps) {
     },
     {
       id: 'default-gadgets',
-      title_en: 'Aesthetic Ambient Living & Smart Gadgets',
-      title_bn: 'অ্যাস্থেটিক অ্যাম্বিয়েন্ট লাইটিং ও ফ্যান্সি গ্যাজেটস',
-      subtitle: '✨ 3D MOOD LAMPS & DECOR · FLAT 30% OFF',
+      title_en: 'Magical Ambient Lights & Moon Decor',
+      title_bn: 'ম্যাজিকাল ফেয়ারি লাইটস, মুন ল্যাম্পস ও গ্যালাক্সি প্রজেক্টর',
+      subtitle: '✨ FAIRY LIGHTS, MOON LAMPS & GADGETS · FLAT 30% OFF',
       image_url: '/images/banners/hero-gadgets.jpg',
       link_url: '/category/electronics',
       type: 'hero_banner',
