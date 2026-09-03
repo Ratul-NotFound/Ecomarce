@@ -2390,3 +2390,79 @@
   }
 }
 
+/* ────────────────────────────────────────────────────────────
+   PROFESSIONAL E-COMMERCE USER DASHBOARD (ALL SCREENS)
+   ──────────────────────────────────────────────────────────── */
+.account-dashboard-layout {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 28px;
+  align-items: start;
+}
+
+.account-sidebar-desktop {
+  display: block;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-2xl);
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+  position: sticky;
+  top: 90px;
+}
+
+.account-header-mobile {
+  display: none;
+}
+
+.account-tabs-mobile {
+  display: none;
+}
+
+.account-nav-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px 14px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  border-radius: var(--radius-lg);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+}
+
+.account-nav-item:hover {
+  background: var(--color-surface-2);
+  color: var(--color-text-primary);
+}
+
+.account-nav-item--active {
+  background: var(--color-primary-10);
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+@media (max-width: 1023px) {
+  .account-dashboard-layout {
+    display: block;
+  }
+
+  .account-sidebar-desktop {
+    display: none;
+  }
+
+  .account-header-mobile {
+    display: flex;
+  }
+
+  .account-tabs-mobile {
+    display: flex;
+  }
+}
+
+
