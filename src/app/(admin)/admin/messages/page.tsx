@@ -323,19 +323,18 @@ export default function AdminMessagesPage() {
           position: 'relative',
         }}
       >
-        {/* Left Column: Customer Thread List */}
+        {/* Left Column: Customer Thread List (Always visible on PC, WhatsApp Web style) */}
         <div
           style={{
             width: '340px',
             minWidth: '280px',
             maxWidth: '380px',
             borderRight: '1px solid var(--color-admin-border)',
-            display: showMobileChat ? 'none' : 'flex',
             flexDirection: 'column',
             background: '#ffffff',
             flexShrink: 0,
           }}
-          className="admin-chat-sidebar"
+          className={`admin-chat-sidebar ${showMobileChat ? 'mobile-hidden' : 'mobile-visible'}`}
         >
           {/* Search Box */}
           <div style={{ padding: '14px', borderBottom: '1px solid var(--color-admin-border)' }}>
@@ -449,13 +448,13 @@ export default function AdminMessagesPage() {
         <div
           style={{
             flex: 1,
-            display: 'flex',
             flexDirection: 'column',
             height: '100%',
             background: '#f8fafc',
             minWidth: 0,
             width: '100%',
           }}
+          className={`admin-chat-main ${showMobileChat ? 'mobile-visible' : 'mobile-hidden'}`}
         >
           {activeConversation ? (
             <>
@@ -718,11 +717,43 @@ export default function AdminMessagesPage() {
       </div>
 
       <style jsx global>{`
-        @media (max-width: 860px) {
+        /* Desktop / PC: ALWAYS side-by-side like WhatsApp Web & Messenger */
+        @media (min-width: 768px) {
           .admin-chat-sidebar {
+            display: flex !important;
+            width: 340px !important;
+            min-width: 280px !important;
+            max-width: 380px !important;
+            border-right: 1px solid var(--color-admin-border) !important;
+            flex-shrink: 0 !important;
+          }
+          .admin-chat-main {
+            display: flex !important;
+            flex: 1 !important;
+            min-width: 0 !important;
+          }
+          .admin-chat-back-btn {
+            display: none !important;
+          }
+        }
+
+        /* Mobile screens (< 768px): Toggle between conversation list and active chat */
+        @media (max-width: 767px) {
+          .admin-chat-sidebar.mobile-hidden {
+            display: none !important;
+          }
+          .admin-chat-sidebar.mobile-visible {
+            display: flex !important;
             width: 100% !important;
             max-width: 100% !important;
             border-right: none !important;
+          }
+          .admin-chat-main.mobile-hidden {
+            display: none !important;
+          }
+          .admin-chat-main.mobile-visible {
+            display: flex !important;
+            width: 100% !important;
           }
           .admin-chat-back-btn {
             display: inline-flex !important;
