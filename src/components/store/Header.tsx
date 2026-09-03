@@ -20,7 +20,7 @@ interface HeaderProps {
 export default function Header({ categories = [], announcement }: HeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const isCartOrCheckout = pathname === '/cart' || pathname === '/checkout';
+  const isCleanPage = pathname === '/cart' || pathname === '/checkout' || pathname.startsWith('/account');
   const { itemCount } = useCart();
   const { user, profile, isAdmin, isModerator } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
@@ -136,8 +136,8 @@ export default function Header({ categories = [], announcement }: HeaderProps) {
           </div>
         </div>
 
-        {/* Mobile Dedicated Search Bar (Hidden on Cart & Checkout to prevent overlap) */}
-        {!isCartOrCheckout && (
+        {/* Mobile Dedicated Search Bar (Hidden on Cart, Checkout, and Account) */}
+        {!isCleanPage && (
           <form onSubmit={handleSearchSubmit} className="store-header__mobile-search">
             <Search className="store-header__mobile-search-icon" size={16} />
             <input

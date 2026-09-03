@@ -22,9 +22,11 @@ import {
   FileText,
   Star,
   ShoppingBag,
-  Clock,
   CheckCircle2,
   Copy,
+  Clock,
+  ChevronRight,
+  ShieldCheck,
 } from 'lucide-react';
 import type { Address, Order } from '@/types';
 
@@ -125,7 +127,7 @@ function AccountContent() {
   if (loading) {
     return (
       <div className="container" style={{ padding: '80px 16px', textAlign: 'center' }}>
-        <p style={{ color: 'var(--color-text-muted)' }}>Loading account dashboard...</p>
+        <p style={{ color: 'var(--color-text-muted)', fontSize: '14px' }}>Loading account dashboard...</p>
       </div>
     );
   }
@@ -133,8 +135,8 @@ function AccountContent() {
   if (!user) {
     return (
       <div className="container" style={{ padding: '80px 16px', textAlign: 'center' }}>
-        <h1 style={{ fontSize: '24px', fontWeight: 800, marginBottom: '12px' }}>Sign in to your account</h1>
-        <p style={{ color: 'var(--color-text-secondary)', marginBottom: '24px' }}>
+        <h1 style={{ fontSize: '22px', fontWeight: 800, marginBottom: '12px' }}>Sign in to your account</h1>
+        <p style={{ color: 'var(--color-text-secondary)', marginBottom: '24px', fontSize: '14px' }}>
           Access your order history, live package tracking, saved delivery addresses, and loyalty rewards.
         </p>
         <Link href="/auth?redirect=/account" className="btn btn-primary" id="account-signin-btn">
@@ -219,36 +221,37 @@ function AccountContent() {
   const referralLink = `${typeof window !== 'undefined' ? window.location.origin : ''}/auth?ref=${profile?.referral_code || ''}`;
 
   return (
-    <div className="container" style={{ padding: '24px 16px 80px', maxWidth: '860px' }}>
-      {/* Account Overview Header Card */}
+    <div className="container" style={{ padding: '16px 16px 130px', maxWidth: '860px' }}>
+      {/* ────────────────────────────────────────────────────────────
+          1. SLEEK PROFILE IDENTITY HERO BANNER
+      ──────────────────────────────────────────────────────────── */}
       <div
         style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '14px',
           background: 'var(--color-surface)',
           border: '1px solid var(--color-border)',
           borderRadius: 'var(--radius-2xl)',
-          padding: '16px 20px',
-          marginBottom: '20px',
-          boxShadow: 'var(--shadow-xs)',
+          padding: '16px',
+          marginBottom: '14px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '12px',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
           <div
             style={{
-              width: '48px',
-              height: '48px',
-              minWidth: '48px',
-              borderRadius: '9999px',
-              background: 'linear-gradient(135deg, var(--color-primary), #1d4ed8)',
+              width: '46px',
+              height: '46px',
+              minWidth: '46px',
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
               color: '#ffffff',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '20px',
+              fontSize: '18px',
               fontWeight: 800,
               boxShadow: '0 4px 10px rgba(37,99,235,0.25)',
               flexShrink: 0,
@@ -256,28 +259,48 @@ function AccountContent() {
           >
             {profile?.full_name?.charAt(0) || user.email?.charAt(0)?.toUpperCase() || 'U'}
           </div>
+
           <div style={{ minWidth: 0, overflow: 'hidden' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <h1 style={{ fontSize: '18px', fontWeight: 800, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+              <h1
+                style={{
+                  fontSize: '16px',
+                  fontWeight: 800,
+                  margin: 0,
+                  color: 'var(--color-text-primary)',
+                  lineHeight: 1.2,
+                }}
+              >
                 {profile?.full_name || 'Customer Account'}
               </h1>
               {profile?.role === 'admin' && (
                 <Link
                   href="/admin"
                   style={{
-                    fontSize: '11px',
+                    fontSize: '10.5px',
                     fontWeight: 700,
-                    padding: '2px 8px',
+                    padding: '2px 7px',
                     borderRadius: 'var(--radius-full)',
                     background: 'rgba(37,99,235,0.1)',
                     color: 'var(--color-primary)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
                   }}
                 >
                   Admin ↗
                 </Link>
               )}
             </div>
-            <div style={{ fontSize: '12.5px', color: 'var(--color-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: '2px' }}>
+            <div
+              style={{
+                fontSize: '12px',
+                color: 'var(--color-text-muted)',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                marginTop: '2px',
+              }}
+            >
               {user.email}
             </div>
           </div>
@@ -288,29 +311,56 @@ function AccountContent() {
           onClick={handleSignOut}
           className="btn btn-secondary btn-sm"
           id="account-signout-btn"
-          style={{ whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', padding: '6px 12px' }}
+          style={{
+            fontSize: '12px',
+            padding: '6px 10px',
+            height: '34px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '5px',
+            flexShrink: 0,
+          }}
         >
-          <LogOut size={14} />
+          <LogOut size={13} />
           <span>Sign Out</span>
         </button>
       </div>
 
-      {/* Quick Summary Metric Cards (2x2 on mobile, 4x1 on desktop) */}
-      <div className="account-kpi-grid">
+      {/* ────────────────────────────────────────────────────────────
+          2. COMPACT 4-PILLAR STATS GLANCE STRIP (Takes ~55px height)
+      ──────────────────────────────────────────────────────────── */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          background: 'var(--color-surface)',
+          border: '1px solid var(--color-border)',
+          borderRadius: 'var(--radius-xl)',
+          padding: '10px 4px',
+          marginBottom: '16px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+        }}
+      >
         <button
           type="button"
           onClick={() => {
             setActiveTab('orders');
             setOrderFilter('all');
           }}
-          className={`account-kpi-card ${activeTab === 'orders' && orderFilter === 'all' ? 'account-kpi-card--active' : ''}`}
+          style={{
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            textAlign: 'center',
+            padding: '4px 6px',
+            borderRight: '1px solid var(--color-border)',
+          }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-            <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--color-text-muted)' }}>Total Orders</span>
-            <Package size={16} color="var(--color-primary)" />
-          </div>
-          <div style={{ fontSize: '20px', fontWeight: 800, color: 'var(--color-text-primary)' }}>
+          <div style={{ fontSize: '18px', fontWeight: 900, color: activeTab === 'orders' ? 'var(--color-primary)' : 'var(--color-text-primary)' }}>
             {orders.length}
+          </div>
+          <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-muted)', marginTop: '1px' }}>
+            Orders
           </div>
         </button>
 
@@ -320,156 +370,160 @@ function AccountContent() {
             setActiveTab('orders');
             setOrderFilter('active');
           }}
-          className={`account-kpi-card ${activeTab === 'orders' && orderFilter === 'active' ? 'account-kpi-card--active' : ''}`}
+          style={{
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            textAlign: 'center',
+            padding: '4px 6px',
+            borderRight: '1px solid var(--color-border)',
+          }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-            <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--color-text-muted)' }}>In Transit</span>
-            <Truck size={16} color="#f59e0b" />
-          </div>
-          <div style={{ fontSize: '20px', fontWeight: 800, color: '#f59e0b' }}>
+          <div style={{ fontSize: '18px', fontWeight: 900, color: '#f59e0b' }}>
             {activeOrdersCount}
           </div>
+          <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-muted)', marginTop: '1px' }}>
+            In Transit
+          </div>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab('addresses')}
-          className={`account-kpi-card ${activeTab === 'addresses' ? 'account-kpi-card--active' : ''}`}
+          style={{
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            textAlign: 'center',
+            padding: '4px 6px',
+            borderRight: '1px solid var(--color-border)',
+          }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-            <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--color-text-muted)' }}>Addresses</span>
-            <MapPin size={16} color="var(--color-primary)" />
-          </div>
-          <div style={{ fontSize: '20px', fontWeight: 800, color: 'var(--color-text-primary)' }}>
+          <div style={{ fontSize: '18px', fontWeight: 900, color: activeTab === 'addresses' ? 'var(--color-primary)' : 'var(--color-text-primary)' }}>
             {addresses.length}
           </div>
+          <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-muted)', marginTop: '1px' }}>
+            Addresses
+          </div>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab('rewards')}
-          className={`account-kpi-card ${activeTab === 'rewards' ? 'account-kpi-card--active' : ''}`}
+          style={{
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            textAlign: 'center',
+            padding: '4px 6px',
+          }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-            <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--color-text-muted)' }}>Points</span>
-            <Gift size={16} color="#10b981" />
-          </div>
-          <div style={{ fontSize: '20px', fontWeight: 800, color: '#10b981' }}>
+          <div style={{ fontSize: '18px', fontWeight: 900, color: '#10b981' }}>
             {profile?.points || 0}
           </div>
-        </button>
-      </div>
-
-      {/* Tabs Navigation Bar (Touch scrollable) */}
-      <div className="account-tabs-nav">
-        <button
-          type="button"
-          onClick={() => setActiveTab('orders')}
-          className={`btn ${activeTab === 'orders' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-          style={{ whiteSpace: 'nowrap', flexShrink: 0, display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px' }}
-          id="account-tab-orders"
-        >
-          <Package size={15} />
-          <span>My Orders ({orders.length})</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('profile')}
-          className={`btn ${activeTab === 'profile' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-          style={{ whiteSpace: 'nowrap', flexShrink: 0, display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px' }}
-          id="account-tab-profile"
-        >
-          <User size={15} />
-          <span>Profile Details</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('addresses')}
-          className={`btn ${activeTab === 'addresses' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-          style={{ whiteSpace: 'nowrap', flexShrink: 0, display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px' }}
-          id="account-tab-addresses"
-        >
-          <MapPin size={15} />
-          <span>Saved Addresses ({addresses.length})</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('rewards')}
-          className={`btn ${activeTab === 'rewards' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-          style={{ whiteSpace: 'nowrap', flexShrink: 0, display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px' }}
-          id="account-tab-rewards"
-        >
-          <Gift size={15} />
-          <span>Rewards & Referral</span>
+          <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-muted)', marginTop: '1px' }}>
+            Points
+          </div>
         </button>
       </div>
 
       {/* ────────────────────────────────────────────────────────────
-          1. MY ORDERS TAB SECTION
+          3. MODERN SEGMENTED TAB CONTROL (iOS / Shopify Style)
+      ──────────────────────────────────────────────────────────── */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          background: '#f1f5f9',
+          padding: '4px',
+          borderRadius: 'var(--radius-xl)',
+          marginBottom: '16px',
+          gap: '4px',
+        }}
+      >
+        {[
+          { id: 'orders', label: `Orders (${orders.length})`, icon: Package },
+          { id: 'profile', label: 'Profile', icon: User },
+          { id: 'addresses', label: `Addresses`, icon: MapPin },
+          { id: 'rewards', label: 'Rewards', icon: Gift },
+        ].map(t => {
+          const isActive = activeTab === t.id;
+          const IconComp = t.icon;
+          return (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setActiveTab(t.id as any)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '5px',
+                padding: '8px 4px',
+                fontSize: '12px',
+                fontWeight: isActive ? 800 : 600,
+                borderRadius: 'calc(var(--radius-xl) - 2px)',
+                border: 'none',
+                cursor: 'pointer',
+                background: isActive ? '#ffffff' : 'transparent',
+                color: isActive ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+                boxShadow: isActive ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
+                transition: 'all 0.15s ease',
+              }}
+              id={`account-tab-${t.id}`}
+            >
+              <IconComp size={14} />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {t.label}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ────────────────────────────────────────────────────────────
+          4. TAB 1: MY ORDERS SECTION
       ──────────────────────────────────────────────────────────── */}
       {activeTab === 'orders' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {/* Order Status Filters (Swipeable on mobile) */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          {/* Status Filter Bar */}
           <div
             style={{
               display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '10px',
-              flexWrap: 'wrap',
+              gap: '6px',
+              overflowX: 'auto',
+              WebkitOverflowScrolling: 'touch',
+              scrollbarWidth: 'none',
+              paddingBottom: '2px',
             }}
           >
-            <div
-              style={{
-                display: 'flex',
-                gap: '6px',
-                overflowX: 'auto',
-                WebkitOverflowScrolling: 'touch',
-                scrollbarWidth: 'none',
-                maxWidth: '100%',
-                paddingBottom: '2px',
-              }}
-            >
-              {[
-                { id: 'all', label: `All (${orders.length})` },
-                { id: 'active', label: `In Transit (${activeOrdersCount})` },
-                { id: 'delivered', label: `Delivered (${deliveredOrdersCount})` },
-                { id: 'cancelled', label: `Cancelled (${cancelledOrdersCount})` },
-              ].map(f => (
-                <button
-                  key={f.id}
-                  type="button"
-                  onClick={() => setOrderFilter(f.id as any)}
-                  style={{
-                    padding: '6px 12px',
-                    borderRadius: 'var(--radius-full)',
-                    fontSize: '12px',
-                    fontWeight: orderFilter === f.id ? 800 : 600,
-                    background: orderFilter === f.id ? 'var(--color-primary)' : 'var(--color-surface)',
-                    color: orderFilter === f.id ? '#ffffff' : 'var(--color-text-secondary)',
-                    border: '1px solid ' + (orderFilter === f.id ? 'var(--color-primary)' : 'var(--color-border)'),
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap',
-                    flexShrink: 0,
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  {f.label}
-                </button>
-              ))}
-            </div>
-
-            <Link
-              href="/"
-              className="btn btn-secondary btn-sm"
-              style={{ display: 'none', alignItems: 'center', gap: '6px', fontSize: '12px' }}
-            >
-              <ShoppingBag size={13} />
-              <span>Browse Catalog</span>
-            </Link>
+            {[
+              { id: 'all', label: `All (${orders.length})` },
+              { id: 'active', label: `In Transit (${activeOrdersCount})` },
+              { id: 'delivered', label: `Delivered (${deliveredOrdersCount})` },
+              { id: 'cancelled', label: `Cancelled (${cancelledOrdersCount})` },
+            ].map(f => (
+              <button
+                key={f.id}
+                type="button"
+                onClick={() => setOrderFilter(f.id as any)}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: 'var(--radius-full)',
+                  fontSize: '12px',
+                  fontWeight: orderFilter === f.id ? 800 : 600,
+                  background: orderFilter === f.id ? 'var(--color-primary)' : 'var(--color-surface)',
+                  color: orderFilter === f.id ? '#ffffff' : 'var(--color-text-secondary)',
+                  border: '1px solid ' + (orderFilter === f.id ? 'var(--color-primary)' : 'var(--color-border)'),
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                {f.label}
+              </button>
+            ))}
           </div>
 
           {/* Orders Stream / Empty State */}
@@ -483,7 +537,7 @@ function AccountContent() {
                 background: 'var(--color-surface)',
                 border: '1px solid var(--color-border)',
                 borderRadius: 'var(--radius-xl)',
-                padding: '40px 20px',
+                padding: '44px 20px',
                 textAlign: 'center',
               }}
             >
@@ -507,50 +561,110 @@ function AccountContent() {
                 const itemCount = (order.items_snapshot || []).reduce((sum, item) => sum + (item.quantity || 1), 0);
                 const isDelivered = order.status === 'delivered';
 
+                // Mini pipeline progress stage
+                let stepIdx = 1;
+                if (order.status === 'delivered') stepIdx = 4;
+                else if (order.status === 'shipped' || order.status === 'out_for_delivery') stepIdx = 3;
+                else if (order.status === 'processing' || order.status === 'confirmed') stepIdx = 2;
+
                 return (
                   <div key={order.id} className="account-order-card">
-                    {/* Order Top Bar: Order ID, Date, and Badges */}
+                    {/* Card Top: Order Number, Date & Status Badges */}
                     <div
                       style={{
                         display: 'flex',
                         justifyContent: 'space-between',
-                        alignItems: 'flex-start',
+                        alignItems: 'center',
                         flexWrap: 'wrap',
                         gap: '8px',
                         borderBottom: '1px solid var(--color-border)',
-                        paddingBottom: '12px',
+                        paddingBottom: '10px',
                       }}
                     >
                       <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                          <span style={{ fontWeight: 800, fontSize: '15px', color: 'var(--color-text-primary)' }}>
-                            #{order.order_number}
-                          </span>
-                          <span className={`badge badge-${order.status}`} style={{ fontSize: '11px', padding: '2px 7px' }}>
-                            {getStatusLabel(order.status)}
-                          </span>
+                        <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--color-text-primary)' }}>
+                          #{order.order_number}
                         </div>
-                        <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '3px' }}>
+                        <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
                           {formatDate(order.created_at)}
                         </div>
                       </div>
 
-                      <span
-                        style={{
-                          fontSize: '11px',
-                          fontWeight: 700,
-                          padding: '3px 8px',
-                          borderRadius: 'var(--radius-sm)',
-                          background: order.payment_status === 'confirmed' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
-                          color: order.payment_status === 'confirmed' ? '#059669' : '#d97706',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {order.payment_method?.toUpperCase()} • {order.payment_status === 'confirmed' ? 'Paid' : 'Pending'}
-                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span className={`badge badge-${order.status}`} style={{ fontSize: '11px', padding: '3px 8px' }}>
+                          {getStatusLabel(order.status)}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            padding: '3px 8px',
+                            borderRadius: 'var(--radius-sm)',
+                            background: order.payment_status === 'confirmed' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
+                            color: order.payment_status === 'confirmed' ? '#059669' : '#d97706',
+                          }}
+                        >
+                          {order.payment_method?.toUpperCase()}
+                        </span>
+                      </div>
                     </div>
 
-                    {/* Purchased Items List Preview */}
+                    {/* In-Card Mini Pipeline Visual Tracker */}
+                    {order.status !== 'cancelled' && (
+                      <div
+                        style={{
+                          background: 'var(--color-surface-2)',
+                          borderRadius: 'var(--radius-lg)',
+                          padding: '10px 14px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          position: 'relative',
+                        }}
+                      >
+                        {[
+                          { label: 'Placed', step: 1 },
+                          { label: 'Processing', step: 2 },
+                          { label: 'In Transit', step: 3 },
+                          { label: 'Delivered', step: 4 },
+                        ].map(st => {
+                          const isDone = stepIdx >= st.step;
+                          const isCur = stepIdx === st.step;
+                          return (
+                            <div key={st.step} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <div
+                                style={{
+                                  width: '18px',
+                                  height: '18px',
+                                  borderRadius: '50%',
+                                  background: isDone ? '#2563eb' : '#cbd5e1',
+                                  color: '#ffffff',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontSize: '10px',
+                                  fontWeight: 800,
+                                  boxShadow: isCur ? '0 0 0 3px rgba(37,99,235,0.2)' : 'none',
+                                }}
+                              >
+                                {isDone ? '✓' : st.step}
+                              </div>
+                              <span
+                                style={{
+                                  fontSize: '11.5px',
+                                  fontWeight: isDone ? 700 : 500,
+                                  color: isDone ? 'var(--color-text-primary)' : 'var(--color-text-muted)',
+                                }}
+                              >
+                                {st.label}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Purchased Products List */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                       {(order.items_snapshot || []).map((item, idx) => (
                         <div
@@ -565,11 +679,11 @@ function AccountContent() {
                           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
                             <div
                               style={{
-                                width: '46px',
-                                height: '46px',
-                                minWidth: '46px',
+                                width: '48px',
+                                height: '48px',
+                                minWidth: '48px',
                                 borderRadius: 'var(--radius-md)',
-                                background: '#f1f5f9',
+                                background: '#f8fafc',
                                 position: 'relative',
                                 overflow: 'hidden',
                                 border: '1px solid var(--color-border)',
@@ -584,7 +698,7 @@ function AccountContent() {
                                   src={item.image_snapshot}
                                   alt={item.name_snapshot || 'Product'}
                                   fill
-                                  sizes="46px"
+                                  sizes="48px"
                                   style={{ objectFit: 'cover' }}
                                 />
                               ) : (
@@ -614,7 +728,7 @@ function AccountContent() {
                             </div>
                           </div>
 
-                          <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--color-text-primary)', flexShrink: 0 }}>
+                          <span style={{ fontSize: '13.5px', fontWeight: 800, color: 'var(--color-text-primary)', flexShrink: 0 }}>
                             {formatCurrency(item.total_price || item.unit_price * item.quantity)}
                           </span>
                         </div>
@@ -643,31 +757,43 @@ function AccountContent() {
 
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <span style={{ color: 'var(--color-text-muted)' }}>{itemCount} items:</span>
-                        <strong style={{ fontSize: '15px', color: 'var(--color-primary)' }}>
+                        <strong style={{ fontSize: '16px', color: 'var(--color-primary)' }}>
                           {formatCurrency(order.total)}
                         </strong>
                       </div>
                     </div>
 
-                    {/* Action Buttons (Full width 2-column grid on mobile) */}
+                    {/* Action Buttons (2-column full width grid on mobile) */}
                     <div className="order-card__actions">
                       <a
                         href={`/api/invoices/${order.id}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="btn btn-secondary btn-sm"
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px',
+                          minHeight: '42px',
+                        }}
                       >
-                        <FileText size={14} />
+                        <FileText size={15} />
                         <span>View Invoice</span>
                       </a>
 
                       <Link
                         href={`/orders/${order.id}`}
                         className="btn btn-primary btn-sm"
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px',
+                          minHeight: '42px',
+                        }}
                       >
-                        <Truck size={14} />
+                        <Truck size={15} />
                         <span>Track Order</span>
                         <ArrowRight size={13} />
                       </Link>
@@ -679,11 +805,12 @@ function AccountContent() {
                           style={{
                             display: 'inline-flex',
                             alignItems: 'center',
+                            justifyContent: 'center',
                             gap: '6px',
                             color: '#eab308',
                             borderColor: '#fde047',
                             gridColumn: 'span 2',
-                            justifyContent: 'center',
+                            minHeight: '38px',
                           }}
                         >
                           <Star size={14} fill="#eab308" />
@@ -700,7 +827,7 @@ function AccountContent() {
       )}
 
       {/* ────────────────────────────────────────────────────────────
-          2. PROFILE DETAILS TAB SECTION
+          5. TAB 2: PROFILE DETAILS SECTION
       ──────────────────────────────────────────────────────────── */}
       {activeTab === 'profile' && (
         <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-xl)', padding: '20px' }}>
@@ -743,7 +870,7 @@ function AccountContent() {
               type="submit"
               disabled={isUpdating}
               className="btn btn-primary btn-sm"
-              style={{ width: 'fit-content', marginTop: '4px' }}
+              style={{ width: 'fit-content', minHeight: '40px', marginTop: '4px' }}
             >
               {isUpdating ? 'Saving...' : 'Save Profile Changes'}
             </button>
@@ -752,7 +879,7 @@ function AccountContent() {
       )}
 
       {/* ────────────────────────────────────────────────────────────
-          3. ADDRESS BOOK TAB SECTION
+          6. TAB 3: SAVED ADDRESSES SECTION
       ──────────────────────────────────────────────────────────── */}
       {activeTab === 'addresses' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -762,7 +889,7 @@ function AccountContent() {
               type="button"
               onClick={() => setShowAddressModal(true)}
               className="btn btn-primary btn-sm"
-              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', minHeight: '38px' }}
             >
               <Plus size={14} />
               <span>Add New Address</span>
@@ -875,13 +1002,14 @@ function AccountContent() {
                 </div>
 
                 <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
-                  <button type="submit" className="btn btn-primary btn-sm">
+                  <button type="submit" className="btn btn-primary btn-sm" style={{ minHeight: '38px' }}>
                     Save Address
                   </button>
                   <button
                     type="button"
                     onClick={() => setShowAddressModal(false)}
                     className="btn btn-secondary btn-sm"
+                    style={{ minHeight: '38px' }}
                   >
                     Cancel
                   </button>
@@ -893,7 +1021,7 @@ function AccountContent() {
       )}
 
       {/* ────────────────────────────────────────────────────────────
-          4. REWARDS & REFERRAL TAB SECTION
+          7. TAB 4: REWARDS & REFERRAL SECTION
       ──────────────────────────────────────────────────────────── */}
       {activeTab === 'rewards' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -932,7 +1060,7 @@ function AccountContent() {
                     showToast('Referral link copied to clipboard!', 'success');
                   }}
                   className="btn btn-secondary btn-sm"
-                  style={{ flexShrink: 0 }}
+                  style={{ flexShrink: 0, minHeight: '38px' }}
                 >
                   <Copy size={14} />
                   <span>Copy</span>
