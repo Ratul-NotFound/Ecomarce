@@ -21,9 +21,6 @@ import {
   ArrowRight,
   FileText,
   Copy,
-  CheckCircle2,
-  Clock,
-  ShieldCheck,
   ShoppingBag,
 } from 'lucide-react';
 import type { Address, Order } from '@/types';
@@ -221,7 +218,7 @@ function AccountContent() {
   const referralLink = `${typeof window !== 'undefined' ? window.location.origin : ''}/auth?ref=${profile?.referral_code || ''}`;
 
   return (
-    <div className="container" style={{ padding: '24px 16px 140px', maxWidth: '1120px' }}>
+    <div className="container" style={{ padding: '20px 16px 140px', maxWidth: '1120px' }}>
       {/* ────────────────────────────────────────────────────────────
           MOBILE / TABLET HEADER (Hidden on Desktop)
       ──────────────────────────────────────────────────────────── */}
@@ -308,69 +305,59 @@ function AccountContent() {
       </div>
 
       {/* ────────────────────────────────────────────────────────────
-          MOBILE / TABLET TABS RAIL (Hidden on Desktop)
+          MOBILE / TABLET SEGMENTED TAB CONTROL (Hidden on Desktop)
       ──────────────────────────────────────────────────────────── */}
       <div
         className="account-tabs-mobile"
         style={{
-          borderBottom: '1px solid var(--color-border)',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          background: 'var(--color-surface-2)',
+          padding: '4px',
+          borderRadius: '12px',
           marginBottom: '16px',
-          gap: '20px',
-          overflowX: 'auto',
-          WebkitOverflowScrolling: 'touch',
-          scrollbarWidth: 'none',
+          gap: '3px',
         }}
       >
         {[
-          { id: 'orders', label: 'My Orders', badge: orders.length },
-          { id: 'addresses', label: 'Addresses', badge: addresses.length },
-          { id: 'profile', label: 'Profile' },
-          { id: 'rewards', label: 'Rewards' },
+          { id: 'orders', label: 'Orders', icon: Package },
+          { id: 'addresses', label: 'Addresses', icon: MapPin },
+          { id: 'profile', label: 'Profile', icon: User },
+          { id: 'rewards', label: 'Rewards', icon: Gift },
         ].map(tab => {
           const isActive = activeTab === tab.id;
+          const Icon = tab.icon;
           return (
             <button
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id as any)}
               style={{
-                display: 'inline-flex',
+                display: 'flex',
                 alignItems: 'center',
-                gap: '6px',
-                padding: '8px 0 10px',
-                fontSize: '13px',
+                justifyContent: 'center',
+                gap: '5px',
+                padding: '8px 4px',
+                fontSize: '12.5px',
                 fontWeight: isActive ? 800 : 500,
                 color: isActive ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+                background: isActive ? '#ffffff' : 'transparent',
+                borderRadius: '8px',
                 border: 'none',
-                borderBottom: isActive ? '2.5px solid var(--color-primary)' : '2.5px solid transparent',
-                background: 'none',
                 cursor: 'pointer',
-                whiteSpace: 'nowrap',
+                boxShadow: isActive ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
                 transition: 'all 0.15s ease',
               }}
             >
+              <Icon size={13} />
               <span>{tab.label}</span>
-              {typeof tab.badge === 'number' && tab.badge > 0 && (
-                <span
-                  style={{
-                    fontSize: '10.5px',
-                    fontWeight: 700,
-                    padding: '1px 6px',
-                    borderRadius: '10px',
-                    background: isActive ? 'var(--color-primary)' : 'var(--color-surface-2)',
-                    color: isActive ? '#ffffff' : 'var(--color-text-muted)',
-                  }}
-                >
-                  {tab.badge}
-                </span>
-              )}
             </button>
           );
         })}
       </div>
 
       {/* ────────────────────────────────────────────────────────────
-          RESPONSIVE 2-COLUMN DASHBOARD GRID (Desktop Sidebar + Main Content)
+          RESPONSIVE 2-COLUMN DASHBOARD GRID
       ──────────────────────────────────────────────────────────── */}
       <div className="account-dashboard-layout">
         {/* DESKTOP SIDEBAR */}
@@ -489,52 +476,88 @@ function AccountContent() {
           </nav>
         </aside>
 
-        {/* MAIN DASHBOARD CONTENT */}
+        {/* MAIN CONTENT AREA */}
         <main style={{ minWidth: 0, width: '100%' }}>
           {/* ────────────────────────────────────────────────────────────
               TAB 1: MY ORDERS VIEW
           ──────────────────────────────────────────────────────────── */}
           {activeTab === 'orders' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              {/* Filter Tabs */}
+              {/* Header Row: Title & Clean Sub-Filter Controls */}
               <div
                 style={{
                   display: 'flex',
-                  gap: '6px',
-                  overflowX: 'auto',
-                  WebkitOverflowScrolling: 'touch',
-                  scrollbarWidth: 'none',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '8px',
                 }}
               >
-                {[
-                  { id: 'all', label: `All (${orders.length})` },
-                  { id: 'active', label: `In Transit (${activeOrdersCount})` },
-                  { id: 'delivered', label: `Delivered (${deliveredOrdersCount})` },
-                  { id: 'cancelled', label: `Cancelled (${cancelledOrdersCount})` },
-                ].map(f => {
-                  const isSelected = orderFilter === f.id;
-                  return (
-                    <button
-                      key={f.id}
-                      type="button"
-                      onClick={() => setOrderFilter(f.id as any)}
-                      style={{
-                        fontSize: '12px',
-                        fontWeight: isSelected ? 700 : 500,
-                        padding: '5px 12px',
-                        borderRadius: 'var(--radius-full)',
-                        border: '1px solid ' + (isSelected ? 'var(--color-primary)' : 'var(--color-border)'),
-                        background: isSelected ? 'var(--color-primary-10)' : 'var(--color-surface)',
-                        color: isSelected ? 'var(--color-primary)' : 'var(--color-text-muted)',
-                        cursor: 'pointer',
-                        whiteSpace: 'nowrap',
-                        flexShrink: 0,
-                      }}
-                    >
-                      {f.label}
-                    </button>
-                  );
-                })}
+                <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--color-text-primary)' }}>
+                  Recent Orders <span style={{ fontSize: '12.5px', fontWeight: 500, color: 'var(--color-text-muted)' }}>({orders.length})</span>
+                </div>
+
+                {/* Sub-Filter Slider Tray (No harsh borders, no repetitive counts!) */}
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: '2px',
+                    background: 'var(--color-surface-2)',
+                    padding: '3px',
+                    borderRadius: '8px',
+                    overflowX: 'auto',
+                    WebkitOverflowScrolling: 'touch',
+                    scrollbarWidth: 'none',
+                  }}
+                >
+                  {[
+                    { id: 'all', label: 'All' },
+                    { id: 'active', label: 'In Transit', count: activeOrdersCount },
+                    { id: 'delivered', label: 'Delivered', count: deliveredOrdersCount },
+                    { id: 'cancelled', label: 'Cancelled' },
+                  ].map(f => {
+                    const isSelected = orderFilter === f.id;
+                    return (
+                      <button
+                        key={f.id}
+                        type="button"
+                        onClick={() => setOrderFilter(f.id as any)}
+                        style={{
+                          fontSize: '11.5px',
+                          fontWeight: isSelected ? 700 : 500,
+                          padding: '4px 9px',
+                          borderRadius: '6px',
+                          border: 'none',
+                          background: isSelected ? '#ffffff' : 'transparent',
+                          color: isSelected ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+                          boxShadow: isSelected ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        <span>{f.label}</span>
+                        {f.count !== undefined && f.count > 0 && (
+                          <span
+                            style={{
+                              fontSize: '10px',
+                              fontWeight: 800,
+                              padding: '1px 5px',
+                              borderRadius: '10px',
+                              background: isSelected ? 'var(--color-primary-10)' : 'rgba(0,0,0,0.05)',
+                              color: isSelected ? 'var(--color-primary)' : 'var(--color-text-muted)',
+                            }}
+                          >
+                            {f.count}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* Orders List / Empty State */}
