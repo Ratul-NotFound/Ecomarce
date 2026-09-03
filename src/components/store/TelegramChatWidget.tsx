@@ -75,43 +75,46 @@ export default function TelegramChatWidget() {
     loadChatHistory();
   }, [loadChatHistory]);
 
-  // Realtime subscription to incoming support replies
+  // Realtime subscription to incoming support replies via Broadcast and Postgres changes
   useEffect(() => {
     const supabase = createClient();
-    const channel = supabase
-      .channel('public_customer_chat')
+    const channel = supabase.channel('live_store_chat', { config: { broadcast: { self: false } } });
+
+    const handleIncoming = (newMsg: ChatMessage) => {
+      if (!newMsg) return;
+      const isTargetedToMe =
+        newMsg.direction === 'out' &&
+        ((user?.id && newMsg.user_id === user.id) ||
+          (sessionId && (
+            newMsg.user_name?.includes(sessionId) ||
+            newMsg.user_name?.includes(sessionId.slice(-5))
+          )));
+
+      if (isTargetedToMe) {
+        setMessages(prev => {
+          if (prev.some(m => m.id === newMsg.id)) return prev;
+          return [...prev, newMsg];
+        });
+
+        if (!isOpen) {
+          setUnreadCount(prev => prev + 1);
+        } else {
+          scrollToBottom();
+        }
+      }
+    };
+
+    channel
+      .on('broadcast', { event: 'new_chat_message' }, payload => {
+        if (payload?.payload?.message) {
+          handleIncoming(payload.payload.message);
+        }
+      })
       .on(
         'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'chat_messages',
-        },
+        { event: 'INSERT', schema: 'public', table: 'chat_messages' },
         payload => {
-          const newMsg = payload.new as ChatMessage;
-
-          // Check if message belongs to this conversation
-          const isTargetedToMe =
-            newMsg.direction === 'out' &&
-            ((user?.id && newMsg.user_id === user.id) ||
-              (sessionId && (
-                newMsg.user_name?.includes(sessionId) ||
-                newMsg.user_name?.includes(sessionId.slice(-5))
-              )));
-
-          if (isTargetedToMe) {
-            setMessages(prev => {
-              // Avoid duplicate messages
-              if (prev.some(m => m.id === newMsg.id)) return prev;
-              return [...prev, newMsg];
-            });
-
-            if (!isOpen) {
-              setUnreadCount(prev => prev + 1);
-            } else {
-              scrollToBottom();
-            }
-          }
+          handleIncoming(payload.new as ChatMessage);
         }
       )
       .subscribe();
@@ -120,6 +123,15 @@ export default function TelegramChatWidget() {
       supabase.removeChannel(channel);
     };
   }, [isOpen, user?.id, sessionId]);
+
+  // Silent adaptive background sync when chat widget is open (no manual refresh needed)
+  useEffect(() => {
+    if (!isOpen) return;
+    const interval = setInterval(() => {
+      loadChatHistory();
+    }, 3500);
+    return () => clearInterval(interval);
+  }, [isOpen, loadChatHistory]);
 
   // Scroll to bottom when opening or messages change
   useEffect(() => {

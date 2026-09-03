@@ -123,6 +123,18 @@ export async function POST(request: NextRequest) {
       }
     } catch {}
 
+    // Broadcast in real-time to active admin dashboard and storefront
+    try {
+      const channel = dbClient.channel('live_store_chat');
+      await channel.send({
+        type: 'broadcast',
+        event: 'new_chat_message',
+        payload: { message: newMessage },
+      });
+    } catch (bcErr) {
+      console.warn('Realtime broadcast error:', bcErr);
+    }
+
     return NextResponse.json({ success: true, message: newMessage });
   } catch (err: any) {
     console.error('Send admin reply error:', err);

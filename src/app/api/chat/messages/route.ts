@@ -102,10 +102,29 @@ export async function POST(request: NextRequest) {
 
       if (token && chatId) {
         const telegram = new TelegramService(token, chatId, undefined, messagesTopicId);
-        await telegram.forwardUserMessage(finalUserName, message.trim(), user_id || undefined);
+        const teleRes = await telegram.forwardUserMessage(finalUserName, message.trim(), user_id || undefined, cleanSessionId);
+        if (teleRes?.message_id) {
+          await dbClient
+            .from('chat_messages')
+            .update({ telegram_message_id: teleRes.message_id })
+            .eq('id', insertedMsg.id);
+          insertedMsg.telegram_message_id = teleRes.message_id;
+        }
       }
     } catch (telegramErr) {
       console.warn('Telegram forwarding error:', telegramErr);
+    }
+
+    // Broadcast in real-time to active admin dashboard and storefront
+    try {
+      const channel = dbClient.channel('live_store_chat');
+      await channel.send({
+        type: 'broadcast',
+        event: 'new_chat_message',
+        payload: { message: insertedMsg },
+      });
+    } catch (bcErr) {
+      console.warn('Realtime broadcast error:', bcErr);
     }
 
     return NextResponse.json({ success: true, message: insertedMsg });

@@ -31,8 +31,12 @@ export class TelegramService {
     this.messagesTopicId = parseTopic(messagesTopicId ?? process.env.TELEGRAM_MESSAGES_TOPIC_ID);
   }
 
-  async sendMessage(text: string, customChatId?: string, threadId?: number): Promise<boolean> {
-    let targetChatId = (customChatId || this.chatId).trim();
+  async sendMessage(
+    text: string,
+    customChatId?: string,
+    threadId?: number
+  ): Promise<{ ok: boolean; message_id?: number }> {
+    let targetChatId = (customChatId || this.chatId || '').trim();
     let targetThreadId = threadId;
 
     // Support chatId/threadId format like -1003795016891/4 or -3795016891/2
@@ -49,7 +53,7 @@ export class TelegramService {
 
     if (!this.botToken || !targetChatId) {
       console.warn('Telegram bot token or chat ID is missing. Skipping notification.');
-      return false;
+      return { ok: false };
     }
 
     try {
@@ -69,10 +73,13 @@ export class TelegramService {
       });
 
       const resData = await response.json();
-      return resData.ok;
+      return {
+        ok: !!resData.ok,
+        message_id: resData?.result?.message_id,
+      };
     } catch (error) {
       console.error('Failed to send telegram message:', error);
-      return false;
+      return { ok: false };
     }
   }
 
@@ -114,13 +121,23 @@ export class TelegramService {
     await this.sendMessage(message, undefined, this.ordersTopicId);
   }
 
-  async forwardUserMessage(userName: string, userMessage: string, userId?: string): Promise<void> {
-    const message = `💬 <b>CUSTOMER CHAT MESSAGE</b>\n` +
+  async forwardUserMessage(
+    userName: string,
+    userMessage: string,
+    userId?: string,
+    sessionId?: string
+  ): Promise<{ ok: boolean; message_id?: number }> {
+    const refTag = userId ? `[USER:${userId}]` : `[GUEST:${sessionId || 'visitor'}]`;
+    const message =
+      `💬 <b>CUSTOMER CHAT INQUIRY</b>\n` +
       `━━━━━━━━━━━━━━━━━━━\n` +
-      `👤 <b>From:</b> ${userName || 'Guest'}\n` +
+      `👤 <b>Customer:</b> ${userName || 'Guest Visitor'}\n` +
+      `🔖 <b>Ref:</b> <code>${refTag}</code>\n` +
       (userId ? `🆔 <b>User ID:</b> <code>${userId}</code>\n` : '') +
-      `✉️ <b>Message:</b>\n${userMessage}`;
+      `✉️ <b>Message:</b>\n${userMessage}\n` +
+      `━━━━━━━━━━━━━━━━━━━\n` +
+      `👉 <i>Swipe right to reply to this customer</i>`;
 
-    await this.sendMessage(message, undefined, this.messagesTopicId);
+    return await this.sendMessage(message, undefined, this.messagesTopicId);
   }
 }

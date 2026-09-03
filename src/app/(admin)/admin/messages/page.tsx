@@ -72,24 +72,53 @@ export default function AdminMessagesPage() {
   useEffect(() => {
     fetchMessages();
 
-    // Subscribe to Supabase Realtime updates
+    // 1. Subscribe to Realtime Broadcast on live_store_chat & Postgres changes
     const supabase = createClient();
-    const channel = supabase
-      .channel('admin_chat_sync')
+    const channel = supabase.channel('live_store_chat', { config: { broadcast: { self: false } } });
+
+    const handleNewMessage = (newMsg: ChatMessage) => {
+      if (!newMsg) return;
+      setMessages(prev => {
+        if (prev.some(m => m.id === newMsg.id)) return prev;
+        return [...prev, newMsg];
+      });
+    };
+
+    channel
+      .on('broadcast', { event: 'new_chat_message' }, payload => {
+        if (payload?.payload?.message) {
+          handleNewMessage(payload.payload.message);
+        }
+      })
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'chat_messages' },
         (payload: any) => {
-          setMessages(prev => {
-            if (prev.some(m => m.id === payload.new.id)) return prev;
-            return [...prev, payload.new as ChatMessage];
-          });
+          handleNewMessage(payload.new as ChatMessage);
         }
       )
       .subscribe();
 
+    // 2. Silent adaptive background polling every 3 seconds (zero manual refresh needed)
+    const interval = setInterval(() => {
+      fetch('/api/admin/messages')
+        .then(res => res.json())
+        .then(data => {
+          if (data?.messages) {
+            setMessages(prev => {
+              if (data.messages.length !== prev.length) {
+                return data.messages;
+              }
+              return prev;
+            });
+          }
+        })
+        .catch(() => {});
+    }, 3000);
+
     return () => {
       supabase.removeChannel(channel);
+      clearInterval(interval);
     };
   }, []);
 
@@ -238,15 +267,44 @@ export default function AdminMessagesPage() {
             Reply to customer inquiries in real-time. Automatically synchronized with Telegram.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={fetchMessages}
-          className="btn btn-secondary btn-sm"
-          style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-        >
-          <RefreshCw size={14} />
-          Refresh
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: 'rgba(34, 197, 94, 0.1)',
+              color: '#16a34a',
+              border: '1px solid rgba(34, 197, 94, 0.25)',
+              padding: '5px 12px',
+              borderRadius: 'var(--radius-full)',
+              fontSize: '12px',
+              fontWeight: 700,
+            }}
+          >
+            <span
+              style={{
+                width: '7px',
+                height: '7px',
+                borderRadius: '50%',
+                background: '#22c55e',
+                boxShadow: '0 0 8px #22c55e',
+              }}
+            />
+            <span>Live Sync Active</span>
+          </div>
+
+          <button
+            type="button"
+            onClick={fetchMessages}
+            className="btn btn-secondary btn-sm"
+            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+            title="Manual sync"
+          >
+            <RefreshCw size={13} />
+            <span>Sync</span>
+          </button>
+        </div>
       </div>
 
       {/* Main Split Chat Layout */}
