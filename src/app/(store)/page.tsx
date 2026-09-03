@@ -49,6 +49,8 @@ export default async function HomePage() {
 
   // Fallback demo products if Supabase tables are initially empty
   if (featuredProducts.length === 0 && newArrivals.length === 0) {
+    const STATIC_DEMO_DATE = '2026-01-01T00:00:00.000Z';
+    const STATIC_FLASH_DATE = '2026-12-31T23:59:59.000Z';
     const demoSampleProducts: Product[] = [
       {
         id: 'p1',
@@ -58,7 +60,7 @@ export default async function HomePage() {
         description_en: 'Classic tailored fit, breathable 100% combed cotton.',
         description_bn: null,
         category_id: null,
-        brand: 'UrbanCraft',
+        brand: 'Fabrilife',
         sku: 'SHIRT-001',
         base_price: 1850,
         sale_price: 1450,
@@ -66,20 +68,20 @@ export default async function HomePage() {
         stock_quantity: 45,
         low_stock_threshold: 5,
         images: ['https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=600&q=80'],
-        tags: ['fashion', 'men', 'shirt'],
+        tags: ['fashion', 'men', 'shirts'],
         has_variants: true,
         weight_grams: 250,
         is_active: true,
         is_featured: true,
         is_flash_sale: true,
-        flash_sale_ends_at: new Date(Date.now() + 86400000).toISOString(),
+        flash_sale_ends_at: STATIC_FLASH_DATE,
         display_order: 1,
         total_sold: 142,
         total_views: 1200,
         meta_title: null,
         meta_description: null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        created_at: STATIC_DEMO_DATE,
+        updated_at: STATIC_DEMO_DATE,
       },
       {
         id: 'p2',
@@ -109,8 +111,8 @@ export default async function HomePage() {
         total_views: 940,
         meta_title: null,
         meta_description: null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        created_at: STATIC_DEMO_DATE,
+        updated_at: STATIC_DEMO_DATE,
       },
       {
         id: 'p3',
@@ -134,14 +136,14 @@ export default async function HomePage() {
         is_active: true,
         is_featured: true,
         is_flash_sale: true,
-        flash_sale_ends_at: new Date(Date.now() + 86400000).toISOString(),
+        flash_sale_ends_at: STATIC_FLASH_DATE,
         display_order: 3,
         total_sold: 63,
         total_views: 650,
         meta_title: null,
         meta_description: null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        created_at: STATIC_DEMO_DATE,
+        updated_at: STATIC_DEMO_DATE,
       },
       {
         id: 'p4',
@@ -171,8 +173,8 @@ export default async function HomePage() {
         total_views: 1890,
         meta_title: null,
         meta_description: null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        created_at: STATIC_DEMO_DATE,
+        updated_at: STATIC_DEMO_DATE,
       },
     ];
     featuredProducts = demoSampleProducts;

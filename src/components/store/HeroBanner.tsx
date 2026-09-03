@@ -54,12 +54,16 @@ export default function HeroBanner({ banners = [] }: HeroBannerProps) {
   const current = activeBanners[currentIndex] || activeBanners[0];
 
   return (
-    <div className="hero-container" style={{
-      backgroundImage: current.image_url ? `linear-gradient(to right, rgba(15,23,42,0.85) 30%, rgba(15,23,42,0.4)), url(${current.image_url})` : undefined,
-      backgroundSize: 'cover',
-      backgroundPosition: 'center',
-    }}>
-      <div className="hero-slide fade-in" key={current.id}>
+    <div
+      className="hero-container"
+      style={{
+        backgroundImage: current.image_url ? `linear-gradient(to right, rgba(15,23,42,0.85) 30%, rgba(15,23,42,0.4)), url(${current.image_url})` : undefined,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }}
+      suppressHydrationWarning
+    >
+      <div className="hero-slide fade-in" key={current.id} suppressHydrationWarning>
         {current.subtitle && (
           <span className="hero-subtitle">{current.subtitle}</span>
         )}
