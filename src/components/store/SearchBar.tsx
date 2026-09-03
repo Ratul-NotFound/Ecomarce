@@ -114,6 +114,11 @@ export default function SearchBar({
     }
   };
 
+  const safeProducts = Array.isArray(results?.products) ? results.products : [];
+  const safeCategories = Array.isArray(results?.categories) ? results.categories : [];
+  const safeSuggestions = Array.isArray(results?.suggestions) ? results.suggestions : [];
+  const safePopularSearches = Array.isArray(results?.popular_searches) ? results.popular_searches : [];
+
   return (
     <div
       ref={wrapperRef}
@@ -208,13 +213,13 @@ export default function SearchBar({
         >
           {/* 1. Keyword Recommendations / Popular Searches */}
           {searchTerm.trim() ? (
-            results.suggestions.length > 0 && (
+            safeSuggestions.length > 0 && (
               <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--color-border)' }}>
                 <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
                   Suggestions
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                  {results.suggestions.map((sug, idx) => (
+                  {safeSuggestions.map((sug, idx) => (
                     <button
                       key={idx}
                       type="button"
@@ -240,14 +245,14 @@ export default function SearchBar({
               </div>
             )
           ) : (
-            results.popular_searches && results.popular_searches.length > 0 && (
+            safePopularSearches.length > 0 && (
               <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--color-border)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11px', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
                   <TrendingUp size={12} />
                   <span>Trending Searches</span>
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                  {results.popular_searches.map((term, idx) => (
+                  {safePopularSearches.map((term, idx) => (
                     <button
                       key={idx}
                       type="button"
@@ -271,12 +276,12 @@ export default function SearchBar({
           )}
 
           {/* 2. Matching Categories */}
-          {results.categories.length > 0 && (
+          {safeCategories.length > 0 && (
             <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--color-border)' }}>
               <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>
                 Categories
               </div>
-              {results.categories.map(cat => (
+              {safeCategories.map(cat => (
                 <Link
                   key={cat.id}
                   href={`/search?category=${cat.slug}`}
@@ -302,12 +307,12 @@ export default function SearchBar({
           )}
 
           {/* 3. Matching Products List with Real-Time Highlighted Letters */}
-          {results.products.length > 0 ? (
+          {safeProducts.length > 0 ? (
             <div style={{ padding: '6px 8px' }}>
               <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', padding: '6px 8px' }}>
-                Products ({results.products.length})
+                Products ({safeProducts.length})
               </div>
-              {results.products.map(prod => {
+              {safeProducts.map(prod => {
                 const img = prod.images?.[0];
                 return (
                   <Link
