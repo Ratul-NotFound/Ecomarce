@@ -22,11 +22,8 @@ import {
   FileText,
   Star,
   ShoppingBag,
-  CheckCircle2,
   Copy,
-  Clock,
-  ChevronRight,
-  ShieldCheck,
+  ExternalLink,
 } from 'lucide-react';
 import type { Address, Order } from '@/types';
 
@@ -37,11 +34,11 @@ function AccountContent() {
   const { showToast } = useToast();
 
   const tabParam = searchParams.get('tab');
-  const [activeTab, setActiveTab] = useState<'orders' | 'profile' | 'addresses' | 'rewards'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'addresses' | 'profile' | 'rewards'>('orders');
 
   // Sync tab with URL parameter if present
   useEffect(() => {
-    if (tabParam === 'orders' || tabParam === 'profile' || tabParam === 'addresses' || tabParam === 'rewards') {
+    if (tabParam === 'orders' || tabParam === 'addresses' || tabParam === 'profile' || tabParam === 'rewards') {
       setActiveTab(tabParam);
     }
   }, [tabParam]);
@@ -127,7 +124,7 @@ function AccountContent() {
   if (loading) {
     return (
       <div className="container" style={{ padding: '80px 16px', textAlign: 'center' }}>
-        <p style={{ color: 'var(--color-text-muted)', fontSize: '14px' }}>Loading account dashboard...</p>
+        <p style={{ color: 'var(--color-text-muted)', fontSize: '14px' }}>Loading your account...</p>
       </div>
     );
   }
@@ -221,30 +218,27 @@ function AccountContent() {
   const referralLink = `${typeof window !== 'undefined' ? window.location.origin : ''}/auth?ref=${profile?.referral_code || ''}`;
 
   return (
-    <div className="container" style={{ padding: '16px 16px 130px', maxWidth: '860px' }}>
+    <div className="container" style={{ padding: '16px 16px 120px', maxWidth: '720px' }}>
       {/* ────────────────────────────────────────────────────────────
-          1. SLEEK PROFILE IDENTITY HERO BANNER
+          1. CLEAN PROFILE HEADER (Simple, uncluttered, professional)
       ──────────────────────────────────────────────────────────── */}
       <div
         style={{
-          background: 'var(--color-surface)',
-          border: '1px solid var(--color-border)',
-          borderRadius: 'var(--radius-2xl)',
-          padding: '16px',
-          marginBottom: '14px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
+          padding: '12px 0 16px',
+          borderBottom: '1px solid var(--color-border)',
+          marginBottom: '16px',
           gap: '12px',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
           <div
             style={{
-              width: '46px',
-              height: '46px',
-              minWidth: '46px',
+              width: '44px',
+              height: '44px',
+              minWidth: '44px',
               borderRadius: '50%',
               background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
               color: '#ffffff',
@@ -253,7 +247,6 @@ function AccountContent() {
               justifyContent: 'center',
               fontSize: '18px',
               fontWeight: 800,
-              boxShadow: '0 4px 10px rgba(37,99,235,0.25)',
               flexShrink: 0,
             }}
           >
@@ -261,46 +254,27 @@ function AccountContent() {
           </div>
 
           <div style={{ minWidth: 0, overflow: 'hidden' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-              <h1
-                style={{
-                  fontSize: '16px',
-                  fontWeight: 800,
-                  margin: 0,
-                  color: 'var(--color-text-primary)',
-                  lineHeight: 1.2,
-                }}
-              >
-                {profile?.full_name || 'Customer Account'}
-              </h1>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '16px', fontWeight: 800, color: 'var(--color-text-primary)' }}>
+                {profile?.full_name || 'My Account'}
+              </span>
               {profile?.role === 'admin' && (
                 <Link
                   href="/admin"
                   style={{
-                    fontSize: '10.5px',
+                    fontSize: '10px',
                     fontWeight: 700,
-                    padding: '2px 7px',
-                    borderRadius: 'var(--radius-full)',
+                    padding: '1px 6px',
+                    borderRadius: '4px',
                     background: 'rgba(37,99,235,0.1)',
                     color: 'var(--color-primary)',
-                    display: 'inline-flex',
-                    alignItems: 'center',
                   }}
                 >
                   Admin ↗
                 </Link>
               )}
             </div>
-            <div
-              style={{
-                fontSize: '12px',
-                color: 'var(--color-text-muted)',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                marginTop: '2px',
-              }}
-            >
+            <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {user.email}
             </div>
           </div>
@@ -309,15 +283,19 @@ function AccountContent() {
         <button
           type="button"
           onClick={handleSignOut}
-          className="btn btn-secondary btn-sm"
-          id="account-signout-btn"
+          title="Sign Out"
           style={{
-            fontSize: '12px',
-            padding: '6px 10px',
-            height: '34px',
-            display: 'inline-flex',
+            display: 'flex',
             alignItems: 'center',
             gap: '5px',
+            fontSize: '12px',
+            fontWeight: 600,
+            color: 'var(--color-text-secondary)',
+            background: 'none',
+            border: '1px solid var(--color-border)',
+            borderRadius: 'var(--radius-lg)',
+            padding: '6px 10px',
+            cursor: 'pointer',
             flexShrink: 0,
           }}
         >
@@ -327,166 +305,62 @@ function AccountContent() {
       </div>
 
       {/* ────────────────────────────────────────────────────────────
-          2. COMPACT 4-PILLAR STATS GLANCE STRIP (Takes ~55px height)
+          2. CLEAN PRIMARY TAB NAVIGATION (Orders, Addresses, Profile, Rewards)
       ──────────────────────────────────────────────────────────── */}
       <div
         style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
-          background: 'var(--color-surface)',
-          border: '1px solid var(--color-border)',
-          borderRadius: 'var(--radius-xl)',
-          padding: '10px 4px',
+          display: 'flex',
+          gap: '8px',
+          overflowX: 'auto',
+          WebkitOverflowScrolling: 'touch',
+          scrollbarWidth: 'none',
           marginBottom: '16px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-        }}
-      >
-        <button
-          type="button"
-          onClick={() => {
-            setActiveTab('orders');
-            setOrderFilter('all');
-          }}
-          style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            textAlign: 'center',
-            padding: '4px 6px',
-            borderRight: '1px solid var(--color-border)',
-          }}
-        >
-          <div style={{ fontSize: '18px', fontWeight: 900, color: activeTab === 'orders' ? 'var(--color-primary)' : 'var(--color-text-primary)' }}>
-            {orders.length}
-          </div>
-          <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-muted)', marginTop: '1px' }}>
-            Orders
-          </div>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => {
-            setActiveTab('orders');
-            setOrderFilter('active');
-          }}
-          style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            textAlign: 'center',
-            padding: '4px 6px',
-            borderRight: '1px solid var(--color-border)',
-          }}
-        >
-          <div style={{ fontSize: '18px', fontWeight: 900, color: '#f59e0b' }}>
-            {activeOrdersCount}
-          </div>
-          <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-muted)', marginTop: '1px' }}>
-            In Transit
-          </div>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('addresses')}
-          style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            textAlign: 'center',
-            padding: '4px 6px',
-            borderRight: '1px solid var(--color-border)',
-          }}
-        >
-          <div style={{ fontSize: '18px', fontWeight: 900, color: activeTab === 'addresses' ? 'var(--color-primary)' : 'var(--color-text-primary)' }}>
-            {addresses.length}
-          </div>
-          <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-muted)', marginTop: '1px' }}>
-            Addresses
-          </div>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('rewards')}
-          style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            textAlign: 'center',
-            padding: '4px 6px',
-          }}
-        >
-          <div style={{ fontSize: '18px', fontWeight: 900, color: '#10b981' }}>
-            {profile?.points || 0}
-          </div>
-          <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-muted)', marginTop: '1px' }}>
-            Points
-          </div>
-        </button>
-      </div>
-
-      {/* ────────────────────────────────────────────────────────────
-          3. MODERN SEGMENTED TAB CONTROL (iOS / Shopify Style)
-      ──────────────────────────────────────────────────────────── */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
-          background: '#f1f5f9',
-          padding: '4px',
-          borderRadius: 'var(--radius-xl)',
-          marginBottom: '16px',
-          gap: '4px',
         }}
       >
         {[
-          { id: 'orders', label: `Orders (${orders.length})`, icon: Package },
+          { id: 'orders', label: `My Orders (${orders.length})`, icon: Package },
+          { id: 'addresses', label: `Addresses (${addresses.length})`, icon: MapPin },
           { id: 'profile', label: 'Profile', icon: User },
-          { id: 'addresses', label: `Addresses`, icon: MapPin },
-          { id: 'rewards', label: 'Rewards', icon: Gift },
-        ].map(t => {
-          const isActive = activeTab === t.id;
-          const IconComp = t.icon;
+          { id: 'rewards', label: `Rewards (${profile?.points || 0} pts)`, icon: Gift },
+        ].map(tab => {
+          const isActive = activeTab === tab.id;
+          const IconComp = tab.icon;
+
           return (
             <button
-              key={t.id}
+              key={tab.id}
               type="button"
-              onClick={() => setActiveTab(t.id as any)}
+              onClick={() => setActiveTab(tab.id as any)}
               style={{
-                display: 'flex',
+                display: 'inline-flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                gap: '5px',
-                padding: '8px 4px',
-                fontSize: '12px',
-                fontWeight: isActive ? 800 : 600,
-                borderRadius: 'calc(var(--radius-xl) - 2px)',
-                border: 'none',
+                gap: '6px',
+                padding: '8px 14px',
+                fontSize: '13px',
+                fontWeight: isActive ? 700 : 500,
+                borderRadius: 'var(--radius-full)',
+                border: '1px solid ' + (isActive ? 'var(--color-primary)' : 'var(--color-border)'),
+                background: isActive ? 'var(--color-primary)' : 'var(--color-surface)',
+                color: isActive ? '#ffffff' : 'var(--color-text-secondary)',
                 cursor: 'pointer',
-                background: isActive ? '#ffffff' : 'transparent',
-                color: isActive ? 'var(--color-primary)' : 'var(--color-text-secondary)',
-                boxShadow: isActive ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
                 transition: 'all 0.15s ease',
               }}
-              id={`account-tab-${t.id}`}
             >
               <IconComp size={14} />
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {t.label}
-              </span>
+              <span>{tab.label}</span>
             </button>
           );
         })}
       </div>
 
       {/* ────────────────────────────────────────────────────────────
-          4. TAB 1: MY ORDERS SECTION
+          3. MY ORDERS TAB (Clean, uncluttered, focused)
       ──────────────────────────────────────────────────────────── */}
       {activeTab === 'orders' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          {/* Status Filter Bar */}
+          {/* Sub-Filters: All, In Transit, Delivered */}
           <div
             style={{
               display: 'flex',
@@ -494,7 +368,6 @@ function AccountContent() {
               overflowX: 'auto',
               WebkitOverflowScrolling: 'touch',
               scrollbarWidth: 'none',
-              paddingBottom: '2px',
             }}
           >
             {[
@@ -502,34 +375,36 @@ function AccountContent() {
               { id: 'active', label: `In Transit (${activeOrdersCount})` },
               { id: 'delivered', label: `Delivered (${deliveredOrdersCount})` },
               { id: 'cancelled', label: `Cancelled (${cancelledOrdersCount})` },
-            ].map(f => (
-              <button
-                key={f.id}
-                type="button"
-                onClick={() => setOrderFilter(f.id as any)}
-                style={{
-                  padding: '6px 14px',
-                  borderRadius: 'var(--radius-full)',
-                  fontSize: '12px',
-                  fontWeight: orderFilter === f.id ? 800 : 600,
-                  background: orderFilter === f.id ? 'var(--color-primary)' : 'var(--color-surface)',
-                  color: orderFilter === f.id ? '#ffffff' : 'var(--color-text-secondary)',
-                  border: '1px solid ' + (orderFilter === f.id ? 'var(--color-primary)' : 'var(--color-border)'),
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                  flexShrink: 0,
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                {f.label}
-              </button>
-            ))}
+            ].map(f => {
+              const isSelected = orderFilter === f.id;
+              return (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => setOrderFilter(f.id as any)}
+                  style={{
+                    fontSize: '12px',
+                    fontWeight: isSelected ? 700 : 500,
+                    padding: '4px 10px',
+                    borderRadius: 'var(--radius-md)',
+                    border: 'none',
+                    background: isSelected ? 'var(--color-primary-10)' : 'transparent',
+                    color: isSelected ? 'var(--color-primary)' : 'var(--color-text-muted)',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0,
+                  }}
+                >
+                  {f.label}
+                </button>
+              );
+            })}
           </div>
 
-          {/* Orders Stream / Empty State */}
+          {/* Orders List / Empty State */}
           {ordersLoading ? (
-            <div style={{ background: 'var(--color-surface)', padding: '40px 16px', borderRadius: 'var(--radius-xl)', textAlign: 'center', border: '1px solid var(--color-border)' }}>
-              <p style={{ color: 'var(--color-text-muted)', fontSize: '14px' }}>Loading your orders...</p>
+            <div style={{ padding: '40px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '14px' }}>
+              Loading orders...
             </div>
           ) : filteredOrders.length === 0 ? (
             <div
@@ -537,302 +412,310 @@ function AccountContent() {
                 background: 'var(--color-surface)',
                 border: '1px solid var(--color-border)',
                 borderRadius: 'var(--radius-xl)',
-                padding: '44px 20px',
+                padding: '40px 20px',
                 textAlign: 'center',
               }}
             >
-              <Package size={44} color="var(--color-primary)" style={{ margin: '0 auto 12px', opacity: 0.7 }} />
-              <h3 style={{ fontSize: '17px', fontWeight: 800, marginBottom: '6px', color: 'var(--color-text-primary)' }}>
-                {orderFilter === 'all' ? 'No orders placed yet' : `No ${orderFilter} orders`}
-              </h3>
-              <p style={{ color: 'var(--color-text-secondary)', fontSize: '13.5px', maxWidth: '340px', margin: '0 auto 18px' }}>
-                {orderFilter === 'all'
-                  ? 'Explore our wide range of products and place your first order!'
-                  : `You do not have any orders categorized under ${orderFilter}.`}
+              <Package size={40} color="var(--color-text-muted)" style={{ margin: '0 auto 10px', opacity: 0.6 }} />
+              <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '4px' }}>
+                {orderFilter === 'all' ? 'No orders yet' : `No ${orderFilter} orders`}
+              </div>
+              <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)', marginBottom: '16px' }}>
+                Discover our curated products and place your first order.
               </p>
-              <Link href="/" className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                <ShoppingBag size={16} />
-                <span>Start Shopping</span>
+              <Link href="/" className="btn btn-primary btn-sm">
+                Start Shopping
               </Link>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              {filteredOrders.map(order => {
-                const itemCount = (order.items_snapshot || []).reduce((sum, item) => sum + (item.quantity || 1), 0);
-                const isDelivered = order.status === 'delivered';
+            filteredOrders.map(order => {
+              const firstItem = (order.items_snapshot || [])[0];
+              const totalItemsCount = (order.items_snapshot || []).reduce((sum, it) => sum + (it.quantity || 1), 0);
+              const isDelivered = order.status === 'delivered';
 
-                // Mini pipeline progress stage
-                let stepIdx = 1;
-                if (order.status === 'delivered') stepIdx = 4;
-                else if (order.status === 'shipped' || order.status === 'out_for_delivery') stepIdx = 3;
-                else if (order.status === 'processing' || order.status === 'confirmed') stepIdx = 2;
-
-                return (
-                  <div key={order.id} className="account-order-card">
-                    {/* Card Top: Order Number, Date & Status Badges */}
-                    <div
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        flexWrap: 'wrap',
-                        gap: '8px',
-                        borderBottom: '1px solid var(--color-border)',
-                        paddingBottom: '10px',
-                      }}
-                    >
-                      <div>
-                        <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--color-text-primary)' }}>
-                          #{order.order_number}
-                        </div>
-                        <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
-                          {formatDate(order.created_at)}
-                        </div>
-                      </div>
-
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span className={`badge badge-${order.status}`} style={{ fontSize: '11px', padding: '3px 8px' }}>
-                          {getStatusLabel(order.status)}
-                        </span>
-                        <span
-                          style={{
-                            fontSize: '11px',
-                            fontWeight: 700,
-                            padding: '3px 8px',
-                            borderRadius: 'var(--radius-sm)',
-                            background: order.payment_status === 'confirmed' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
-                            color: order.payment_status === 'confirmed' ? '#059669' : '#d97706',
-                          }}
-                        >
-                          {order.payment_method?.toUpperCase()}
-                        </span>
-                      </div>
+              return (
+                <div
+                  key={order.id}
+                  style={{
+                    background: '#ffffff',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: '16px',
+                    padding: '16px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                  }}
+                >
+                  {/* Order Top Bar: Order ID + Status Badge */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '14px', fontWeight: 800, color: 'var(--color-text-primary)' }}>
+                        #{order.order_number}
+                      </span>
+                      <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                        • {formatDate(order.created_at)}
+                      </span>
                     </div>
 
-                    {/* In-Card Mini Pipeline Visual Tracker */}
-                    {order.status !== 'cancelled' && (
+                    <span className={`badge badge-${order.status}`} style={{ fontSize: '11px', padding: '2px 8px' }}>
+                      {getStatusLabel(order.status)}
+                    </span>
+                  </div>
+
+                  {/* Primary Product Snapshot */}
+                  {firstItem && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '4px 0' }}>
                       <div
                         style={{
-                          background: 'var(--color-surface-2)',
-                          borderRadius: 'var(--radius-lg)',
-                          padding: '10px 14px',
+                          width: '56px',
+                          height: '56px',
+                          minWidth: '56px',
+                          borderRadius: '10px',
+                          background: '#f8fafc',
+                          border: '1px solid var(--color-border)',
+                          position: 'relative',
+                          overflow: 'hidden',
                           display: 'flex',
                           alignItems: 'center',
-                          justifyContent: 'space-between',
-                          position: 'relative',
+                          justifyContent: 'center',
+                          flexShrink: 0,
                         }}
                       >
-                        {[
-                          { label: 'Placed', step: 1 },
-                          { label: 'Processing', step: 2 },
-                          { label: 'In Transit', step: 3 },
-                          { label: 'Delivered', step: 4 },
-                        ].map(st => {
-                          const isDone = stepIdx >= st.step;
-                          const isCur = stepIdx === st.step;
-                          return (
-                            <div key={st.step} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <div
-                                style={{
-                                  width: '18px',
-                                  height: '18px',
-                                  borderRadius: '50%',
-                                  background: isDone ? '#2563eb' : '#cbd5e1',
-                                  color: '#ffffff',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  fontSize: '10px',
-                                  fontWeight: 800,
-                                  boxShadow: isCur ? '0 0 0 3px rgba(37,99,235,0.2)' : 'none',
-                                }}
-                              >
-                                {isDone ? '✓' : st.step}
-                              </div>
-                              <span
-                                style={{
-                                  fontSize: '11.5px',
-                                  fontWeight: isDone ? 700 : 500,
-                                  color: isDone ? 'var(--color-text-primary)' : 'var(--color-text-muted)',
-                                }}
-                              >
-                                {st.label}
-                              </span>
-                            </div>
-                          );
-                        })}
+                        {firstItem.image_snapshot ? (
+                          <Image
+                            src={firstItem.image_snapshot}
+                            alt={firstItem.name_snapshot || 'Product'}
+                            fill
+                            sizes="56px"
+                            style={{ objectFit: 'cover' }}
+                          />
+                        ) : (
+                          <Package size={22} color="var(--color-text-muted)" />
+                        )}
                       </div>
-                    )}
 
-                    {/* Purchased Products List */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                      {(order.items_snapshot || []).map((item, idx) => (
+                      <div style={{ minWidth: 0, flex: 1 }}>
                         <div
-                          key={idx}
                           style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            gap: '12px',
+                            fontSize: '13.5px',
+                            fontWeight: 600,
+                            color: 'var(--color-text-primary)',
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden',
+                            lineHeight: 1.3,
                           }}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-                            <div
-                              style={{
-                                width: '48px',
-                                height: '48px',
-                                minWidth: '48px',
-                                borderRadius: 'var(--radius-md)',
-                                background: '#f8fafc',
-                                position: 'relative',
-                                overflow: 'hidden',
-                                border: '1px solid var(--color-border)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                flexShrink: 0,
-                              }}
-                            >
-                              {item.image_snapshot ? (
-                                <Image
-                                  src={item.image_snapshot}
-                                  alt={item.name_snapshot || 'Product'}
-                                  fill
-                                  sizes="48px"
-                                  style={{ objectFit: 'cover' }}
-                                />
-                              ) : (
-                                <Package size={20} color="var(--color-text-muted)" />
-                              )}
-                            </div>
-
-                            <div style={{ minWidth: 0 }}>
-                              <h4
-                                style={{
-                                  fontSize: '13px',
-                                  fontWeight: 600,
-                                  color: 'var(--color-text-primary)',
-                                  margin: 0,
-                                  display: '-webkit-box',
-                                  WebkitLineClamp: 2,
-                                  WebkitBoxOrient: 'vertical',
-                                  overflow: 'hidden',
-                                  lineHeight: 1.3,
-                                }}
-                              >
-                                {item.name_snapshot}
-                              </h4>
-                              <span style={{ fontSize: '11.5px', color: 'var(--color-text-muted)', marginTop: '2px', display: 'block' }}>
-                                Qty: {item.quantity} × {formatCurrency(item.unit_price)}
-                              </span>
-                            </div>
-                          </div>
-
-                          <span style={{ fontSize: '13.5px', fontWeight: 800, color: 'var(--color-text-primary)', flexShrink: 0 }}>
-                            {formatCurrency(item.total_price || item.unit_price * item.quantity)}
-                          </span>
+                          {firstItem.name_snapshot}
                         </div>
-                      ))}
-                    </div>
+                        <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '3px' }}>
+                          {totalItemsCount > 1 ? `${totalItemsCount} items • ` : `Qty: ${firstItem.quantity} • `}
+                          {order.payment_method?.toUpperCase()}
+                        </div>
+                      </div>
 
-                    {/* Order Financials & Shipping Destination */}
-                    <div
+                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                        <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--color-primary)' }}>
+                          {formatCurrency(order.total)}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Bottom Action Buttons: Clean 2-column touch row */}
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 1.2fr',
+                      gap: '8px',
+                      borderTop: '1px solid #f1f5f9',
+                      paddingTop: '12px',
+                    }}
+                  >
+                    <a
+                      href={`/api/invoices/${order.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn btn-secondary btn-sm"
                       style={{
                         display: 'flex',
-                        justifyContent: 'space-between',
                         alignItems: 'center',
-                        flexWrap: 'wrap',
-                        gap: '8px',
-                        borderTop: '1px solid var(--color-border)',
-                        paddingTop: '10px',
+                        justifyContent: 'center',
+                        gap: '6px',
                         fontSize: '12.5px',
+                        height: '38px',
                       }}
                     >
-                      <div style={{ color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <MapPin size={13} color="var(--color-primary)" />
-                        <span>
-                          To: <strong style={{ color: 'var(--color-text-primary)' }}>{order.shipping_address?.district}</strong>
-                        </span>
-                      </div>
+                      <FileText size={14} />
+                      <span>Invoice</span>
+                    </a>
 
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span style={{ color: 'var(--color-text-muted)' }}>{itemCount} items:</span>
-                        <strong style={{ fontSize: '16px', color: 'var(--color-primary)' }}>
-                          {formatCurrency(order.total)}
-                        </strong>
-                      </div>
-                    </div>
-
-                    {/* Action Buttons (2-column full width grid on mobile) */}
-                    <div className="order-card__actions">
-                      <a
-                        href={`/api/invoices/${order.id}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn btn-secondary btn-sm"
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '6px',
-                          minHeight: '42px',
-                        }}
-                      >
-                        <FileText size={15} />
-                        <span>View Invoice</span>
-                      </a>
-
-                      <Link
-                        href={`/orders/${order.id}`}
-                        className="btn btn-primary btn-sm"
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '6px',
-                          minHeight: '42px',
-                        }}
-                      >
-                        <Truck size={15} />
-                        <span>Track Order</span>
-                        <ArrowRight size={13} />
-                      </Link>
-
-                      {isDelivered && (
-                        <Link
-                          href={`/orders/${order.id}#reviews`}
-                          className="btn btn-secondary btn-sm"
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '6px',
-                            color: '#eab308',
-                            borderColor: '#fde047',
-                            gridColumn: 'span 2',
-                            minHeight: '38px',
-                          }}
-                        >
-                          <Star size={14} fill="#eab308" />
-                          <span>Rate Purchased Items</span>
-                        </Link>
-                      )}
-                    </div>
+                    <Link
+                      href={`/orders/${order.id}`}
+                      className="btn btn-primary btn-sm"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        fontSize: '12.5px',
+                        height: '38px',
+                      }}
+                    >
+                      <Truck size={14} />
+                      <span>Track Order</span>
+                      <ArrowRight size={13} />
+                    </Link>
                   </div>
-                );
-              })}
+                </div>
+              );
+            })
+          )}
+        </div>
+      )}
+
+      {/* ────────────────────────────────────────────────────────────
+          4. ADDRESSES TAB
+      ──────────────────────────────────────────────────────────── */}
+      {activeTab === 'addresses' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h2 style={{ fontSize: '16px', fontWeight: 800, margin: 0 }}>Delivery Addresses</h2>
+            <button
+              type="button"
+              onClick={() => setShowAddressModal(true)}
+              className="btn btn-primary btn-sm"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            >
+              <Plus size={14} />
+              <span>Add Address</span>
+            </button>
+          </div>
+
+          {addresses.length === 0 ? (
+            <div style={{ background: 'var(--color-surface)', padding: '32px 16px', borderRadius: 'var(--radius-xl)', textAlign: 'center', border: '1px solid var(--color-border)' }}>
+              <MapPin size={32} color="var(--color-text-muted)" style={{ margin: '0 auto 10px' }} />
+              <p style={{ color: 'var(--color-text-secondary)', fontSize: '13.5px' }}>No saved addresses yet.</p>
+            </div>
+          ) : (
+            addresses.map(addr => (
+              <div
+                key={addr.id}
+                style={{
+                  background: 'var(--color-surface)',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: '16px',
+                  padding: '16px',
+                  position: 'relative',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <span className="badge badge-primary">{addr.label}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteAddress(addr.id)}
+                    style={{ color: 'var(--color-danger)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+                <div style={{ fontWeight: 800, fontSize: '14px' }}>{addr.full_name}</div>
+                <div style={{ fontSize: '13px', color: 'var(--color-text-secondary)', margin: '4px 0' }}>
+                  {addr.street_address}, {addr.upazila}, {addr.district}
+                </div>
+                <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>📞 {addr.phone}</div>
+              </div>
+            ))
+          )}
+
+          {/* Add Address Form */}
+          {showAddressModal && (
+            <div style={{ background: 'var(--color-surface)', border: '2px solid var(--color-primary)', borderRadius: '16px', padding: '16px' }}>
+              <h3 style={{ fontSize: '15px', fontWeight: 800, marginBottom: '12px' }}>New Address</h3>
+              <form onSubmit={handleAddAddress} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div className="form-group">
+                  <label className="form-label">Label (e.g. Home, Office)</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={addrLabel}
+                    onChange={e => setAddrLabel(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Recipient Name</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={addrName}
+                    onChange={e => setAddrName(e.target.value)}
+                    placeholder={fullName}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">District / জেলা</label>
+                  <select
+                    className="form-input"
+                    value={addrDistrict}
+                    onChange={e => setAddrDistrict(e.target.value)}
+                  >
+                    {DISTRICTS.map(d => (
+                      <option key={d} value={d}>
+                        {d}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Phone Number</label>
+                  <input
+                    type="tel"
+                    className="form-input"
+                    value={addrPhone}
+                    onChange={e => setAddrPhone(e.target.value)}
+                    placeholder={phone}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Street Address</label>
+                  <textarea
+                    className="form-input"
+                    rows={2}
+                    placeholder="House, Road, Area"
+                    value={addrStreet}
+                    onChange={e => setAddrStreet(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+                  <button type="submit" className="btn btn-primary btn-sm">
+                    Save Address
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddressModal(false)}
+                    className="btn btn-secondary btn-sm"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
             </div>
           )}
         </div>
       )}
 
       {/* ────────────────────────────────────────────────────────────
-          5. TAB 2: PROFILE DETAILS SECTION
+          5. PROFILE TAB
       ──────────────────────────────────────────────────────────── */}
       {activeTab === 'profile' && (
-        <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-xl)', padding: '20px' }}>
-          <h2 style={{ fontSize: '17px', fontWeight: 800, marginBottom: '16px' }}>Personal Information</h2>
-          <form onSubmit={handleUpdateProfile} style={{ display: 'flex', flexDirection: 'column', gap: '14px', maxWidth: '480px' }}>
+        <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '16px', padding: '20px' }}>
+          <h2 style={{ fontSize: '16px', fontWeight: 800, marginBottom: '16px' }}>Personal Profile</h2>
+          <form onSubmit={handleUpdateProfile} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <div className="form-group">
               <label className="form-label">Full Name</label>
               <input
@@ -840,7 +723,6 @@ function AccountContent() {
                 className="form-input"
                 value={fullName}
                 onChange={e => setFullName(e.target.value)}
-                placeholder="Your full name"
                 required
               />
             </div>
@@ -856,7 +738,7 @@ function AccountContent() {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Mobile Number</label>
+              <label className="form-label">Phone Number</label>
               <input
                 type="tel"
                 className="form-input"
@@ -870,7 +752,7 @@ function AccountContent() {
               type="submit"
               disabled={isUpdating}
               className="btn btn-primary btn-sm"
-              style={{ width: 'fit-content', minHeight: '40px', marginTop: '4px' }}
+              style={{ width: 'fit-content' }}
             >
               {isUpdating ? 'Saving...' : 'Save Profile Changes'}
             </button>
@@ -879,193 +761,47 @@ function AccountContent() {
       )}
 
       {/* ────────────────────────────────────────────────────────────
-          6. TAB 3: SAVED ADDRESSES SECTION
-      ──────────────────────────────────────────────────────────── */}
-      {activeTab === 'addresses' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-            <h2 style={{ fontSize: '17px', fontWeight: 800 }}>Delivery Addresses</h2>
-            <button
-              type="button"
-              onClick={() => setShowAddressModal(true)}
-              className="btn btn-primary btn-sm"
-              style={{ display: 'flex', alignItems: 'center', gap: '6px', minHeight: '38px' }}
-            >
-              <Plus size={14} />
-              <span>Add New Address</span>
-            </button>
-          </div>
-
-          {addresses.length === 0 ? (
-            <div style={{ background: 'var(--color-surface)', padding: '32px 16px', borderRadius: 'var(--radius-xl)', textAlign: 'center', border: '1px solid var(--color-border)' }}>
-              <MapPin size={32} color="var(--color-text-muted)" style={{ margin: '0 auto 10px' }} />
-              <p style={{ color: 'var(--color-text-secondary)', fontSize: '13.5px' }}>No saved addresses yet. Add one for faster checkout!</p>
-            </div>
-          ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '14px' }}>
-              {addresses.map(addr => (
-                <div
-                  key={addr.id}
-                  style={{
-                    background: 'var(--color-surface)',
-                    border: '1px solid var(--color-border)',
-                    borderRadius: 'var(--radius-xl)',
-                    padding: '16px',
-                    position: 'relative',
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                    <span className="badge badge-primary">{addr.label}</span>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteAddress(addr.id)}
-                      style={{ color: 'var(--color-danger)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                  <div style={{ fontWeight: 800, fontSize: '14px' }}>{addr.full_name}</div>
-                  <div style={{ fontSize: '13px', color: 'var(--color-text-secondary)', margin: '4px 0', lineHeight: 1.4 }}>
-                    {addr.street_address}, {addr.upazila}, {addr.district}
-                  </div>
-                  <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '6px' }}>📞 {addr.phone}</div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Add Address Modal Form */}
-          {showAddressModal && (
-            <div style={{ background: 'var(--color-surface)', border: '2px solid var(--color-primary)', borderRadius: 'var(--radius-xl)', padding: '20px' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: 800, marginBottom: '14px' }}>New Address Details</h3>
-              <form onSubmit={handleAddAddress} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <div className="address-form-grid">
-                  <div className="form-group">
-                    <label className="form-label">Label (e.g. Home, Office)</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      value={addrLabel}
-                      onChange={e => setAddrLabel(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Recipient Name</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      value={addrName}
-                      onChange={e => setAddrName(e.target.value)}
-                      placeholder={fullName}
-                    />
-                  </div>
-                </div>
-
-                <div className="address-form-grid">
-                  <div className="form-group">
-                    <label className="form-label">District / জেলা</label>
-                    <select
-                      className="form-input"
-                      value={addrDistrict}
-                      onChange={e => setAddrDistrict(e.target.value)}
-                    >
-                      {DISTRICTS.map(d => (
-                        <option key={d} value={d}>
-                          {d}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Phone Number</label>
-                    <input
-                      type="tel"
-                      className="form-input"
-                      value={addrPhone}
-                      onChange={e => setAddrPhone(e.target.value)}
-                      placeholder={phone}
-                    />
-                  </div>
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Street Address</label>
-                  <textarea
-                    className="form-input"
-                    rows={2}
-                    placeholder="House, Road, Area"
-                    value={addrStreet}
-                    onChange={e => setAddrStreet(e.target.value)}
-                    required
-                  />
-                </div>
-
-                <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
-                  <button type="submit" className="btn btn-primary btn-sm" style={{ minHeight: '38px' }}>
-                    Save Address
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowAddressModal(false)}
-                    className="btn btn-secondary btn-sm"
-                    style={{ minHeight: '38px' }}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ────────────────────────────────────────────────────────────
-          7. TAB 4: REWARDS & REFERRAL SECTION
+          6. REWARDS TAB
       ──────────────────────────────────────────────────────────── */}
       {activeTab === 'rewards' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div style={{ background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', color: '#ffffff', padding: '20px', borderRadius: 'var(--radius-xl)' }}>
-            <div style={{ fontSize: '12px', opacity: 0.9, textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 700 }}>
-              My Loyalty Balance
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div style={{ background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', color: '#ffffff', padding: '20px', borderRadius: '16px' }}>
+            <div style={{ fontSize: '11px', opacity: 0.9, textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 700 }}>
+              Loyalty Balance
             </div>
-            <div style={{ fontSize: '32px', fontWeight: 900, margin: '6px 0' }}>
+            <div style={{ fontSize: '28px', fontWeight: 900, margin: '4px 0' }}>
               {profile?.points || 0} Points
             </div>
-            <p style={{ fontSize: '12.5px', opacity: 0.9, margin: 0 }}>
-              Earn 10 points for every ৳100 spent. Redeem points for discount vouchers at checkout.
+            <p style={{ fontSize: '12px', opacity: 0.9, margin: 0 }}>
+              Earn 10 points for every ৳100 spent. Redeem points at checkout.
             </p>
           </div>
 
-          <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-xl)', padding: '20px' }}>
+          <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '16px', padding: '16px' }}>
             <h3 style={{ fontSize: '15px', fontWeight: 800, marginBottom: '6px' }}>Invite Friends & Earn</h3>
-            <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)', marginBottom: '14px' }}>
-              Share your referral link with friends. When they make their first purchase, you both get reward points!
+            <p style={{ fontSize: '12.5px', color: 'var(--color-text-secondary)', marginBottom: '12px' }}>
+              Share your referral link with friends to earn bonus reward points.
             </p>
 
-            <div className="form-group">
-              <label className="form-label">Your Referral Link</label>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <input
-                  type="text"
-                  className="form-input"
-                  value={referralLink}
-                  readOnly
-                  style={{ background: 'var(--color-surface-2)', fontSize: '13px' }}
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    navigator.clipboard.writeText(referralLink);
-                    showToast('Referral link copied to clipboard!', 'success');
-                  }}
-                  className="btn btn-secondary btn-sm"
-                  style={{ flexShrink: 0, minHeight: '38px' }}
-                >
-                  <Copy size={14} />
-                  <span>Copy</span>
-                </button>
-              </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input
+                type="text"
+                className="form-input"
+                value={referralLink}
+                readOnly
+                style={{ background: 'var(--color-surface-2)', fontSize: '12px' }}
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(referralLink);
+                  showToast('Referral link copied!', 'success');
+                }}
+                className="btn btn-secondary btn-sm"
+              >
+                <Copy size={13} />
+                <span>Copy</span>
+              </button>
             </div>
           </div>
         </div>
