@@ -54,17 +54,23 @@ export async function GET(request: NextRequest) {
           });
           const { data: existingProfile } = await adminClient
             .from('profiles')
-            .select('id')
+            .select('id, avatar_url')
             .eq('id', user.id)
             .single();
+
+          const googleAvatar = user.user_metadata?.avatar_url || user.user_metadata?.picture || null;
 
           if (!existingProfile) {
             await adminClient.from('profiles').insert({
               id: user.id,
               full_name: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Customer',
-              avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.picture || null,
+              avatar_url: googleAvatar,
               role: 'customer',
             }).select();
+          } else if (googleAvatar && existingProfile.avatar_url !== googleAvatar) {
+            await adminClient.from('profiles').update({
+              avatar_url: googleAvatar,
+            }).eq('id', user.id);
           }
         }
       }

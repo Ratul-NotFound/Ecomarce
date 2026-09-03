@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
 import { ShoppingBag, Heart, User, Search, ShieldCheck, Package } from 'lucide-react';
 import { STORE_CONFIG } from '@/lib/store-config';
@@ -23,6 +24,7 @@ export default function Header({ categories = [], announcement }: HeaderProps) {
   const isCleanPage = pathname === '/cart' || pathname === '/checkout' || pathname.startsWith('/account');
   const { itemCount } = useCart();
   const { user, profile, isAdmin, isModerator } = useAuth();
+  const userAvatar = profile?.avatar_url || user?.user_metadata?.avatar_url || user?.user_metadata?.picture;
   const [searchTerm, setSearchTerm] = useState('');
 
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -123,8 +125,18 @@ export default function Header({ categories = [], announcement }: HeaderProps) {
               id="header-account-link"
             >
               {user ? (
-                <div className="header-user-avatar">
-                  {profile?.full_name?.charAt(0) || user.email?.charAt(0)?.toUpperCase() || 'U'}
+                <div className="header-user-avatar" style={{ position: 'relative', overflow: 'hidden' }}>
+                  {userAvatar ? (
+                    <Image
+                      src={userAvatar}
+                      alt={profile?.full_name || 'User'}
+                      fill
+                      sizes="32px"
+                      style={{ objectFit: 'cover' }}
+                    />
+                  ) : (
+                    profile?.full_name?.charAt(0) || user.email?.charAt(0)?.toUpperCase() || 'U'
+                  )}
                 </div>
               ) : (
                 <div className="header-signin-pill">

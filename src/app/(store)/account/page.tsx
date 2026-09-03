@@ -217,6 +217,8 @@ function AccountContent() {
 
   const referralLink = `${typeof window !== 'undefined' ? window.location.origin : ''}/auth?ref=${profile?.referral_code || ''}`;
 
+  const userAvatar = profile?.avatar_url || user.user_metadata?.avatar_url || user.user_metadata?.picture;
+
   return (
     <div className="container" style={{ padding: '20px 16px 140px', maxWidth: '1120px' }}>
       {/* ────────────────────────────────────────────────────────────
@@ -248,9 +250,22 @@ function AccountContent() {
               fontSize: '15px',
               fontWeight: 800,
               flexShrink: 0,
+              position: 'relative',
+              overflow: 'hidden',
+              border: '1px solid var(--color-border)',
             }}
           >
-            {profile?.full_name?.charAt(0) || user.email?.charAt(0)?.toUpperCase() || 'U'}
+            {userAvatar ? (
+              <Image
+                src={userAvatar}
+                alt={profile?.full_name || 'User'}
+                fill
+                sizes="40px"
+                style={{ objectFit: 'cover' }}
+              />
+            ) : (
+              profile?.full_name?.charAt(0) || user.email?.charAt(0)?.toUpperCase() || 'U'
+            )}
           </div>
 
           <div style={{ minWidth: 0 }}>
@@ -377,9 +392,23 @@ function AccountContent() {
                 justifyContent: 'center',
                 fontSize: '18px',
                 fontWeight: 800,
+                position: 'relative',
+                overflow: 'hidden',
+                flexShrink: 0,
+                border: '1px solid var(--color-border)',
               }}
             >
-              {profile?.full_name?.charAt(0) || user.email?.charAt(0)?.toUpperCase() || 'U'}
+              {userAvatar ? (
+                <Image
+                  src={userAvatar}
+                  alt={profile?.full_name || 'User'}
+                  fill
+                  sizes="48px"
+                  style={{ objectFit: 'cover' }}
+                />
+              ) : (
+                profile?.full_name?.charAt(0) || user.email?.charAt(0)?.toUpperCase() || 'U'
+              )}
             </div>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--color-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -913,7 +942,48 @@ function AccountContent() {
           ──────────────────────────────────────────────────────────── */}
           {activeTab === 'profile' && (
             <div style={{ background: 'var(--color-surface)', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '16px', padding: '24px', maxWidth: '560px' }}>
-              <h2 style={{ fontSize: '16px', fontWeight: 800, marginBottom: '16px' }}>Personal Profile</h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '20px', paddingBottom: '16px', borderBottom: '1px solid var(--color-border)' }}>
+                <div
+                  style={{
+                    width: '60px',
+                    height: '60px',
+                    minWidth: '60px',
+                    borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #1e293b, #0f172a)',
+                    color: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '22px',
+                    fontWeight: 800,
+                    position: 'relative',
+                    overflow: 'hidden',
+                    border: '2px solid var(--color-border)',
+                  }}
+                >
+                  {userAvatar ? (
+                    <Image
+                      src={userAvatar}
+                      alt={profile?.full_name || 'User'}
+                      fill
+                      sizes="60px"
+                      style={{ objectFit: 'cover' }}
+                    />
+                  ) : (
+                    profile?.full_name?.charAt(0) || user.email?.charAt(0)?.toUpperCase() || 'U'
+                  )}
+                </div>
+                <div>
+                  <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--color-text-primary)' }}>
+                    {profile?.full_name || 'Your Profile'}
+                  </div>
+                  <div style={{ fontSize: '12.5px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+                    {userAvatar ? 'Profile photo synced with Google account' : user.email}
+                  </div>
+                </div>
+              </div>
+
+              <h2 style={{ fontSize: '15px', fontWeight: 800, marginBottom: '14px' }}>Edit Personal Details</h2>
               <form onSubmit={handleUpdateProfile} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 <div className="form-group">
                   <label className="form-label">Full Name</label>

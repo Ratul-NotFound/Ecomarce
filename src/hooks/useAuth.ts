@@ -13,7 +13,7 @@ export function useAuth() {
   // Memoize browser Supabase client so it never triggers re-render dependency cascades
   const supabase = useMemo(() => createClient(), []);
 
-  const fetchProfile = useCallback(async (userId: string) => {
+  const fetchProfile = useCallback(async (userId: string, authUser?: User | null) => {
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -21,7 +21,13 @@ export function useAuth() {
         .eq('id', userId)
         .single();
       if (!error && data) {
-        setProfile(data as Profile);
+        const profileData = { ...data } as Profile;
+        const googleAvatar = authUser?.user_metadata?.avatar_url || authUser?.user_metadata?.picture;
+        if (!profileData.avatar_url && googleAvatar) {
+          profileData.avatar_url = googleAvatar;
+          supabase.from('profiles').update({ avatar_url: googleAvatar }).eq('id', userId).then();
+        }
+        setProfile(profileData);
       }
     } catch (err) {
       console.error('Failed to load profile:', err);
@@ -38,7 +44,7 @@ export function useAuth() {
         if (session?.user && isMounted) {
           setUser(session.user);
           setLoading(false);
-          fetchProfile(session.user.id);
+          fetchProfile(session.user.id, session.user);
         }
 
         // 2. Validate user in background
@@ -46,7 +52,7 @@ export function useAuth() {
         if (isMounted) {
           setUser(user);
           if (user) {
-            await fetchProfile(user.id);
+            await fetchProfile(user.id, user);
           } else {
             setProfile(null);
           }
@@ -65,7 +71,7 @@ export function useAuth() {
       const currentUser = session?.user ?? null;
       setUser(currentUser);
       if (currentUser) {
-        fetchProfile(currentUser.id);
+        fetchProfile(currentUser.id, currentUser);
       } else {
         setProfile(null);
       }
