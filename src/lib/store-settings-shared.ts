@@ -14,6 +14,7 @@ export interface StorefrontCustomSettings {
   // Homepage
   homepage_flash_sale_enabled: boolean;
   homepage_flash_sale_title: string;
+  homepage_flash_sale_end: string | null;
   homepage_featured_title: string;
   homepage_new_arrivals_title: string;
   homepage_sections_order: string[]; // ['hero', 'trust_badges', 'categories', 'flash_sale', 'featured', 'new_arrivals']
@@ -60,6 +61,7 @@ export const DEFAULT_STOREFRONT_SETTINGS: StorefrontCustomSettings = {
 
   homepage_flash_sale_enabled: true,
   homepage_flash_sale_title: '⚡ Flash Deals & Steals',
+  homepage_flash_sale_end: null,
   homepage_featured_title: '✨ Handpicked For You',
   homepage_new_arrivals_title: '🚀 New Arrivals / নতুন কালেকশন',
   homepage_sections_order: DEFAULT_HOMEPAGE_SECTIONS,

@@ -152,6 +152,7 @@ export default function AdminCustomizePage() {
             ? String(s.homepage_flash_sale_enabled) === 'true' || s.homepage_flash_sale_enabled === true
             : prev.homepage_flash_sale_enabled,
           homepage_flash_sale_title: s.homepage_flash_sale_title || prev.homepage_flash_sale_title,
+          homepage_flash_sale_end: s.homepage_flash_sale_end || prev.homepage_flash_sale_end || null,
           homepage_featured_title: s.homepage_featured_title || prev.homepage_featured_title,
           homepage_new_arrivals_title: s.homepage_new_arrivals_title || prev.homepage_new_arrivals_title,
           homepage_sections_order: parsedSections,
@@ -999,7 +1000,7 @@ export default function AdminCustomizePage() {
 
                     {/* FLASH SALE BLOCK */}
                     {secKey === 'flash_sale' && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', maxWidth: '500px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '540px' }}>
                         <div className="form-group">
                           <label className="admin-label">Flash Sale Section Heading</label>
                           <input
@@ -1010,8 +1011,93 @@ export default function AdminCustomizePage() {
                             placeholder="e.g. ⚡ Flash Deals & Steals"
                           />
                         </div>
-                        <div style={{ background: 'var(--color-admin-surface-2)', padding: '10px 14px', borderRadius: 'var(--radius-md)', fontSize: '12px', color: 'var(--color-admin-muted)' }}>
-                          Products with <code style={{ color: 'var(--color-primary-light)' }}>is_flash_sale = true</code> are automatically featured in this rail.
+
+                        <div className="form-group">
+                          <label className="admin-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span>Flash Sale Campaign End Time (Global Sync)</span>
+                            <span style={{ fontSize: '11px', color: settings.homepage_flash_sale_end ? 'var(--color-primary-light)' : 'var(--color-success)' }}>
+                              {settings.homepage_flash_sale_end ? '● Manual Fixed Target' : '● Auto Daily Midnight'}
+                            </span>
+                          </label>
+
+                          <input
+                            type="datetime-local"
+                            className="admin-input"
+                            value={
+                              settings.homepage_flash_sale_end
+                                ? (() => {
+                                    try {
+                                      const d = new Date(settings.homepage_flash_sale_end);
+                                      return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+                                    } catch {
+                                      return '';
+                                    }
+                                  })()
+                                : ''
+                            }
+                            onChange={e => {
+                              const val = e.target.value;
+                              if (!val) {
+                                updateSetting({ homepage_flash_sale_end: null });
+                              } else {
+                                updateSetting({ homepage_flash_sale_end: new Date(val).toISOString() });
+                              }
+                            }}
+                          />
+
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
+                            <button
+                              type="button"
+                              className="btn btn-secondary btn-sm"
+                              style={{ fontSize: '11px', padding: '3px 8px' }}
+                              onClick={() => {
+                                updateSetting({ homepage_flash_sale_end: null });
+                                showToast('Set to Auto Daily Midnight (Zero Drift)', 'info');
+                              }}
+                            >
+                              ⚡ Auto Daily Midnight
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-secondary btn-sm"
+                              style={{ fontSize: '11px', padding: '3px 8px' }}
+                              onClick={() => {
+                                const t = new Date(Date.now() + 24 * 3600 * 1000).toISOString();
+                                updateSetting({ homepage_flash_sale_end: t });
+                                showToast('Set to +24 Hours from now', 'info');
+                              }}
+                            >
+                              +24 Hours
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-secondary btn-sm"
+                              style={{ fontSize: '11px', padding: '3px 8px' }}
+                              onClick={() => {
+                                const t = new Date(Date.now() + 48 * 3600 * 1000).toISOString();
+                                updateSetting({ homepage_flash_sale_end: t });
+                                showToast('Set to +48 Hours from now', 'info');
+                              }}
+                            >
+                              +48 Hours
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-secondary btn-sm"
+                              style={{ fontSize: '11px', padding: '3px 8px' }}
+                              onClick={() => {
+                                const t = new Date(Date.now() + 7 * 86400 * 1000).toISOString();
+                                updateSetting({ homepage_flash_sale_end: t });
+                                showToast('Set to +7 Days from now', 'info');
+                              }}
+                            >
+                              +7 Days
+                            </button>
+                          </div>
+                        </div>
+
+                        <div style={{ background: 'var(--color-admin-surface-2)', padding: '10px 14px', borderRadius: 'var(--radius-md)', fontSize: '12px', color: 'var(--color-admin-muted)', lineHeight: '1.5' }}>
+                          💡 <strong>Zero-Drift Synchronization:</strong> Both the Homepage and Deals page (<code style={{ color: 'var(--color-primary-light)' }}>/deals</code>) will synchronize to this exact timestamp. If set to Auto Daily Midnight, every visitor sees the same synchronized countdown ending at 23:59:59 Bangladesh Standard Time.
                         </div>
                       </div>
                     )}

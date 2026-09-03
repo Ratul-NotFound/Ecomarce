@@ -471,9 +471,12 @@ export default function ProductForm({ initialProduct, categories = [] }: Product
         description_en: descriptionEn.trim() || null,
         description_bn: descriptionBn.trim() || null,
         images: cleanImages,
-        is_featured: isFeatured,
         is_flash_sale: isFlashSale,
-        flash_sale_ends_at: isFlashSale ? new Date(Date.now() + 7 * 86400000).toISOString() : null,
+        flash_sale_ends_at: isFlashSale
+          ? (initialData?.flash_sale_ends_at && new Date(initialData.flash_sale_ends_at).getTime() > Date.now()
+              ? initialData.flash_sale_ends_at
+              : new Date(Date.now() + 7 * 86400000).toISOString())
+          : null,
         display_order: Number(displayOrder) || 0,
         has_variants: hasVariants && variants.length > 0,
         variants: (hasVariants && variants.length > 0)

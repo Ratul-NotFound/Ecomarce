@@ -8,6 +8,7 @@ import DealCouponClaim from '@/components/store/DealCouponClaim';
 import DealProductCard from '@/components/store/DealProductCard';
 import { Zap, Flame, Sparkles } from 'lucide-react';
 import { STORE_CONFIG } from '@/lib/store-config';
+import { resolveFlashSaleEndTime } from '@/lib/flash-sale-utils';
 import type { Metadata } from 'next';
 
 interface DealsPageProps {
@@ -77,6 +78,8 @@ export default async function DealsPage({ searchParams }: DealsPageProps) {
     );
   }
 
+  const flashSaleEndTime = resolveFlashSaleEndTime(settings, products);
+
   return (
     <div className="deals-page-container">
       {/* 1. Hero Flash Deals Banner with Countdown */}
@@ -97,7 +100,7 @@ export default async function DealsPage({ searchParams }: DealsPageProps) {
         </div>
 
         {/* Live Countdown Timer */}
-        <DealCountdownTimer targetHours={settings.deals_timer_hours} />
+        <DealCountdownTimer targetDate={flashSaleEndTime} targetHours={settings.deals_timer_hours} />
       </div>
 
       <div className="container" style={{ padding: '0 16px 60px' }}>

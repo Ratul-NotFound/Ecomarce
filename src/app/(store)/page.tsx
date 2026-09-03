@@ -9,6 +9,7 @@ import FlashSale from '@/components/store/FlashSale';
 import ProductGrid from '@/components/store/ProductGrid';
 import { Sparkles, TrendingUp, ShieldCheck, Truck, RotateCcw, Headphones } from 'lucide-react';
 import type { SpecialOffer, Product } from '@/types';
+import { resolveFlashSaleEndTime } from '@/lib/flash-sale-utils';
 
 export const revalidate = 60; // Incremental Static Regeneration every 60s
 
@@ -182,6 +183,8 @@ export default async function HomePage() {
     flashSaleProducts = demoSampleProducts.filter(p => p.is_flash_sale);
   }
 
+  const flashSaleEndTime = resolveFlashSaleEndTime(settings, flashSaleProducts);
+
   // Dynamic Section Map for Sequence Customization
   const sectionMap: Record<string, React.ReactNode> = {
     hero: <HeroBanner key="hero" banners={banners} />,
@@ -230,7 +233,7 @@ export default async function HomePage() {
     ),
     categories: <CategoryGrid key="categories" categories={categories} />,
     flash_sale: settings.homepage_flash_sale_enabled && flashSaleProducts.length > 0 ? (
-      <FlashSale key="flash_sale" products={flashSaleProducts} />
+      <FlashSale key="flash_sale" products={flashSaleProducts} targetDate={flashSaleEndTime} />
     ) : null,
     featured: (
       <section key="featured" style={{ margin: '40px 0' }}>

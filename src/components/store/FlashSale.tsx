@@ -7,14 +7,17 @@ import ProductCard from './ProductCard';
 import CountdownTimer from './CountdownTimer';
 import { Zap, ArrowRight } from 'lucide-react';
 
+import { resolveFlashSaleEndTime } from '@/lib/flash-sale-utils';
+
 interface FlashSaleProps {
   products: Product[];
+  targetDate?: string | null;
 }
 
-export default function FlashSale({ products = [] }: FlashSaleProps) {
+export default function FlashSale({ products = [], targetDate = null }: FlashSaleProps) {
   if (products.length === 0) return null;
 
-  const firstFlashEnd = products[0]?.flash_sale_ends_at || null;
+  const resolvedEnd = targetDate || resolveFlashSaleEndTime(undefined, products);
 
   return (
     <section className="flash-sale-box" aria-label="Flash Sale Deals">
@@ -33,7 +36,7 @@ export default function FlashSale({ products = [] }: FlashSaleProps) {
           </div>
 
           <div className="flash-sale-timer-block">
-            <CountdownTimer targetDate={firstFlashEnd} />
+            <CountdownTimer targetDate={resolvedEnd} />
           </div>
         </div>
 
