@@ -2486,5 +2486,10 @@
   }
 }
 
+.search-item-hover:hover {
+  background: var(--color-surface-2) !important;
+}
+
+
 
 

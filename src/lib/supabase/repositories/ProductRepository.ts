@@ -150,9 +150,9 @@ export class ProductRepository extends BaseRepository<Product> {
     if (filter.min_price !== undefined) query = query.gte('base_price', filter.min_price);
     if (filter.max_price !== undefined) query = query.lte('base_price', filter.max_price);
     if (filter.is_flash_sale) query = query.eq('is_flash_sale', true);
-    if (filter.is_featured) query = query.eq('is_featured', true);
     if (filter.search) {
-      query = query.ilike('name_en', `%${filter.search}%`);
+      const term = filter.search.trim();
+      query = query.or(`name_en.ilike.%${term}%,description_en.ilike.%${term}%,name_bn.ilike.%${term}%`);
     }
 
     const sortMap: Record<string, [string, { ascending: boolean }]> = {

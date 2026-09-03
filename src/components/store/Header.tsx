@@ -9,6 +9,7 @@ import { STORE_CONFIG } from '@/lib/store-config';
 import { useCart } from '@/hooks/useCart';
 import { useAuth } from '@/hooks/useAuth';
 import NotificationBell from '@/components/store/NotificationBell';
+import SearchBar from '@/components/store/SearchBar';
 
 interface HeaderProps {
   categories?: Array<{ id: string; name_en: string; name_bn?: string | null; slug: string }>;
@@ -26,14 +27,6 @@ export default function Header({ categories = [], announcement }: HeaderProps) {
   const { itemCount } = useCart();
   const { user, profile, isAdmin, isModerator } = useAuth();
   const userAvatar = profile?.avatar_url || user?.user_metadata?.avatar_url || user?.user_metadata?.picture;
-  const [searchTerm, setSearchTerm] = useState('');
-
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchTerm.trim()) {
-      router.push(`/search?q=${encodeURIComponent(searchTerm.trim())}`);
-    }
-  };
 
   return (
     <header className="store-header">
@@ -58,18 +51,10 @@ export default function Header({ categories = [], announcement }: HeaderProps) {
             <span>{STORE_CONFIG.name}</span>
           </Link>
 
-          {/* Desktop Search Bar */}
-          <form onSubmit={handleSearchSubmit} className="store-header__search desktop-search">
-            <Search className="store-header__search-icon" size={18} />
-            <input
-              type="text"
-              placeholder="Search products, brands, categories..."
-              className="store-header__search-input"
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              id="header-search-input"
-            />
-          </form>
+          {/* Desktop Search Bar with Live Recommendations */}
+          <div className="store-header__search desktop-search">
+            <SearchBar placeholder="Search products, brands, categories..." />
+          </div>
 
           {/* Action Buttons */}
           <div className="store-header__actions">
@@ -154,17 +139,9 @@ export default function Header({ categories = [], announcement }: HeaderProps) {
 
         {/* Mobile Dedicated Search Bar (Hidden on Cart, Checkout, and Account) */}
         {!isCleanPage && (
-          <form onSubmit={handleSearchSubmit} className="store-header__mobile-search">
-            <Search className="store-header__mobile-search-icon" size={16} />
-            <input
-              type="text"
-              placeholder="Search products, brands, categories..."
-              className="store-header__mobile-search-input"
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              id="mobile-header-search-input"
-            />
-          </form>
+          <div className="store-header__mobile-search">
+            <SearchBar placeholder="Search products, brands, categories..." isMobile />
+          </div>
         )}
       </div>
     </header>
