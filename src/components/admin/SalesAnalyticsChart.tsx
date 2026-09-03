@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { formatCurrency } from '@/lib/utils/format';
-import { TrendingUp, ShoppingBag, DollarSign, Award, BarChart3, LineChart } from 'lucide-react';
+import { BarChart3, LineChart, DollarSign, ShoppingBag, Sparkles } from 'lucide-react';
 import type { Order } from '@/types';
 
 interface SalesAnalyticsChartProps {
@@ -12,24 +12,40 @@ interface SalesAnalyticsChartProps {
 
 export default function SalesAnalyticsChart({ orders, timeframe }: SalesAnalyticsChartProps) {
   const [metricMode, setMetricMode] = useState<'revenue' | 'orders'>('revenue');
-  const [chartType, setChartType] = useState<'curve' | 'bar'>('curve');
+  const [chartType, setChartType] = useState<'bar' | 'curve'>('bar'); // Default to modern bar chart
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
-  // Group orders into buckets based on timeframe
+  // ────────────────────────────────────────────────────────────
+  // 1. Group Orders by Real Calendar Dates / Hours
+  // ────────────────────────────────────────────────────────────
   const chartData = useMemo(() => {
-    const buckets: { label: string; sublabel?: string; revenue: number; ordersCount: number }[] = [];
     const now = new Date();
+    const buckets: {
+      key: string;
+      label: string;
+      fullDateLabel: string;
+      isToday: boolean;
+      revenue: number;
+      ordersCount: number;
+    }[] = [];
+
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
     if (timeframe === 'today') {
-      // 8 intervals across 24 hours (every 3 hours)
+      // 8 intervals across today's 24 hours (every 3 hours)
       for (let i = 0; i < 8; i++) {
         const hStart = i * 3;
         const ampm = hStart >= 12 ? 'PM' : 'AM';
         const displayH = hStart % 12 === 0 ? 12 : hStart % 12;
+        const label = `${displayH} ${ampm}`;
+        const key = `H-${i}`;
+
         buckets.push({
-          label: `${displayH} ${ampm}`,
-          sublabel: `${String(hStart).padStart(2, '0')}:00`,
+          key,
+          label,
+          fullDateLabel: `Today at ${label}`,
+          isToday: true,
           revenue: 0,
           ordersCount: 0,
         });
@@ -37,76 +53,43 @@ export default function SalesAnalyticsChart({ orders, timeframe }: SalesAnalytic
 
       orders.forEach(o => {
         const d = new Date(o.created_at);
-        const diffHours = (now.getTime() - d.getTime()) / (1000 * 60 * 60);
-        if (diffHours <= 24) {
+        // Check if placed on same calendar day
+        const isSameDay =
+          d.getFullYear() === now.getFullYear() &&
+          d.getMonth() === now.getMonth() &&
+          d.getDate() === now.getDate();
+
+        if (isSameDay) {
           const hour = d.getHours();
           const bIdx = Math.min(Math.floor(hour / 3), 7);
-          buckets[bIdx].ordersCount += 1;
-          if (o.status !== 'cancelled') {
-            buckets[bIdx].revenue += Number(o.total) || 0;
+          if (buckets[bIdx]) {
+            buckets[bIdx].ordersCount += 1;
+            if (o.status !== 'cancelled') {
+              buckets[bIdx].revenue += Number(o.total) || 0;
+            }
           }
         }
       });
     } else if (timeframe === 'week') {
-      // Last 7 days
-      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      // Last 7 calendar days ending on TODAY
       for (let i = 6; i >= 0; i--) {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        const dayLabel = `${days[d.getDay()]}, ${monthNames[d.getMonth()]} ${d.getDate()}`;
-        const shortLabel = `${days[d.getDay()]} ${d.getDate()}`;
-        buckets.push({ label: shortLabel, sublabel: dayLabel, revenue: 0, ordersCount: 0 });
-      }
+        const d = new Date(now);
+        d.setDate(now.getDate() - i);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        const key = `${yyyy}-${mm}-${dd}`;
+        const isToday = i === 0;
 
-      orders.forEach(o => {
-        const d = new Date(o.created_at);
-        const diffDays = Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
-        if (diffDays >= 0 && diffDays < 7) {
-          const idx = 6 - diffDays;
-          if (buckets[idx]) {
-            buckets[idx].ordersCount += 1;
-            if (o.status !== 'cancelled') {
-              buckets[idx].revenue += Number(o.total) || 0;
-            }
-          }
-        }
-      });
-    } else if (timeframe === 'month') {
-      // 4 weeks of the month with clear date ranges
-      const currentMonth = monthNames[now.getMonth()];
-      const weekRanges = [
-        { label: `Week 1`, sublabel: `${currentMonth} 1 - 7` },
-        { label: `Week 2`, sublabel: `${currentMonth} 8 - 14` },
-        { label: `Week 3`, sublabel: `${currentMonth} 15 - 21` },
-        { label: `Week 4`, sublabel: `${currentMonth} 22 - 31` },
-      ];
+        const dayName = dayNames[d.getDay()];
+        const label = isToday ? 'Today' : `${dayName} ${d.getDate()}`;
+        const fullDateLabel = `${dayName}, ${monthNames[d.getMonth()]} ${d.getDate()}, ${yyyy}${isToday ? ' (Today)' : ''}`;
 
-      weekRanges.forEach(w => {
-        buckets.push({ label: w.label, sublabel: w.sublabel, revenue: 0, ordersCount: 0 });
-      });
-
-      orders.forEach(o => {
-        const d = new Date(o.created_at);
-        const diffDays = Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
-        if (diffDays >= 0 && diffDays < 30) {
-          const weekIdx = Math.min(Math.floor(diffDays / 7), 3);
-          const targetIdx = 3 - weekIdx;
-          if (buckets[targetIdx]) {
-            buckets[targetIdx].ordersCount += 1;
-            if (o.status !== 'cancelled') {
-              buckets[targetIdx].revenue += Number(o.total) || 0;
-            }
-          }
-        }
-      });
-    } else {
-      // Last 6 months
-      for (let i = 5; i >= 0; i--) {
-        const d = new Date();
-        d.setMonth(d.getMonth() - i);
         buckets.push({
-          label: monthNames[d.getMonth()],
-          sublabel: `${monthNames[d.getMonth()]} ${d.getFullYear()}`,
+          key,
+          label,
+          fullDateLabel,
+          isToday,
           revenue: 0,
           ordersCount: 0,
         });
@@ -114,14 +97,92 @@ export default function SalesAnalyticsChart({ orders, timeframe }: SalesAnalytic
 
       orders.forEach(o => {
         const d = new Date(o.created_at);
-        const diffMonths = (now.getFullYear() - d.getFullYear()) * 12 + (now.getMonth() - d.getMonth());
-        if (diffMonths >= 0 && diffMonths < 6) {
-          const idx = 5 - diffMonths;
-          if (buckets[idx]) {
-            buckets[idx].ordersCount += 1;
-            if (o.status !== 'cancelled') {
-              buckets[idx].revenue += Number(o.total) || 0;
-            }
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        const orderKey = `${yyyy}-${mm}-${dd}`;
+
+        const match = buckets.find(b => b.key === orderKey);
+        if (match) {
+          match.ordersCount += 1;
+          if (o.status !== 'cancelled') {
+            match.revenue += Number(o.total) || 0;
+          }
+        }
+      });
+    } else if (timeframe === 'month') {
+      // Last 15 calendar days ending on TODAY (perfect granularity: readable and fully detailed)
+      const dayCount = 15;
+      for (let i = dayCount - 1; i >= 0; i--) {
+        const d = new Date(now);
+        d.setDate(now.getDate() - i);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        const key = `${yyyy}-${mm}-${dd}`;
+        const isToday = i === 0;
+
+        const label = isToday ? 'Today' : `${monthNames[d.getMonth()]} ${d.getDate()}`;
+        const fullDateLabel = `${dayNames[d.getDay()]}, ${monthNames[d.getMonth()]} ${d.getDate()}, ${yyyy}${isToday ? ' (Today)' : ''}`;
+
+        buckets.push({
+          key,
+          label,
+          fullDateLabel,
+          isToday,
+          revenue: 0,
+          ordersCount: 0,
+        });
+      }
+
+      orders.forEach(o => {
+        const d = new Date(o.created_at);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        const orderKey = `${yyyy}-${mm}-${dd}`;
+
+        const match = buckets.find(b => b.key === orderKey);
+        if (match) {
+          match.ordersCount += 1;
+          if (o.status !== 'cancelled') {
+            match.revenue += Number(o.total) || 0;
+          }
+        }
+      });
+    } else {
+      // All Time: Last 6 calendar months ending on CURRENT MONTH
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const key = `${yyyy}-${mm}`;
+        const isCurrentMonth = i === 0;
+
+        const label = `${monthNames[d.getMonth()]}`;
+        const fullDateLabel = `${monthNames[d.getMonth()]} ${yyyy}${isCurrentMonth ? ' (Current)' : ''}`;
+
+        buckets.push({
+          key,
+          label,
+          fullDateLabel,
+          isToday: isCurrentMonth,
+          revenue: 0,
+          ordersCount: 0,
+        });
+      }
+
+      orders.forEach(o => {
+        const d = new Date(o.created_at);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const orderKey = `${yyyy}-${mm}`;
+
+        const match = buckets.find(b => b.key === orderKey);
+        if (match) {
+          match.ordersCount += 1;
+          if (o.status !== 'cancelled') {
+            match.revenue += Number(o.total) || 0;
           }
         }
       });
@@ -130,7 +191,7 @@ export default function SalesAnalyticsChart({ orders, timeframe }: SalesAnalytic
     return buckets;
   }, [orders, timeframe]);
 
-  // Overall totals for quick summary chips
+  // Overall totals for quick summary
   const totalRevenue = useMemo(() => chartData.reduce((sum, b) => sum + b.revenue, 0), [chartData]);
   const totalOrders = useMemo(() => chartData.reduce((sum, b) => sum + b.ordersCount, 0), [chartData]);
   const averageOrderVal = useMemo(
@@ -138,7 +199,7 @@ export default function SalesAnalyticsChart({ orders, timeframe }: SalesAnalytic
     [totalRevenue, totalOrders]
   );
 
-  // Peak bucket
+  // Peak sales period
   const peakBucket = useMemo(() => {
     let peak = chartData[0] || { label: 'None', revenue: 0, ordersCount: 0 };
     chartData.forEach(b => {
@@ -151,22 +212,22 @@ export default function SalesAnalyticsChart({ orders, timeframe }: SalesAnalytic
     return peak;
   }, [chartData, metricMode]);
 
-  // Max value for chart scaling
+  // Maximum value for scaling
   const maxVal = useMemo(() => {
     const vals = chartData.map(b => (metricMode === 'revenue' ? b.revenue : b.ordersCount));
     const highest = Math.max(...vals, 1);
-    return metricMode === 'revenue' ? Math.ceil(highest * 1.18) : Math.max(highest + 2, 5);
+    return metricMode === 'revenue' ? Math.ceil(highest * 1.2) : Math.max(highest + 1, 4);
   }, [chartData, metricMode]);
 
   // SVG dimensions
-  const svgWidth = 740;
-  const svgHeight = 230;
-  const paddingX = 55;
-  const paddingY = 30;
+  const svgWidth = 760;
+  const svgHeight = 220;
+  const paddingX = 60;
+  const paddingY = 28;
   const graphWidth = svgWidth - paddingX * 2;
   const graphHeight = svgHeight - paddingY * 2;
 
-  // Calculate coordinates
+  // Calculate points
   const points = useMemo(() => {
     return chartData.map((d, i) => {
       const x = paddingX + (i / Math.max(chartData.length - 1, 1)) * graphWidth;
@@ -176,7 +237,7 @@ export default function SalesAnalyticsChart({ orders, timeframe }: SalesAnalytic
     });
   }, [chartData, metricMode, maxVal, graphWidth, graphHeight]);
 
-  // Smooth Cubic Bezier Spline Path Generator
+  // Smooth Cubic Bezier Spline
   const smoothLinePath = useMemo(() => {
     if (points.length === 0) return '';
     if (points.length === 1) return `M ${points[0].x} ${points[0].y}`;
@@ -199,7 +260,6 @@ export default function SalesAnalyticsChart({ orders, timeframe }: SalesAnalytic
     return path;
   }, [points]);
 
-  // Smooth Area Path
   const smoothAreaPath = useMemo(() => {
     if (points.length === 0) return '';
     const lastX = points[points.length - 1].x;
@@ -216,10 +276,10 @@ export default function SalesAnalyticsChart({ orders, timeframe }: SalesAnalytic
         background: '#ffffff',
         border: '1px solid var(--color-admin-border)',
         borderRadius: 'var(--radius-xl)',
-        boxShadow: '0 2px 10px rgba(0,0,0,0.03)',
+        boxShadow: '0 2px 10px rgba(0,0,0,0.02)',
       }}
     >
-      {/* Top Header & Interactive Toggles */}
+      {/* Header Bar */}
       <div
         style={{
           display: 'flex',
@@ -233,29 +293,33 @@ export default function SalesAnalyticsChart({ orders, timeframe }: SalesAnalytic
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <h3 style={{ fontSize: '17px', fontWeight: 800, color: 'var(--color-admin-text)', margin: 0 }}>
-              Sales & Order Trajectory
+              Sales & Order Analytics
             </h3>
             <span
               style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
                 fontSize: '11px',
                 fontWeight: 700,
                 padding: '3px 8px',
                 borderRadius: 'var(--radius-full)',
-                background: 'rgba(37,99,235,0.1)',
-                color: 'var(--color-primary)',
+                background: 'rgba(16, 185, 129, 0.1)',
+                color: '#059669',
               }}
             >
-              {timeframe.toUpperCase()}
+              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981' }} />
+              Live Calendar Synced
             </span>
           </div>
           <p style={{ fontSize: '13px', color: 'var(--color-admin-muted)', margin: '4px 0 0 0' }}>
-            Interactive timeline tracking total earnings and buyer demand.
+            Accurate revenue and order trajectory across actual dates.
           </p>
         </div>
 
-        {/* Toggles Container */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-          {/* Chart Style Switcher (Curve vs Bars) */}
+        {/* Action Controls */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          {/* Chart Style Switcher */}
           <div
             style={{
               display: 'flex',
@@ -267,35 +331,12 @@ export default function SalesAnalyticsChart({ orders, timeframe }: SalesAnalytic
           >
             <button
               type="button"
-              onClick={() => setChartType('curve')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px',
-                padding: '5px 12px',
-                fontSize: '12px',
-                fontWeight: 700,
-                borderRadius: 'calc(var(--radius-lg) - 2px)',
-                border: 'none',
-                cursor: 'pointer',
-                background: chartType === 'curve' ? '#ffffff' : 'transparent',
-                color: chartType === 'curve' ? 'var(--color-primary)' : 'var(--color-admin-muted)',
-                boxShadow: chartType === 'curve' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              <LineChart size={14} />
-              <span>Smooth Line</span>
-            </button>
-
-            <button
-              type="button"
               onClick={() => setChartType('bar')}
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: '5px',
-                padding: '5px 12px',
+                padding: '6px 12px',
                 fontSize: '12px',
                 fontWeight: 700,
                 borderRadius: 'calc(var(--radius-lg) - 2px)',
@@ -308,11 +349,34 @@ export default function SalesAnalyticsChart({ orders, timeframe }: SalesAnalytic
               }}
             >
               <BarChart3 size={14} />
-              <span>Bars</span>
+              <span>Modern Bars</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setChartType('curve')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                padding: '6px 12px',
+                fontSize: '12px',
+                fontWeight: 700,
+                borderRadius: 'calc(var(--radius-lg) - 2px)',
+                border: 'none',
+                cursor: 'pointer',
+                background: chartType === 'curve' ? '#ffffff' : 'transparent',
+                color: chartType === 'curve' ? 'var(--color-primary)' : 'var(--color-admin-muted)',
+                boxShadow: chartType === 'curve' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <LineChart size={14} />
+              <span>Smooth Curve</span>
             </button>
           </div>
 
-          {/* Metric Switcher (Revenue vs Orders) */}
+          {/* Metric Mode Switcher */}
           <div
             style={{
               display: 'flex',
@@ -329,7 +393,7 @@ export default function SalesAnalyticsChart({ orders, timeframe }: SalesAnalytic
                 display: 'flex',
                 alignItems: 'center',
                 gap: '5px',
-                padding: '5px 12px',
+                padding: '6px 12px',
                 fontSize: '12px',
                 fontWeight: 700,
                 borderRadius: 'calc(var(--radius-lg) - 2px)',
@@ -352,7 +416,7 @@ export default function SalesAnalyticsChart({ orders, timeframe }: SalesAnalytic
                 display: 'flex',
                 alignItems: 'center',
                 gap: '5px',
-                padding: '5px 12px',
+                padding: '6px 12px',
                 fontSize: '12px',
                 fontWeight: 700,
                 borderRadius: 'calc(var(--radius-lg) - 2px)',
@@ -371,51 +435,51 @@ export default function SalesAnalyticsChart({ orders, timeframe }: SalesAnalytic
         </div>
       </div>
 
-      {/* User-Friendly Quick Metric Cards Bar */}
+      {/* Modern KPI Summary Chips */}
       <div
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
           gap: '12px',
-          padding: '14px 16px',
-          background: '#f8fafc',
-          borderRadius: 'var(--radius-lg)',
+          padding: '16px 20px',
+          background: 'linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%)',
+          borderRadius: 'var(--radius-xl)',
           border: '1px solid var(--color-admin-border)',
-          marginBottom: '20px',
+          marginBottom: '24px',
         }}
       >
         <div>
-          <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-admin-muted)', textTransform: 'uppercase' }}>
-            Period Gross Revenue
+          <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-admin-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            Period Revenue
           </span>
-          <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--color-primary)', marginTop: '2px' }}>
+          <div style={{ fontSize: '20px', fontWeight: 900, color: 'var(--color-primary)', marginTop: '2px' }}>
             {formatCurrency(totalRevenue)}
           </div>
         </div>
 
         <div>
-          <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-admin-muted)', textTransform: 'uppercase' }}>
-            Total Orders Placed
+          <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-admin-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            Total Orders
           </span>
-          <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--color-admin-text)', marginTop: '2px' }}>
+          <div style={{ fontSize: '20px', fontWeight: 900, color: 'var(--color-admin-text)', marginTop: '2px' }}>
             {totalOrders} Orders
           </div>
         </div>
 
         <div>
-          <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-admin-muted)', textTransform: 'uppercase' }}>
-            Avg. Order Value (AOV)
+          <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-admin-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            Avg. Order Value
           </span>
-          <div style={{ fontSize: '18px', fontWeight: 800, color: '#10b981', marginTop: '2px' }}>
+          <div style={{ fontSize: '20px', fontWeight: 900, color: '#059669', marginTop: '2px' }}>
             {formatCurrency(averageOrderVal)}
           </div>
         </div>
 
         <div>
-          <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-admin-muted)', textTransform: 'uppercase' }}>
-            Peak Demand Period
+          <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-admin-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            Peak Demand Date
           </span>
-          <div style={{ fontSize: '18px', fontWeight: 800, color: '#f59e0b', marginTop: '2px' }}>
+          <div style={{ fontSize: '15px', fontWeight: 800, color: '#d97706', marginTop: '4px' }}>
             {peakBucket.label}{' '}
             <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-admin-muted)' }}>
               ({metricMode === 'revenue' ? formatCurrency(peakBucket.revenue) : `${peakBucket.ordersCount} orders`})
@@ -431,27 +495,24 @@ export default function SalesAnalyticsChart({ orders, timeframe }: SalesAnalytic
           style={{ width: '100%', height: 'auto', overflow: 'visible', display: 'block' }}
         >
           <defs>
-            {/* Smooth Vibrant Gradient */}
-            <linearGradient id="smoothSalesGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#2563eb" stopOpacity="0.32" />
+            <linearGradient id="areaCurveGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#2563eb" stopOpacity="0.35" />
               <stop offset="70%" stopColor="#2563eb" stopOpacity="0.08" />
               <stop offset="100%" stopColor="#2563eb" stopOpacity="0.0" />
             </linearGradient>
 
-            {/* Bar Fill Gradient */}
-            <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#2563eb" stopOpacity="0.95" />
-              <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.75" />
+            <linearGradient id="barColumnGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#2563eb" stopOpacity="1" />
+              <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.8" />
             </linearGradient>
 
-            {/* Active Bar Gradient */}
-            <linearGradient id="barGradActive" x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id="barColumnActiveGrad" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#1d4ed8" stopOpacity="1" />
               <stop offset="100%" stopColor="#2563eb" stopOpacity="0.9" />
             </linearGradient>
           </defs>
 
-          {/* Horizontal Grid lines with subtle dashed pattern */}
+          {/* Horizontal Grid lines */}
           {[0, 0.25, 0.5, 0.75, 1].map((ratio, idx) => {
             const y = paddingY + ratio * graphHeight;
             const labelVal = Math.round(maxVal * (1 - ratio));
@@ -483,14 +544,83 @@ export default function SalesAnalyticsChart({ orders, timeframe }: SalesAnalytic
           })}
 
           {/* ───────────────────────────────────────────────
-              MODE 1: SMOOTH CURVED AREA CHART
+              MODE 1: MODERN ROUNDED BARS (PRIMARY DEFAULT)
+          ─────────────────────────────────────────────── */}
+          {chartType === 'bar' && (
+            <>
+              {points.map((pt, i) => {
+                const totalBuckets = points.length;
+                const barWidth = Math.min((graphWidth / totalBuckets) * 0.62, 36);
+                const hasSales = pt.val > 0;
+                const barHeight = hasSales ? Math.max((pt.val / maxVal) * graphHeight, 8) : 3;
+                const barX = pt.x - barWidth / 2;
+                const barY = svgHeight - paddingY - barHeight;
+                const isHovered = hoveredIndex === i;
+
+                return (
+                  <g key={i}>
+                    <rect
+                      x={barX}
+                      y={barY}
+                      width={barWidth}
+                      height={barHeight}
+                      rx={hasSales ? 5 : 1.5}
+                      fill={
+                        hasSales
+                          ? isHovered
+                            ? 'url(#barColumnActiveGrad)'
+                            : 'url(#barColumnGrad)'
+                          : '#cbd5e1'
+                      }
+                      style={{
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                      }}
+                      onMouseEnter={() => setHoveredIndex(i)}
+                      onMouseLeave={() => setHoveredIndex(null)}
+                    />
+
+                    {/* Floating Value Pill for bars with sales */}
+                    {hasSales && (
+                      <g>
+                        <rect
+                          x={pt.x - 24}
+                          y={barY - 22}
+                          width="48"
+                          height="18"
+                          rx="9"
+                          fill={isHovered ? '#1d4ed8' : '#2563eb'}
+                          filter="drop-shadow(0 2px 4px rgba(37,99,235,0.2))"
+                        />
+                        <text
+                          x={pt.x}
+                          y={barY - 9}
+                          fill="#ffffff"
+                          fontSize="9.5"
+                          fontWeight="800"
+                          textAnchor="middle"
+                        >
+                          {metricMode === 'revenue'
+                            ? `৳${pt.val >= 1000 ? `${(pt.val / 1000).toFixed(1)}k` : pt.val}`
+                            : `${pt.val} ord`}
+                        </text>
+                      </g>
+                    )}
+                  </g>
+                );
+              })}
+            </>
+          )}
+
+          {/* ───────────────────────────────────────────────
+              MODE 2: SMOOTH CURVED AREA CHART
           ─────────────────────────────────────────────── */}
           {chartType === 'curve' && (
             <>
               {/* Gradient Area Fill */}
-              <path d={smoothAreaPath} fill="url(#smoothSalesGrad)" />
+              <path d={smoothAreaPath} fill="url(#areaCurveGrad)" />
 
-              {/* Glowing Smooth Curve Line */}
+              {/* Smooth Spline Stroke */}
               <path
                 d={smoothLinePath}
                 fill="none"
@@ -500,7 +630,7 @@ export default function SalesAnalyticsChart({ orders, timeframe }: SalesAnalytic
                 strokeLinejoin="round"
               />
 
-              {/* Vertical Crosshair on Hover */}
+              {/* Vertical Crosshair Guide */}
               {hoveredIndex !== null && points[hoveredIndex] && (
                 <line
                   x1={points[hoveredIndex].x}
@@ -514,57 +644,57 @@ export default function SalesAnalyticsChart({ orders, timeframe }: SalesAnalytic
                 />
               )}
 
-              {/* Interactive Data Dots & Floating Badges */}
+              {/* Data Points */}
               {points.map((pt, i) => {
                 const isHovered = hoveredIndex === i;
-                const isPeak = pt.val > 0 && pt.data.label === peakBucket.label;
+                const hasSales = pt.val > 0;
 
                 return (
                   <g key={i}>
-                    {/* Outer Glow Halo for active or peak point */}
-                    {(isHovered || isPeak) && (
+                    {hasSales && (
                       <circle
                         cx={pt.x}
                         cy={pt.y}
-                        r={isHovered ? 12 : 9}
-                        fill={isHovered ? 'rgba(37,99,235,0.2)' : 'rgba(245,158,11,0.2)'}
-                        style={{ transition: 'r 0.15s ease' }}
+                        r={isHovered ? 11 : 7}
+                        fill="rgba(37,99,235,0.2)"
                       />
                     )}
 
-                    {/* Data Point Dot */}
                     <circle
                       cx={pt.x}
                       cy={pt.y}
-                      r={isHovered ? 6 : 4.5}
-                      fill="#ffffff"
-                      stroke={isPeak && !isHovered ? '#f59e0b' : '#2563eb'}
-                      strokeWidth={isHovered ? 3.5 : 2.5}
+                      r={isHovered ? 5.5 : hasSales ? 4.5 : 3}
+                      fill={hasSales ? '#ffffff' : '#cbd5e1'}
+                      stroke="#2563eb"
+                      strokeWidth={hasSales ? 3 : 1.5}
                       style={{ cursor: 'pointer', transition: 'all 0.15s ease' }}
                       onMouseEnter={() => setHoveredIndex(i)}
                       onMouseLeave={() => setHoveredIndex(null)}
                     />
 
-                    {/* Peak Value Callout Badge (Always visible on peak when > 0) */}
-                    {isPeak && !isHovered && pt.val > 0 && (
+                    {/* Value Badge for Points with sales */}
+                    {hasSales && (
                       <g>
                         <rect
-                          x={pt.x - 32}
-                          y={pt.y - 28}
-                          width="64"
-                          height="20"
-                          rx="10"
-                          fill="#f59e0b"
+                          x={pt.x - 24}
+                          y={pt.y - 24}
+                          width="48"
+                          height="18"
+                          rx="9"
+                          fill="#2563eb"
+                          filter="drop-shadow(0 2px 4px rgba(37,99,235,0.2))"
                         />
                         <text
                           x={pt.x}
-                          y={pt.y - 14}
+                          y={pt.y - 11}
                           fill="#ffffff"
-                          fontSize="10"
+                          fontSize="9.5"
                           fontWeight="800"
                           textAnchor="middle"
                         >
-                          {metricMode === 'revenue' ? `৳${pt.val >= 1000 ? `${(pt.val / 1000).toFixed(1)}k` : pt.val}` : `${pt.val} orders`}
+                          {metricMode === 'revenue'
+                            ? `৳${pt.val >= 1000 ? `${(pt.val / 1000).toFixed(1)}k` : pt.val}`
+                            : `${pt.val} ord`}
                         </text>
                       </g>
                     )}
@@ -575,86 +705,49 @@ export default function SalesAnalyticsChart({ orders, timeframe }: SalesAnalytic
           )}
 
           {/* ───────────────────────────────────────────────
-              MODE 2: MODERN ROUNDED COLUMNS / BARS
-          ─────────────────────────────────────────────── */}
-          {chartType === 'bar' && (
-            <>
-              {points.map((pt, i) => {
-                const barWidth = Math.min(graphWidth / points.length * 0.55, 48);
-                const barHeight = Math.max((pt.val / maxVal) * graphHeight, pt.val > 0 ? 6 : 2);
-                const barX = pt.x - barWidth / 2;
-                const barY = svgHeight - paddingY - barHeight;
-                const isHovered = hoveredIndex === i;
-
-                return (
-                  <g key={i}>
-                    <rect
-                      x={barX}
-                      y={barY}
-                      width={barWidth}
-                      height={barHeight}
-                      rx="6"
-                      fill={isHovered ? 'url(#barGradActive)' : 'url(#barGrad)'}
-                      style={{
-                        cursor: 'pointer',
-                        transition: 'all 0.15s ease',
-                      }}
-                      onMouseEnter={() => setHoveredIndex(i)}
-                      onMouseLeave={() => setHoveredIndex(null)}
-                    />
-
-                    {/* Show Value above bar if > 0 */}
-                    {pt.val > 0 && (
-                      <text
-                        x={pt.x}
-                        y={barY - 6}
-                        fill={isHovered ? '#1d4ed8' : '#64748b'}
-                        fontSize="11"
-                        fontWeight="700"
-                        textAnchor="middle"
-                      >
-                        {metricMode === 'revenue'
-                          ? `৳${pt.val >= 1000 ? `${(pt.val / 1000).toFixed(1)}k` : pt.val}`
-                          : pt.val}
-                      </text>
-                    )}
-                  </g>
-                );
-              })}
-            </>
-          )}
-
-          {/* ───────────────────────────────────────────────
-              X-AXIS LABELS (DATES / WEEKS)
+              X-AXIS LABELS (EXACT DATES)
           ─────────────────────────────────────────────── */}
           {points.map((pt, i) => {
             const isHovered = hoveredIndex === i;
+            const isToday = pt.data.isToday;
+
             return (
               <g key={i}>
-                <text
-                  x={pt.x}
-                  y={svgHeight - 10}
-                  fill={isHovered ? '#0f172a' : '#64748b'}
-                  fontSize="12"
-                  fontWeight={isHovered ? '800' : '600'}
-                  textAnchor="middle"
-                  style={{ cursor: 'pointer' }}
-                  onMouseEnter={() => setHoveredIndex(i)}
-                  onMouseLeave={() => setHoveredIndex(null)}
-                >
-                  {pt.data.label}
-                </text>
-
-                {pt.data.sublabel && (
+                {isToday ? (
+                  // Highlighted "Today" Badge
+                  <g>
+                    <rect
+                      x={pt.x - 22}
+                      y={svgHeight - 20}
+                      width="44"
+                      height="18"
+                      rx="9"
+                      fill="#2563eb"
+                    />
+                    <text
+                      x={pt.x}
+                      y={svgHeight - 7}
+                      fill="#ffffff"
+                      fontSize="10"
+                      fontWeight="800"
+                      textAnchor="middle"
+                    >
+                      Today
+                    </text>
+                  </g>
+                ) : (
                   <text
                     x={pt.x}
-                    y={svgHeight + 6}
-                    fill="#94a3b8"
-                    fontSize="10"
-                    fontWeight="500"
+                    y={svgHeight - 7}
+                    fill={isHovered ? '#0f172a' : '#64748b'}
+                    fontSize="10.5"
+                    fontWeight={isHovered ? '800' : '600'}
                     textAnchor="middle"
+                    style={{ cursor: 'pointer' }}
+                    onMouseEnter={() => setHoveredIndex(i)}
+                    onMouseLeave={() => setHoveredIndex(null)}
                   >
-                    {pt.data.sublabel}
+                    {pt.data.label}
                   </text>
                 )}
               </g>
@@ -662,20 +755,19 @@ export default function SalesAnalyticsChart({ orders, timeframe }: SalesAnalytic
           })}
 
           {/* ───────────────────────────────────────────────
-              INTERACTIVE FLOATING TOOLTIP
+              INTERACTIVE FLOATING GLASS TOOLTIP
           ─────────────────────────────────────────────── */}
           {hoveredIndex !== null && points[hoveredIndex] && (
             <g>
               {(() => {
                 const pt = points[hoveredIndex];
-                const tooltipWidth = 148;
-                const tooltipHeight = 62;
-                // Keep tooltip inside SVG boundaries
+                const tooltipWidth = 170;
+                const tooltipHeight = 66;
                 let tx = pt.x - tooltipWidth / 2;
                 if (tx < 10) tx = 10;
                 if (tx + tooltipWidth > svgWidth - 10) tx = svgWidth - tooltipWidth - 10;
                 let ty = pt.y - tooltipHeight - 16;
-                if (ty < 8) ty = pt.y + 18;
+                if (ty < 6) ty = pt.y + 20;
 
                 return (
                   <g style={{ pointerEvents: 'none' }}>
@@ -684,42 +776,42 @@ export default function SalesAnalyticsChart({ orders, timeframe }: SalesAnalytic
                       y={ty}
                       width={tooltipWidth}
                       height={tooltipHeight}
-                      rx="8"
+                      rx="10"
                       fill="#0f172a"
-                      filter="drop-shadow(0 8px 16px rgba(0,0,0,0.25))"
+                      filter="drop-shadow(0 8px 20px rgba(0,0,0,0.3))"
                     />
 
-                    {/* Tooltip Header Label */}
+                    {/* Tooltip Header Date */}
                     <text
-                      x={tx + 12}
-                      y={ty + 18}
+                      x={tx + 14}
+                      y={ty + 20}
                       fill="#94a3b8"
                       fontSize="11"
                       fontWeight="700"
                     >
-                      {pt.data.sublabel || pt.data.label}
+                      {pt.data.fullDateLabel}
                     </text>
 
                     {/* Revenue Value */}
                     <text
-                      x={tx + 12}
-                      y={ty + 36}
+                      x={tx + 14}
+                      y={ty + 39}
                       fill="#38bdf8"
-                      fontSize="13"
-                      fontWeight="800"
+                      fontSize="14"
+                      fontWeight="900"
                     >
                       ৳ {pt.data.revenue.toLocaleString()}
                     </text>
 
                     {/* Orders Count */}
                     <text
-                      x={tx + 12}
-                      y={ty + 52}
+                      x={tx + 14}
+                      y={ty + 55}
                       fill="#ffffff"
                       fontSize="11"
                       fontWeight="600"
                     >
-                      📦 {pt.data.ordersCount} Customer Orders
+                      📦 {pt.data.ordersCount} Customer Order{pt.data.ordersCount === 1 ? '' : 's'}
                     </text>
                   </g>
                 );
