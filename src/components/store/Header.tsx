@@ -72,11 +72,11 @@ export default function Header({ categories = [], announcement }: HeaderProps) {
 
           {/* Action Buttons */}
           <div className="store-header__actions">
-            {/* Admin Portal Shortcut if Admin */}
+            {/* Admin Portal Shortcut if Admin (Desktop only) */}
             {(isAdmin || isModerator) && (
               <Link
                 href="/admin"
-                className="header-action-btn"
+                className="header-action-btn desktop-only-action"
                 title="Admin Dashboard"
                 id="header-admin-link"
               >
@@ -94,11 +94,11 @@ export default function Header({ categories = [], announcement }: HeaderProps) {
               <Heart size={20} />
             </Link>
 
-            {/* My Orders (Desktop shortcut when logged in) */}
+            {/* My Orders (Desktop only - mobile accesses via bottom Account tab) */}
             {user && (
               <Link
                 href="/account?tab=orders"
-                className="header-action-btn desktop-only-cart"
+                className="header-action-btn desktop-only-action"
                 title="My Orders"
                 id="header-my-orders-btn"
               >
@@ -106,10 +106,10 @@ export default function Header({ categories = [], announcement }: HeaderProps) {
               </Link>
             )}
 
-            {/* Cart (Desktop only - mobile uses bottom nav) */}
+            {/* Cart (Desktop only - mobile accesses via bottom Cart tab) */}
             <Link
               href="/cart"
-              className="header-action-btn desktop-only-cart"
+              className="header-action-btn desktop-only-action"
               title="Shopping Cart"
               id="header-cart-link"
             >
@@ -117,10 +117,10 @@ export default function Header({ categories = [], announcement }: HeaderProps) {
               {itemCount > 0 && <span className="header-badge">{itemCount}</span>}
             </Link>
 
-            {/* User Account / Profile Button */}
+            {/* User Account / Profile Button (Desktop only - mobile accesses via bottom Account tab) */}
             <Link
               href={user ? '/account' : '/auth'}
-              className="header-user-btn"
+              className="header-user-btn desktop-only-action"
               title={user ? 'My Account' : 'Sign In'}
               id="header-account-link"
             >

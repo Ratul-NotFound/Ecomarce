@@ -156,12 +156,22 @@
   gap: var(--space-2);
 }
 
+.desktop-only-action {
+  display: flex !important;
+}
+
 @media (max-width: 768px) {
+  body {
+    padding-bottom: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px) + 24px) !important;
+  }
+
   .store-header__actions {
     gap: 6px;
   }
+
+  .desktop-only-action,
   .desktop-only-cart {
-    display: none;
+    display: none !important;
   }
 }
 
@@ -1625,9 +1635,9 @@
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-@media (min-width: 768px) {
+@media (min-width: 769px) {
   .mobile-bottom-nav {
-    display: none;
+    display: none !important;
   }
 }
 
