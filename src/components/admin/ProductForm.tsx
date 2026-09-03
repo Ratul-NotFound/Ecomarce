@@ -11,9 +11,14 @@ import {
   syncCostToTags,
   getVariantCostPrice,
   syncVariantCostsToTags,
+  extractOptionSchema,
+  syncOptionSchemaToTags,
+  getVariantPricing,
+  syncVariantFinancialsToTags,
   calculateProfitMetrics,
   calculateDiscountPrice,
   calculateDiscountPercent,
+  type ProductOptionSchema,
 } from '@/lib/utils/pricing';
 import { getProductVideoUrl, syncVideoToTags } from '@/lib/utils/video';
 import type { Product, Category, ProductVariant } from '@/types';
@@ -110,15 +115,17 @@ export default function ProductForm({ initialProduct, categories = [] }: Product
     }
   };
 
-  // Top-Notch Multi-Attribute Variant Architecture
+  // Universal Multi-Attribute Dynamic Variant Architecture
   interface FormVariant {
     id?: string;
-    size: string; // Size, Shoe size, Storage, Volume, Option 1
-    color: string; // Color, Option 2
-    material: string; // Edition, Material, Custom Option 3
+    size: string; // Option 1
+    color: string; // Option 2
+    material: string; // Option 3 / Custom
     sku: string;
-    cost_price: number | string;
-    selling_price: number | string;
+    cost_price: number | string; // Buying Price (COGS)
+    regular_price: number | string; // List Price / MSRP
+    sale_price: number | string; // Customer Checkout Price
+    discount_percent: number | string;
     price_modifier: number;
     stock_quantity: number | string;
   }
@@ -127,16 +134,39 @@ export default function ProductForm({ initialProduct, categories = [] }: Product
     Boolean(initialProduct?.has_variants || (initialProduct?.variants && initialProduct.variants.length > 0))
   );
 
+  // Dynamic Options Definition
+  interface DynamicOptionDef {
+    name: string;
+    values: string;
+  }
+
+  const [optionDefs, setOptionDefs] = useState<DynamicOptionDef[]>(() => {
+    const existing = extractOptionSchema(initialProduct?.tags || []);
+    if (existing && existing.length > 0) {
+      return existing.map(e => ({
+        name: e.name,
+        values: e.values.join(', '),
+      }));
+    }
+    return [
+      { name: 'Diameter / Size', values: '6 inch, 8 inch, 10 inch' },
+      { name: 'Stand / Base', values: 'Wooden Stand, Plastic Stand' },
+    ];
+  });
+
   const [variants, setVariants] = useState<FormVariant[]>(() => {
+    const baseReg = Number(initialProduct?.base_price || 0);
     const baseEff = Number(initialProduct?.sale_price ?? initialProduct?.base_price ?? 0);
     const prodCost = getProductCostPrice(initialProduct || {});
 
     return (
       initialProduct?.variants?.map((v, idx) => {
-        const vCost = getVariantCostPrice(initialProduct?.tags || [], v.sku, prodCost);
-        const sellPrice = v.price_modifier != null && baseEff > 0
-          ? baseEff + Number(v.price_modifier)
-          : (baseEff || '');
+        const pricing = getVariantPricing(initialProduct?.tags || [], v.sku, {
+          cost: prodCost,
+          regular: baseReg,
+          sale: baseEff,
+          priceModifier: Number(v.price_modifier) || 0,
+        });
 
         return {
           id: v.id,
@@ -144,8 +174,10 @@ export default function ProductForm({ initialProduct, categories = [] }: Product
           color: v.color || '',
           material: v.material || '',
           sku: v.sku || `${initialProduct?.sku || 'SKU'}-V${idx + 1}`,
-          cost_price: vCost > 0 ? vCost : (prodCost > 0 ? prodCost : ''),
-          selling_price: sellPrice || '',
+          cost_price: pricing.costPrice > 0 ? pricing.costPrice : (prodCost > 0 ? prodCost : ''),
+          regular_price: pricing.regularPrice > 0 ? pricing.regularPrice : (baseReg > 0 ? baseReg : ''),
+          sale_price: pricing.salePrice > 0 ? pricing.salePrice : (baseEff > 0 ? baseEff : ''),
+          discount_percent: pricing.discountPercent > 0 ? pricing.discountPercent : '',
           price_modifier: Number(v.price_modifier) || 0,
           stock_quantity: v.stock_quantity ?? 10,
         };
@@ -155,100 +187,151 @@ export default function ProductForm({ initialProduct, categories = [] }: Product
 
   // Bulk Generator State
   const [showGenerator, setShowGenerator] = useState(false);
-  const [genPreset, setGenPreset] = useState<'apparel' | 'footwear' | 'electronics' | 'volume' | 'custom'>('apparel');
-  const [genOpt1Name, setGenOpt1Name] = useState('Size');
-  const [genOpt1Values, setGenOpt1Values] = useState('S, M, L, XL');
-  const [genOpt2Name, setGenOpt2Name] = useState('Color');
-  const [genOpt2Values, setGenOpt2Values] = useState('Black, Navy, White');
-  const [genDefaultCost, setGenDefaultCost] = useState<number | string>('');
+  const [genPreset, setGenPreset] = useState<'lighting' | 'apparel' | 'watches' | 'bags' | 'eyewear' | 'gadgets' | 'volume' | 'custom'>('lighting');
+  const [genDefaultReg, setGenDefaultReg] = useState<number | string>('');
   const [genDefaultSell, setGenDefaultSell] = useState<number | string>('');
+  const [genDefaultCost, setGenDefaultCost] = useState<number | string>('');
   const [genDefaultStock, setGenDefaultStock] = useState<number | string>(10);
 
-  const applyGeneratorPreset = (preset: 'apparel' | 'footwear' | 'electronics' | 'volume' | 'custom') => {
+  const applyCategoryPreset = (preset: 'lighting' | 'apparel' | 'watches' | 'bags' | 'eyewear' | 'gadgets' | 'volume' | 'custom') => {
     setGenPreset(preset);
-    if (preset === 'apparel') {
-      setGenOpt1Name('Size');
-      setGenOpt1Values('S, M, L, XL');
-      setGenOpt2Name('Color');
-      setGenOpt2Values('Black, Navy, White');
-    } else if (preset === 'footwear') {
-      setGenOpt1Name('Shoe Size');
-      setGenOpt1Values('40, 41, 42, 43, 44');
-      setGenOpt2Name('Color');
-      setGenOpt2Values('Black, Brown, White');
-    } else if (preset === 'electronics') {
-      setGenOpt1Name('Storage');
-      setGenOpt1Values('128GB, 256GB, 512GB');
-      setGenOpt2Name('Color / Edition');
-      setGenOpt2Values('Midnight Black, Platinum Silver');
+    if (preset === 'lighting') {
+      setOptionDefs([
+        { name: 'Diameter / Size', values: '6 inch, 8 inch, 10 inch' },
+        { name: 'Stand / Base', values: 'Wooden Stand, Plastic Stand' },
+      ]);
+    } else if (preset === 'apparel') {
+      setOptionDefs([
+        { name: 'Size', values: 'S, M, L, XL, XXL' },
+        { name: 'Color', values: 'Black, White, Navy Blue' },
+      ]);
+    } else if (preset === 'watches') {
+      setOptionDefs([
+        { name: 'Dial Size', values: '40mm, 44mm' },
+        { name: 'Strap Material', values: 'Italian Leather, Milanese Steel, Sport Silicone' },
+      ]);
+    } else if (preset === 'bags') {
+      setOptionDefs([
+        { name: 'Capacity', values: 'Compact 15L, Everyday 25L, Travel 40L' },
+        { name: 'Material', values: 'Waterproof Canvas, Genuine Leather' },
+      ]);
+    } else if (preset === 'eyewear') {
+      setOptionDefs([
+        { name: 'Frame Color', values: 'Matte Black, Tortoise Shell' },
+        { name: 'Lens Coating', values: 'Polarized UV400, Blue-Light Cut' },
+      ]);
+    } else if (preset === 'gadgets') {
+      setOptionDefs([
+        { name: 'Storage', values: '128GB, 256GB, 512GB' },
+        { name: 'Finish / Color', values: 'Space Gray, Silver, Midnight' },
+      ]);
     } else if (preset === 'volume') {
-      setGenOpt1Name('Volume / Weight');
-      setGenOpt1Values('50ml, 100ml, 250ml');
-      setGenOpt2Name('Variant Type');
-      setGenOpt2Values('Standard, Pro');
+      setOptionDefs([
+        { name: 'Weight / Volume', values: '250ml, 500ml, 1 Liter' },
+        { name: 'Packaging', values: 'Glass Jar, Refill Pouch' },
+      ]);
     } else {
-      setGenOpt1Name('Option 1');
-      setGenOpt1Values('Option A, Option B');
-      setGenOpt2Name('Option 2');
-      setGenOpt2Values('Standard, Premium');
+      setOptionDefs([
+        { name: 'Option 1', values: 'Option A, Option B' },
+        { name: 'Option 2', values: 'Standard, Premium' },
+      ]);
     }
   };
 
-  const handleGenerateCombinations = () => {
-    const opt1List = genOpt1Values.split(',').map(s => s.trim()).filter(Boolean);
-    const opt2List = genOpt2Values.split(',').map(s => s.trim()).filter(Boolean);
+  const handleAddOptionDef = () => {
+    if (optionDefs.length >= 3) {
+      showToast('Maximum 3 option dimensions supported', 'info');
+      return;
+    }
+    setOptionDefs([
+      ...optionDefs,
+      { name: `Option ${optionDefs.length + 1}`, values: 'Standard, Custom' },
+    ]);
+  };
 
-    if (opt1List.length === 0 && opt2List.length === 0) {
-      showToast('Please enter at least one option value', 'error');
+  const handleRemoveOptionDef = (idx: number) => {
+    if (optionDefs.length <= 1) {
+      showToast('You must have at least one option dimension', 'info');
+      return;
+    }
+    setOptionDefs(optionDefs.filter((_, i) => i !== idx));
+  };
+
+  const handleUpdateOptionDef = (idx: number, field: 'name' | 'values', val: string) => {
+    const updated = [...optionDefs];
+    updated[idx][field] = val;
+    setOptionDefs(updated);
+  };
+
+  const handleGenerateCombinations = () => {
+    const cleanDefs = optionDefs
+      .map(o => ({
+        name: o.name.trim(),
+        values: o.values.split(',').map(v => v.trim()).filter(Boolean),
+      }))
+      .filter(o => o.name && o.values.length > 0);
+
+    if (cleanDefs.length === 0) {
+      showToast('Please specify at least one option name with values', 'error');
       return;
     }
 
     const effectiveBase = Number(salePrice || basePrice || 0);
-    const sellPrice = genDefaultSell !== '' ? Number(genDefaultSell) : effectiveBase;
-    const modifier = effectiveBase > 0 && sellPrice > 0 ? sellPrice - effectiveBase : 0;
-    const costVal = genDefaultCost !== '' ? Number(genDefaultCost) : (Number(costPrice) || 0);
-    const stockVal = genDefaultStock !== '' ? Number(genDefaultStock) : 10;
-    const baseSkuClean = sku.trim() || 'PROD';
+    const baseReg = Number(basePrice || effectiveBase);
+    const regDefault = genDefaultReg !== '' ? Number(genDefaultReg) : baseReg;
+    const saleDefault = genDefaultSell !== '' ? Number(genDefaultSell) : (effectiveBase || regDefault);
+    const costDefault = genDefaultCost !== '' ? Number(genDefaultCost) : (Number(costPrice) || 0);
+    const stockDefault = genDefaultStock !== '' ? Number(genDefaultStock) : 10;
+    const baseSkuClean = (sku.trim() || 'PROD').toUpperCase();
 
-    const newRows: FormVariant[] = [];
-
-    if (opt1List.length > 0 && opt2List.length > 0) {
-      opt1List.forEach(o1 => {
-        opt2List.forEach(o2 => {
-          const skuCode = `${baseSkuClean}-${o1.replace(/[^a-zA-Z0-9]/g, '')}-${o2.replace(/[^a-zA-Z0-9]/g, '')}`.toUpperCase();
-          newRows.push({
-            size: o1,
-            color: o2,
-            material: '',
-            sku: skuCode,
-            cost_price: costVal > 0 ? costVal : '',
-            selling_price: sellPrice > 0 ? sellPrice : '',
-            price_modifier: modifier,
-            stock_quantity: stockVal,
-          });
+    // Cartesian product across all defined options
+    let combos: Array<Record<string, string>> = [{}];
+    cleanDefs.forEach(def => {
+      const next: Array<Record<string, string>> = [];
+      combos.forEach(c => {
+        def.values.forEach(v => {
+          next.push({ ...c, [def.name]: v });
         });
       });
-    } else {
-      const singleList = opt1List.length > 0 ? opt1List : opt2List;
-      singleList.forEach(o => {
-        const skuCode = `${baseSkuClean}-${o.replace(/[^a-zA-Z0-9]/g, '')}`.toUpperCase();
-        newRows.push({
-          size: opt1List.length > 0 ? o : '',
-          color: opt2List.length > 0 ? o : '',
-          material: '',
-          sku: skuCode,
-          cost_price: costVal > 0 ? costVal : '',
-          selling_price: sellPrice > 0 ? sellPrice : '',
-          price_modifier: modifier,
-          stock_quantity: stockVal,
-        });
-      });
-    }
+      combos = next;
+    });
 
-    setVariants(prev => [...prev, ...newRows]);
+    const newRows: FormVariant[] = combos.map(combo => {
+      const keys = Object.keys(combo);
+      const val1 = combo[keys[0]] || '';
+      const val2 = combo[keys[1]] || '';
+      const val3 = combo[keys[2]] || '';
+
+      const slugParts = [val1, val2, val3]
+        .filter(Boolean)
+        .map(v => v.replace(/[^a-zA-Z0-9]/g, '').slice(0, 5))
+        .join('-');
+
+      const variantSku = `${baseSkuClean}-${slugParts}`.toUpperCase();
+      const discPct = regDefault > saleDefault && regDefault > 0
+        ? calculateDiscountPercent(regDefault, saleDefault)
+        : 0;
+
+      const modifier = effectiveBase > 0 && saleDefault > 0 ? saleDefault - effectiveBase : 0;
+
+      return {
+        size: val1,
+        color: val2,
+        material: val3 || (keys.length > 2 ? JSON.stringify(combo) : ''),
+        sku: variantSku,
+        cost_price: costDefault > 0 ? costDefault : '',
+        regular_price: regDefault > 0 ? regDefault : '',
+        sale_price: saleDefault > 0 ? saleDefault : '',
+        discount_percent: discPct > 0 ? discPct : '',
+        price_modifier: modifier,
+        stock_quantity: stockDefault,
+      };
+    });
+
+    setVariants(newRows);
     setHasVariants(true);
     setShowGenerator(false);
-    showToast(`Generated ${newRows.length} variant combinations!`, 'success');
+    showToast(`Generated ${newRows.length} variant combinations matrix!`, 'success');
   };
 
   const handleNameChange = (val: string) => {
@@ -259,18 +342,21 @@ export default function ProductForm({ initialProduct, categories = [] }: Product
   };
 
   const handleAddVariant = () => {
+    const baseReg = Number(basePrice || 0);
     const effectiveBase = Number(salePrice || basePrice || 0);
     const costVal = Number(costPrice) || '';
     const newIdx = variants.length + 1;
     setVariants([
       ...variants,
       {
-        size: 'Standard',
-        color: '',
+        size: 'Option 1',
+        color: 'Option 2',
         material: '',
         sku: `${sku.trim() || 'SKU'}-V${newIdx}`,
         cost_price: costVal,
-        selling_price: effectiveBase || '',
+        regular_price: baseReg || '',
+        sale_price: effectiveBase || '',
+        discount_percent: baseReg > effectiveBase && baseReg > 0 ? calculateDiscountPercent(baseReg, effectiveBase) : '',
         price_modifier: 0,
         stock_quantity: 10,
       },
@@ -289,15 +375,30 @@ export default function ProductForm({ initialProduct, categories = [] }: Product
   const handleVariantChange = (idx: number, field: keyof FormVariant, val: any) => {
     const updated = [...variants];
     const item = { ...updated[idx], [field]: val };
-
     const effectiveBase = Number(salePrice || basePrice || 0);
 
-    if (field === 'selling_price') {
-      const numSell = Number(val);
-      if (!isNaN(numSell) && effectiveBase > 0) {
-        item.price_modifier = numSell - effectiveBase;
+    if (field === 'sale_price') {
+      const numSale = Number(val);
+      const numReg = Number(item.regular_price);
+      if (!isNaN(numSale) && numReg > numSale && numReg > 0) {
+        item.discount_percent = calculateDiscountPercent(numReg, numSale);
       } else {
-        item.price_modifier = 0;
+        item.discount_percent = '';
+      }
+      item.price_modifier = !isNaN(numSale) && effectiveBase > 0 ? numSale - effectiveBase : 0;
+    } else if (field === 'regular_price') {
+      const numReg = Number(val);
+      const numSale = Number(item.sale_price);
+      if (numReg > 0 && numSale > 0 && numReg > numSale) {
+        item.discount_percent = calculateDiscountPercent(numReg, numSale);
+      }
+    } else if (field === 'discount_percent') {
+      const numDisc = Number(val);
+      const numReg = Number(item.regular_price) || Number(basePrice) || effectiveBase;
+      if (numReg > 0 && numDisc > 0) {
+        const discounted = calculateDiscountPrice(numReg, numDisc);
+        item.sale_price = discounted;
+        item.price_modifier = effectiveBase > 0 ? discounted - effectiveBase : 0;
       }
     }
 
@@ -329,14 +430,26 @@ export default function ProductForm({ initialProduct, categories = [] }: Product
       // Filter out empty slots, ensuring primary slot 0 is first
       const cleanImages = images.filter(img => Boolean(img && img.trim()));
 
-      // Sync cost tags: product-level + variant-level
+      // Encode dynamic option schema in tags
+      const activeOptionSchema: ProductOptionSchema[] = optionDefs
+        .map(o => ({
+          name: o.name.trim(),
+          values: o.values.split(',').map(v => v.trim()).filter(Boolean),
+        }))
+        .filter(o => o.name && o.values.length > 0);
+
       const baseCostTags = syncCostToTags(initialProduct?.tags || [], costPrice ? Number(costPrice) : null);
-      const variantCosts = variants.map(v => ({
+      const withSchemaTags = syncOptionSchemaToTags(baseCostTags, activeOptionSchema);
+
+      // Encode complete variant financials (vcost, vreg, vsale)
+      const variantFinancials = variants.map(v => ({
         sku: v.sku.trim(),
         costPrice: v.cost_price,
+        regularPrice: v.regular_price,
+        salePrice: v.sale_price,
       }));
-      const variantCostTags = syncVariantCostsToTags(baseCostTags, variantCosts);
-      const finalTags = syncVideoToTags(variantCostTags, videoUrl.trim() || null);
+      const withFinancialTags = syncVariantFinancialsToTags(withSchemaTags, variantFinancials);
+      const finalTags = syncVideoToTags(withFinancialTags, videoUrl.trim() || null);
 
       const effectiveBase = Number(salePrice || basePrice || 0);
 
@@ -365,7 +478,7 @@ export default function ProductForm({ initialProduct, categories = [] }: Product
         has_variants: hasVariants && variants.length > 0,
         variants: (hasVariants && variants.length > 0)
           ? variants.map((v, idx) => {
-              const numSell = Number(v.selling_price);
+              const numSell = Number(v.sale_price || v.regular_price || 0);
               const modifier = !isNaN(numSell) && effectiveBase > 0
                 ? numSell - effectiveBase
                 : (Number(v.price_modifier) || 0);
@@ -575,46 +688,51 @@ export default function ProductForm({ initialProduct, categories = [] }: Product
               </div>
             </div>
 
-            {/* 1-Click Combination Generator Panel */}
+            {/* Dynamic Option Definitions & Permutation Generator Panel */}
             {showGenerator && (
               <div
                 style={{
                   background: 'var(--color-admin-surface-2)',
                   border: '1px solid var(--color-admin-border)',
                   borderRadius: 'var(--radius-lg)',
-                  padding: '16px',
+                  padding: '18px',
                   marginBottom: '20px',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                  <strong style={{ fontSize: '13px', color: 'var(--color-admin-text)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Sparkles size={15} color="var(--color-primary-light)" />
-                    Bulk Variant Combination Generator
-                  </strong>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Sparkles size={16} color="var(--color-primary-light)" />
+                    <strong style={{ fontSize: '14px', color: 'var(--color-admin-text)' }}>
+                      Universal Multi-Option Permutation Generator
+                    </strong>
+                  </div>
                   <span style={{ fontSize: '11px', color: 'var(--color-admin-muted)' }}>
-                    Auto-creates all size × color permutations
+                    Works for any category (Lighting, Watches, Bags, Apparel, Groceries, Gadgets)
                   </span>
                 </div>
 
-                {/* Preset Chips */}
-                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '14px' }}>
-                  <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-admin-muted)', alignSelf: 'center', marginRight: '4px' }}>
-                    Quick Presets:
+                {/* Category Preset Quick Buttons */}
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '16px' }}>
+                  <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-admin-muted)', alignSelf: 'center', marginRight: '4px' }}>
+                    Category Presets:
                   </span>
                   {[
-                    { id: 'apparel', label: '👕 Apparel (Size/Color)' },
-                    { id: 'footwear', label: '👟 Footwear (Sizes 40-44)' },
-                    { id: 'electronics', label: '📱 Electronics (Storage/Color)' },
-                    { id: 'volume', label: '🧴 Volume / Weight' },
+                    { id: 'lighting', label: '💡 Lights & Decor' },
+                    { id: 'watches', label: '⌚ Watches' },
+                    { id: 'bags', label: '🎒 Bags & Luggage' },
+                    { id: 'apparel', label: '👕 Apparel' },
+                    { id: 'eyewear', label: '🕶️ Eyewear' },
+                    { id: 'gadgets', label: '📱 Gadgets' },
+                    { id: 'volume', label: '🧴 Groceries / Volume' },
                     { id: 'custom', label: '✨ Custom' },
                   ].map(p => (
                     <button
                       key={p.id}
                       type="button"
-                      onClick={() => applyGeneratorPreset(p.id as any)}
+                      onClick={() => applyCategoryPreset(p.id as any)}
                       style={{
                         fontSize: '11px',
-                        fontWeight: 600,
+                        fontWeight: 700,
                         padding: '4px 10px',
                         borderRadius: 'var(--radius-full)',
                         border: genPreset === p.id ? '1px solid var(--color-primary)' : '1px solid var(--color-admin-border)',
@@ -628,57 +746,130 @@ export default function ProductForm({ initialProduct, categories = [] }: Product
                   ))}
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginBottom: '12px' }}>
-                  <div>
-                    <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-admin-text)', display: 'block', marginBottom: '4px' }}>
-                      {genOpt1Name} Options (comma-separated)
-                    </span>
-                    <input
-                      type="text"
-                      className="admin-input"
-                      value={genOpt1Values}
-                      onChange={e => setGenOpt1Values(e.target.value)}
-                      placeholder="e.g. S, M, L, XL"
-                      style={{ fontSize: '12px' }}
-                    />
+                {/* Dynamic Option Definition Rows */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' }}>
+                  <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-admin-text)' }}>
+                    Define Product Option Dimensions (e.g. Diameter, Stand Type, Dial Size, Material):
                   </div>
+                  {optionDefs.map((def, defIdx) => (
+                    <div
+                      key={defIdx}
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'minmax(140px, 200px) 1fr auto',
+                        gap: '10px',
+                        alignItems: 'center',
+                        background: 'var(--color-admin-surface)',
+                        padding: '10px',
+                        borderRadius: 'var(--radius-md)',
+                        border: '1px solid var(--color-admin-border)',
+                      }}
+                    >
+                      <div>
+                        <span style={{ fontSize: '10px', color: 'var(--color-admin-dim)', display: 'block', marginBottom: '3px' }}>
+                          Option Name
+                        </span>
+                        <input
+                          type="text"
+                          className="admin-input"
+                          value={def.name}
+                          onChange={e => handleUpdateOptionDef(defIdx, 'name', e.target.value)}
+                          placeholder="e.g. Diameter"
+                          style={{ fontSize: '12px' }}
+                        />
+                      </div>
 
-                  <div>
-                    <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-admin-text)', display: 'block', marginBottom: '4px' }}>
-                      {genOpt2Name} Options (comma-separated)
-                    </span>
-                    <input
-                      type="text"
-                      className="admin-input"
-                      value={genOpt2Values}
-                      onChange={e => setGenOpt2Values(e.target.value)}
-                      placeholder="e.g. Black, White, Navy"
-                      style={{ fontSize: '12px' }}
-                    />
-                  </div>
+                      <div>
+                        <span style={{ fontSize: '10px', color: 'var(--color-admin-dim)', display: 'block', marginBottom: '3px' }}>
+                          Values (comma-separated list)
+                        </span>
+                        <input
+                          type="text"
+                          className="admin-input"
+                          value={def.values}
+                          onChange={e => handleUpdateOptionDef(defIdx, 'values', e.target.value)}
+                          placeholder="e.g. 6 inch, 8 inch, 10 inch"
+                          style={{ fontSize: '12px' }}
+                        />
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveOptionDef(defIdx)}
+                        style={{
+                          color: 'var(--color-danger)',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          padding: '6px',
+                          alignSelf: 'center',
+                        }}
+                        title="Remove dimension"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  ))}
+
+                  {optionDefs.length < 3 && (
+                    <button
+                      type="button"
+                      onClick={handleAddOptionDef}
+                      style={{
+                        background: 'none',
+                        border: '1px dashed var(--color-primary)',
+                        color: 'var(--color-primary)',
+                        padding: '8px',
+                        borderRadius: 'var(--radius-md)',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                      }}
+                    >
+                      <Plus size={14} />
+                      <span>Add Another Option Dimension (e.g. Material / Light Color)</span>
+                    </button>
+                  )}
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '10px', marginBottom: '14px' }}>
+                {/* Default Pricing Inputs for Bulk Generation */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '10px', marginBottom: '16px' }}>
                   <div>
-                    <span style={{ fontSize: '11px', color: 'var(--color-admin-dim)' }}>Default Selling Price (৳)</span>
+                    <span style={{ fontSize: '11px', color: 'var(--color-admin-dim)' }}>Default Regular Price (৳)</span>
+                    <input
+                      type="number"
+                      className="admin-input"
+                      value={genDefaultReg}
+                      onChange={e => setGenDefaultReg(e.target.value)}
+                      placeholder={String(basePrice || '500')}
+                      style={{ fontSize: '12px' }}
+                    />
+                  </div>
+
+                  <div>
+                    <span style={{ fontSize: '11px', color: 'var(--color-admin-dim)' }}>Default Sale Price (৳)</span>
                     <input
                       type="number"
                       className="admin-input"
                       value={genDefaultSell}
                       onChange={e => setGenDefaultSell(e.target.value)}
-                      placeholder={String(salePrice || basePrice || '0')}
+                      placeholder={String(salePrice || basePrice || '450')}
                       style={{ fontSize: '12px' }}
                     />
                   </div>
 
                   <div>
-                    <span style={{ fontSize: '11px', color: 'var(--color-admin-dim)' }}>Default Buying/Cost Price (৳)</span>
+                    <span style={{ fontSize: '11px', color: 'var(--color-admin-dim)' }}>Default Buying Cost (৳)</span>
                     <input
                       type="number"
                       className="admin-input"
                       value={genDefaultCost}
                       onChange={e => setGenDefaultCost(e.target.value)}
-                      placeholder={String(costPrice || '0')}
+                      placeholder={String(costPrice || '300')}
                       style={{ fontSize: '12px' }}
                     />
                   </div>
@@ -700,9 +891,9 @@ export default function ProductForm({ initialProduct, categories = [] }: Product
                   type="button"
                   onClick={handleGenerateCombinations}
                   className="btn btn-primary btn-sm"
-                  style={{ width: '100%', padding: '8px', fontWeight: 700, fontSize: '12px' }}
+                  style={{ width: '100%', padding: '10px', fontWeight: 800, fontSize: '13px' }}
                 >
-                  ⚡ Generate All Combinations
+                  ⚡ Generate All Permutations Matrix
                 </button>
               </div>
             )}
@@ -722,8 +913,8 @@ export default function ProductForm({ initialProduct, categories = [] }: Product
                 <strong style={{ fontSize: '14px', color: 'var(--color-admin-text)', display: 'block' }}>
                   No Variants Configured
                 </strong>
-                <p style={{ fontSize: '12px', color: 'var(--color-admin-muted)', marginTop: '4px', maxWidth: '400px', margin: '4px auto 14px' }}>
-                  This product currently sells as a single standard unit. Click <strong>Bulk Generator</strong> or <strong>Add Single Variant</strong> to configure sizes, colors, storage capacities, and individual pricing.
+                <p style={{ fontSize: '12px', color: 'var(--color-admin-muted)', marginTop: '4px', maxWidth: '420px', margin: '4px auto 14px' }}>
+                  This product currently sells as a single standard unit. Click <strong>Bulk Generator</strong> or <strong>Add Single Variant</strong> to configure dynamic sizes, stands, colors, and individual matrix pricing.
                 </p>
                 <button
                   type="button"
@@ -732,14 +923,14 @@ export default function ProductForm({ initialProduct, categories = [] }: Product
                   style={{ background: 'var(--color-admin-surface)', color: 'var(--color-admin-text)', borderColor: 'var(--color-admin-border)' }}
                 >
                   <Sparkles size={14} />
-                  <span>Open Combination Generator</span>
+                  <span>Open Option Permutations Generator</span>
                 </button>
               </div>
             ) : (
               /* Variants Matrix List */
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: 'var(--color-admin-muted)', padding: '0 4px' }}>
-                  <span>Configured Variants: <strong>{variants.length}</strong></span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: 'var(--color-admin-muted)', padding: '0 4px', flexWrap: 'wrap', gap: '8px' }}>
+                  <span>Configured SKUs / Combinations: <strong>{variants.length}</strong></span>
                   <button
                     type="button"
                     onClick={handleAutoSyncStock}
@@ -763,9 +954,12 @@ export default function ProductForm({ initialProduct, categories = [] }: Product
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   {variants.map((v, idx) => {
                     const effectiveBase = Number(salePrice || basePrice || 0);
-                    const sellVal = v.selling_price !== '' ? Number(v.selling_price) : effectiveBase;
+                    const sellVal = v.sale_price !== '' ? Number(v.sale_price) : effectiveBase;
                     const costVal = Number(v.cost_price) || 0;
                     const metrics = calculateProfitMetrics(sellVal, costVal);
+
+                    const opt1Label = optionDefs[0]?.name || 'Option 1';
+                    const opt2Label = optionDefs[1]?.name || 'Option 2';
 
                     return (
                       <div
@@ -776,19 +970,19 @@ export default function ProductForm({ initialProduct, categories = [] }: Product
                           borderRadius: 'var(--radius-lg)',
                           padding: '12px 14px',
                           display: 'grid',
-                          gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr)) auto',
+                          gridTemplateColumns: 'repeat(auto-fit, minmax(105px, 1fr)) auto',
                           gap: '10px',
                           alignItems: 'center',
                         }}
                       >
-                        {/* Option 1: Size / Storage / Volume */}
+                        {/* Option 1: Diameter / Size / etc. */}
                         <div>
                           <span style={{ fontSize: '10px', color: 'var(--color-admin-dim)', display: 'block', marginBottom: '3px' }}>
-                            Size / Storage / Opt 1
+                            {opt1Label}
                           </span>
                           <input
                             type="text"
-                            placeholder="M / 128GB / 50ml"
+                            placeholder="e.g. 6 inch"
                             className="admin-input"
                             value={v.size}
                             onChange={e => handleVariantChange(idx, 'size', e.target.value)}
@@ -796,14 +990,14 @@ export default function ProductForm({ initialProduct, categories = [] }: Product
                           />
                         </div>
 
-                        {/* Option 2: Color */}
+                        {/* Option 2: Stand / Color / etc. */}
                         <div>
                           <span style={{ fontSize: '10px', color: 'var(--color-admin-dim)', display: 'block', marginBottom: '3px' }}>
-                            Color / Opt 2
+                            {opt2Label}
                           </span>
                           <input
                             type="text"
-                            placeholder="Black / Silver"
+                            placeholder="e.g. Wooden Stand"
                             className="admin-input"
                             value={v.color}
                             onChange={e => handleVariantChange(idx, 'color', e.target.value)}
@@ -811,14 +1005,14 @@ export default function ProductForm({ initialProduct, categories = [] }: Product
                           />
                         </div>
 
-                        {/* SKU */}
+                        {/* Variant SKU */}
                         <div>
                           <span style={{ fontSize: '10px', color: 'var(--color-admin-dim)', display: 'block', marginBottom: '3px' }}>
-                            Variant SKU
+                            SKU Code
                           </span>
                           <input
                             type="text"
-                            placeholder="PROD-M-BLK"
+                            placeholder="MLAMP-6IN-WOOD"
                             className="admin-input"
                             value={v.sku}
                             onChange={e => handleVariantChange(idx, 'sku', e.target.value)}
@@ -826,14 +1020,14 @@ export default function ProductForm({ initialProduct, categories = [] }: Product
                           />
                         </div>
 
-                        {/* Buying Price / Costing (৳) */}
+                        {/* Buying Cost (COGS) */}
                         <div>
                           <span style={{ fontSize: '10px', color: '#3b82f6', fontWeight: 700, display: 'block', marginBottom: '3px' }}>
-                            Buying Price / Cost (৳)
+                            Buying Cost (৳)
                           </span>
                           <input
                             type="number"
-                            placeholder="Buying cost"
+                            placeholder="COGS"
                             className="admin-input"
                             value={v.cost_price}
                             onChange={e => handleVariantChange(idx, 'cost_price', e.target.value)}
@@ -842,26 +1036,59 @@ export default function ProductForm({ initialProduct, categories = [] }: Product
                           />
                         </div>
 
-                        {/* Selling Price (৳) */}
+                        {/* Regular Price (MSRP) */}
                         <div>
-                          <span style={{ fontSize: '10px', color: 'var(--color-primary-light)', fontWeight: 700, display: 'block', marginBottom: '3px' }}>
-                            Selling Price (৳)
+                          <span style={{ fontSize: '10px', color: 'var(--color-admin-dim)', fontWeight: 700, display: 'block', marginBottom: '3px' }}>
+                            Regular Price (৳)
                           </span>
                           <input
                             type="number"
-                            placeholder={String(effectiveBase || 'Retail price')}
+                            placeholder={String(basePrice || '500')}
                             className="admin-input"
-                            value={v.selling_price}
-                            onChange={e => handleVariantChange(idx, 'selling_price', e.target.value)}
+                            value={v.regular_price}
+                            onChange={e => handleVariantChange(idx, 'regular_price', e.target.value)}
                             style={{ fontSize: '12px', padding: '6px 8px' }}
                             min="0"
                           />
                         </div>
 
+                        {/* Sale Price (Customer Checkout) */}
+                        <div>
+                          <span style={{ fontSize: '10px', color: 'var(--color-primary-light)', fontWeight: 700, display: 'block', marginBottom: '3px' }}>
+                            Sale Price (৳)
+                          </span>
+                          <input
+                            type="number"
+                            placeholder={String(effectiveBase || '450')}
+                            className="admin-input"
+                            value={v.sale_price}
+                            onChange={e => handleVariantChange(idx, 'sale_price', e.target.value)}
+                            style={{ fontSize: '12px', padding: '6px 8px' }}
+                            min="0"
+                          />
+                        </div>
+
+                        {/* Discount % with bidirectional calculation */}
+                        <div style={{ maxWidth: '70px' }}>
+                          <span style={{ fontSize: '10px', color: 'var(--color-admin-dim)', display: 'block', marginBottom: '3px' }}>
+                            Discount %
+                          </span>
+                          <input
+                            type="number"
+                            placeholder="0%"
+                            className="admin-input"
+                            value={v.discount_percent}
+                            onChange={e => handleVariantChange(idx, 'discount_percent', e.target.value)}
+                            style={{ fontSize: '12px', padding: '6px 6px', textAlign: 'center' }}
+                            min="0"
+                            max="99"
+                          />
+                        </div>
+
                         {/* Live Profit Margin Badge */}
-                        <div style={{ textAlign: 'center', minWidth: '90px' }}>
+                        <div style={{ textAlign: 'center', minWidth: '95px' }}>
                           <span style={{ fontSize: '10px', color: 'var(--color-admin-dim)', display: 'block', marginBottom: '4px' }}>
-                            Margin / Profit
+                            Unit Profit
                           </span>
                           {costVal > 0 && sellVal > 0 ? (
                             <span
@@ -886,7 +1113,7 @@ export default function ProductForm({ initialProduct, categories = [] }: Product
                         </div>
 
                         {/* Stock Quantity */}
-                        <div style={{ maxWidth: '85px' }}>
+                        <div style={{ maxWidth: '80px' }}>
                           <span style={{ fontSize: '10px', color: 'var(--color-admin-dim)', display: 'block', marginBottom: '3px' }}>
                             Stock
                           </span>

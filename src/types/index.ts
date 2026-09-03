@@ -82,7 +82,9 @@ export interface ProductVariant {
   stock_quantity: number;
   images: string[];
   cost_price?: number | null;
+  regular_price?: number | null;
   selling_price?: number | null;
+  discount_percent?: number | null;
 }
 
 export interface Product {
@@ -123,6 +125,14 @@ export interface Product {
   reviews?: ProductReview[];
   avg_rating?: number;
   review_count?: number;
+  // Computed variant range metrics
+  min_price?: number;
+  max_price?: number;
+  min_regular_price?: number;
+  max_regular_price?: number;
+  has_price_range?: boolean;
+  max_discount_percent?: number;
+  variant_count?: number;
 }
 
 export interface ProductReview {

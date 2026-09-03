@@ -3,7 +3,7 @@ import { BaseRepository } from './BaseRepository';
 import type { Product, ProductFilter, PaginatedResult } from '@/types';
 
 /**
- * Attaches real, computed review metrics and clean sold count from the database
+ * Attaches real, computed review metrics, clean sold count, and variant price ranges from the database
  */
 export function attachProductMetrics(p: any): Product {
   if (!p) return p;
@@ -18,12 +18,97 @@ export function attachProductMetrics(p: any): Product {
     ? Number((validRatings.reduce((sum: number, r: number) => sum + r, 0) / reviewCount).toFixed(1))
     : 0;
 
+  // Variant pricing matrix calculations
+  const rawVariants = Array.isArray(p.variants) ? p.variants : [];
+  const baseEff = Number(p.sale_price ?? p.base_price ?? 0);
+  const baseReg = Number(p.base_price ?? 0);
+
+  let minPrice = baseEff;
+  let maxPrice = baseEff;
+  let minRegularPrice = baseReg;
+  let maxRegularPrice = baseReg;
+  let maxDiscountPercent = p.sale_price && p.sale_price < p.base_price && baseReg > 0
+    ? Math.round(((baseReg - p.sale_price) / baseReg) * 100)
+    : 0;
+
+  const enrichedVariants = rawVariants.map((v: any) => {
+    const cleanSku = (v.sku || '').trim().toLowerCase();
+    let vSale = baseEff + (Number(v.price_modifier) || 0);
+    let vReg = baseReg + (Number(v.price_modifier) || 0);
+    let vCost = 0;
+
+    if (Array.isArray(p.tags) && cleanSku) {
+      const costTag = p.tags.find((t: string) => t.toLowerCase().startsWith(`vcost:${cleanSku}:`));
+      if (costTag) {
+        const c = parseFloat(costTag.split(':')[2]);
+        if (!isNaN(c) && c > 0) vCost = c;
+      }
+
+      const saleTag = p.tags.find((t: string) => t.toLowerCase().startsWith(`vsale:${cleanSku}:`));
+      if (saleTag) {
+        const s = parseFloat(saleTag.split(':')[2]);
+        if (!isNaN(s) && s > 0) vSale = s;
+      }
+
+      const regTag = p.tags.find((t: string) => t.toLowerCase().startsWith(`vreg:${cleanSku}:`));
+      if (regTag) {
+        const r = parseFloat(regTag.split(':')[2]);
+        if (!isNaN(r) && r > 0) vReg = r;
+      }
+    }
+
+    const hasDiscount = vReg > vSale && vSale > 0;
+    const discPct = hasDiscount ? Math.round(((vReg - vSale) / vReg) * 100) : 0;
+
+    return {
+      ...v,
+      cost_price: vCost > 0 ? vCost : null,
+      regular_price: vReg > 0 ? vReg : null,
+      selling_price: vSale > 0 ? vSale : null,
+      discount_percent: discPct > 0 ? discPct : null,
+    };
+  });
+
+  if (enrichedVariants.length > 0) {
+    const prices = enrichedVariants
+      .map((v: any) => Number(v.selling_price || v.regular_price || 0))
+      .filter((price: number) => price > 0);
+    const regularPrices = enrichedVariants
+      .map((v: any) => Number(v.regular_price || v.selling_price || 0))
+      .filter((price: number) => price > 0);
+
+    if (prices.length > 0) {
+      minPrice = Math.min(...prices);
+      maxPrice = Math.max(...prices);
+    }
+    if (regularPrices.length > 0) {
+      minRegularPrice = Math.min(...regularPrices);
+      maxRegularPrice = Math.max(...regularPrices);
+    }
+
+    enrichedVariants.forEach((v: any) => {
+      if (v.discount_percent && v.discount_percent > maxDiscountPercent) {
+        maxDiscountPercent = v.discount_percent;
+      }
+    });
+  }
+
+  const hasPriceRange = minPrice !== maxPrice && enrichedVariants.length > 0;
+
   return {
     ...p,
     total_sold: typeof p.total_sold === 'number' ? p.total_sold : Number(p.total_sold) || 0,
     avg_rating: avgRating,
     review_count: reviewCount,
     reviews: rawReviews,
+    variants: enrichedVariants,
+    min_price: minPrice,
+    max_price: maxPrice,
+    min_regular_price: minRegularPrice,
+    max_regular_price: maxRegularPrice,
+    has_price_range: hasPriceRange,
+    max_discount_percent: maxDiscountPercent,
+    variant_count: enrichedVariants.length,
   };
 }
 
@@ -57,7 +142,7 @@ export class ProductRepository extends BaseRepository<Product> {
 
     let query = this.supabase
       .from('products')
-      .select('*, category:categories(id, name_en, name_bn, slug), reviews:product_reviews(rating)', { count: 'exact' })
+      .select('*, category:categories(id, name_en, name_bn, slug), variants:product_variants(*), reviews:product_reviews(rating)', { count: 'exact' })
       .eq('is_active', true)
       .range(from, to);
 
@@ -91,7 +176,7 @@ export class ProductRepository extends BaseRepository<Product> {
   async findFeatured(limit = 8): Promise<Product[]> {
     const { data } = await this.supabase
       .from('products')
-      .select('*, category:categories(id, name_en, name_bn, slug), reviews:product_reviews(rating)')
+      .select('*, category:categories(id, name_en, name_bn, slug), variants:product_variants(*), reviews:product_reviews(rating)')
       .eq('is_active', true)
       .eq('is_featured', true)
       .order('display_order', { ascending: true })
@@ -103,7 +188,7 @@ export class ProductRepository extends BaseRepository<Product> {
   async findFlashSale(): Promise<Product[]> {
     const { data } = await this.supabase
       .from('products')
-      .select('*, category:categories(id, name_en, name_bn, slug), reviews:product_reviews(rating)')
+      .select('*, category:categories(id, name_en, name_bn, slug), variants:product_variants(*), reviews:product_reviews(rating)')
       .eq('is_active', true)
       .eq('is_flash_sale', true)
       .order('display_order', { ascending: true });
@@ -114,7 +199,7 @@ export class ProductRepository extends BaseRepository<Product> {
   async findRelated(productId: string, categoryId: string | null, limit = 6): Promise<Product[]> {
     let query = this.supabase
       .from('products')
-      .select('*, category:categories(id, name_en, name_bn, slug), reviews:product_reviews(rating)')
+      .select('*, category:categories(id, name_en, name_bn, slug), variants:product_variants(*), reviews:product_reviews(rating)')
       .eq('is_active', true)
       .neq('id', productId)
       .order('total_sold', { ascending: false })

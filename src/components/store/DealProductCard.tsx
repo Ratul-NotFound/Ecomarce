@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { ShoppingBag, Zap, Flame, Check, Star } from 'lucide-react';
+import { ShoppingBag, Zap, Flame, Check, Star, Layers } from 'lucide-react';
 import type { Product } from '@/types';
 import { formatCurrency, calcDiscountPercent } from '@/lib/utils/format';
 import { getOptimizedImageUrl } from '@/lib/utils/images';
@@ -30,6 +30,14 @@ export default function DealProductCard({ product }: DealProductCardProps) {
   const savingsAmount = product.sale_price
     ? product.base_price - product.sale_price!
     : Math.round(product.base_price * (discountPercent / 100));
+
+  const hasVariants = Boolean(product.has_variants || (product.variants && product.variants.length > 0));
+  const hasPriceRange = Boolean(product.has_price_range);
+  const minPrice = product.min_price ?? effectivePrice;
+  const maxPrice = product.max_price ?? effectivePrice;
+  const minReg = product.min_regular_price ?? product.base_price;
+  const maxReg = product.max_regular_price ?? product.base_price;
+  const maxDisc = product.max_discount_percent ?? discountPercent;
 
   // 1. Exact Rating strictly synced from actual database reviews
   const reviews = Array.isArray(product.reviews) ? product.reviews : [];
@@ -58,6 +66,10 @@ export default function DealProductCard({ product }: DealProductCardProps) {
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (hasVariants) {
+      router.push(`/products/${product.slug}`);
+      return;
+    }
     add(product, null, 1);
     setAddedAnim(true);
     showToast(`Added "${product.name_en}" to cart!`, 'success');
@@ -67,6 +79,10 @@ export default function DealProductCard({ product }: DealProductCardProps) {
   const handleBuyNow = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (hasVariants) {
+      router.push(`/products/${product.slug}`);
+      return;
+    }
     add(product, null, 1);
     router.push('/checkout');
   };
@@ -86,7 +102,7 @@ export default function DealProductCard({ product }: DealProductCardProps) {
           {/* Deal Discount Flame Badge */}
           <div className="deal-card__badge">
             <Flame size={12} fill="#ffffff" color="#ffffff" />
-            <span>-{discountPercent}% OFF</span>
+            <span>{hasPriceRange ? `Up to ${maxDisc}% OFF` : `-${discountPercent}% OFF`}</span>
           </div>
 
           {/* Savings Pill */}
@@ -146,12 +162,26 @@ export default function DealProductCard({ product }: DealProductCardProps) {
         </Link>
 
         {/* Pricing */}
-        <div className="deal-card__price-row">
-          <span className="deal-card__price">{formatCurrency(effectivePrice)}</span>
-          {(hasDiscount || product.base_price > effectivePrice) && (
-            <span className="deal-card__original-price">
-              {formatCurrency(product.base_price)}
-            </span>
+        <div className="deal-card__price-row" style={{ flexWrap: 'wrap', gap: '4px' }}>
+          <span className="deal-card__price">
+            {hasPriceRange
+              ? `${formatCurrency(minPrice)} – ${formatCurrency(maxPrice)}`
+              : formatCurrency(effectivePrice)}
+          </span>
+          {hasPriceRange ? (
+            minReg > minPrice && (
+              <span className="deal-card__original-price">
+                {minReg === maxReg
+                  ? formatCurrency(minReg)
+                  : `${formatCurrency(minReg)} – ${formatCurrency(maxReg)}`}
+              </span>
+            )
+          ) : (
+            (hasDiscount || product.base_price > effectivePrice) && (
+              <span className="deal-card__original-price">
+                {formatCurrency(product.base_price)}
+              </span>
+            )
           )}
         </div>
 
@@ -175,20 +205,26 @@ export default function DealProductCard({ product }: DealProductCardProps) {
             type="button"
             onClick={handleAddToCart}
             className="deal-card__btn deal-card__btn--cart"
-            title="Add to Cart"
+            title={hasVariants ? 'Choose Options' : 'Add to Cart'}
           >
-            {addedAnim ? <Check size={14} color="var(--color-success)" /> : <ShoppingBag size={14} />}
-            <span>Cart</span>
+            {addedAnim ? (
+              <Check size={14} color="var(--color-success)" />
+            ) : hasVariants ? (
+              <Layers size={14} />
+            ) : (
+              <ShoppingBag size={14} />
+            )}
+            <span>{hasVariants ? 'Options' : 'Cart'}</span>
           </button>
 
           <button
             type="button"
             onClick={handleBuyNow}
             className="deal-card__btn deal-card__btn--buy"
-            title="Claim Deal Now"
+            title="Buy Now"
           >
-            <Zap size={14} fill="#ffffff" />
-            <span>Claim Deal</span>
+            <Zap size={14} fill="currentColor" />
+            <span>{hasVariants ? 'Options' : 'Buy Now'}</span>
           </button>
         </div>
       </div>

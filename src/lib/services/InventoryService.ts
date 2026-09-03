@@ -35,6 +35,23 @@ export class InventoryService {
         .update({ stock_quantity: after })
         .eq('id', variantId);
 
+      // Synchronize parent product stock with sum of all variants
+      try {
+        const { data: allVariants } = await this.supabase
+          .from('product_variants')
+          .select('stock_quantity')
+          .eq('product_id', productId);
+        if (allVariants) {
+          const totalStock = allVariants.reduce((sum, v) => sum + (v.stock_quantity || 0), 0);
+          await this.supabase
+            .from('products')
+            .update({ stock_quantity: totalStock })
+            .eq('id', productId);
+        }
+      } catch (err) {
+        console.warn('Failed to sync parent product stock with variants:', err);
+      }
+
       await this.supabase.from('inventory_logs').insert({
         product_id: productId,
         variant_id: variantId,

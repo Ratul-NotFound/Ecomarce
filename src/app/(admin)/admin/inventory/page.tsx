@@ -3,7 +3,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { formatCurrency } from '@/lib/utils/format';
-import { getProductCostPrice, calculateProfitMetrics, syncCostToTags, calculateDiscountPrice, calculateDiscountPercent } from '@/lib/utils/pricing';
+import {
+  getProductCostPrice,
+  calculateProfitMetrics,
+  syncCostToTags,
+  calculateDiscountPrice,
+  calculateDiscountPercent,
+  getVariantPricing,
+} from '@/lib/utils/pricing';
 import { useToast } from '@/components/shared/ToastProvider';
 import { createClient } from '@/lib/supabase/client';
 import {
@@ -22,6 +29,9 @@ import {
   X,
   Percent,
   Tag,
+  ChevronDown,
+  ChevronUp,
+  Layers,
 } from 'lucide-react';
 import type { Product } from '@/types';
 
@@ -32,6 +42,7 @@ export default function AdminInventoryPage() {
   const [search, setSearch] = useState('');
   const [editingCostId, setEditingCostId] = useState<string | null>(null);
   const [editingCostVal, setEditingCostVal] = useState<number | string>('');
+  const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
 
   // Pricing & Discount Calculator state
   const [calcBasePrice, setCalcBasePrice] = useState<number | string>(1500);
@@ -78,7 +89,7 @@ export default function AdminInventoryPage() {
     const supabase = createClient();
     const { data } = await supabase
       .from('products')
-      .select('*')
+      .select('*, variants:product_variants(*)')
       .order('stock_quantity', { ascending: true });
     if (data) setProducts(data as Product[]);
     setLoading(false);
@@ -88,21 +99,36 @@ export default function AdminInventoryPage() {
     loadProducts();
   }, []);
 
-  // Financial intelligence aggregations
+  // Financial intelligence aggregations with deep variant matrix support
   const financials = useMemo(() => {
     let totalCostInvestment = 0;
     let totalRetailValue = 0;
     let lowStockCount = 0;
 
     products.forEach(p => {
-      const unitCost = getProductCostPrice(p);
-      const unitSell = p.sale_price ?? p.base_price ?? 0;
-      const stock = p.stock_quantity || 0;
+      const vars = p.variants || [];
+      if (vars.length > 0) {
+        vars.forEach(v => {
+          const vPricing = getVariantPricing(p.tags || [], v.sku, {
+            cost: getProductCostPrice(p),
+            regular: p.base_price,
+            sale: p.sale_price ?? p.base_price,
+            priceModifier: Number(v.price_modifier) || 0,
+          });
+          const vStock = v.stock_quantity || 0;
+          totalCostInvestment += vPricing.costPrice * vStock;
+          totalRetailValue += vPricing.salePrice * vStock;
+        });
+      } else {
+        const unitCost = getProductCostPrice(p);
+        const unitSell = p.sale_price ?? p.base_price ?? 0;
+        const stock = p.stock_quantity || 0;
 
-      totalCostInvestment += unitCost * stock;
-      totalRetailValue += unitSell * stock;
+        totalCostInvestment += unitCost * stock;
+        totalRetailValue += unitSell * stock;
+      }
 
-      if (stock <= p.low_stock_threshold) {
+      if ((p.stock_quantity || 0) <= p.low_stock_threshold) {
         lowStockCount++;
       }
     });
@@ -120,13 +146,19 @@ export default function AdminInventoryPage() {
     };
   }, [products]);
 
-  const handleAdjustStock = async (productId: string, delta: number, changeType: string) => {
+  const handleAdjustStock = async (
+    productId: string,
+    delta: number,
+    changeType: string,
+    variantId?: string
+  ) => {
     try {
       const res = await fetch('/api/admin/inventory', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           productId,
+          variantId,
           delta,
           changeType,
           notes: delta > 0 ? 'Admin Manual Restock' : 'Admin Stock Correction',
@@ -457,144 +489,273 @@ export default function AdminInventoryPage() {
                   const isEditingCost = editingCostId === product.id;
 
                   return (
-                    <tr key={product.id}>
-                      <td>
-                        <strong style={{ color: 'var(--color-admin-text)' }}>{product.name_en}</strong>
-                      </td>
-                      <td>
-                        <code style={{ fontSize: '12px', color: 'var(--color-admin-muted)' }}>{product.sku}</code>
-                      </td>
-
-                      {/* Buying Price / Costing Cell with 1-Click Inline Edit */}
-                      <td>
-                        {isEditingCost ? (
-                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                            <input
-                              type="number"
-                              className="admin-input"
-                              value={editingCostVal}
-                              onChange={e => setEditingCostVal(e.target.value)}
-                              placeholder="৳ Cost"
-                              autoFocus
-                              style={{ width: '90px', height: '30px', fontSize: '12px', padding: '2px 8px' }}
-                            />
-                            <button
-                              type="button"
-                              onClick={() => handleSaveCostPrice(product)}
-                              className="btn btn-primary btn-sm"
-                              style={{ padding: '4px 6px', height: '30px' }}
-                              title="Save Buying Price"
-                            >
-                              <Check size={14} />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setEditingCostId(null)}
-                              className="btn btn-secondary btn-sm"
-                              style={{ padding: '4px 6px', height: '30px' }}
-                              title="Cancel"
-                            >
-                              <X size={14} />
-                            </button>
-                          </div>
-                        ) : (
-                          <div
-                            onClick={() => {
-                              setEditingCostId(product.id);
-                              setEditingCostVal(unitCost || '');
-                            }}
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '6px',
-                              cursor: 'pointer',
-                              padding: '3px 8px',
-                              borderRadius: 'var(--radius-md)',
-                              border: '1px dashed var(--color-admin-border)',
-                              background: unitCost > 0 ? '#ffffff' : 'rgba(234, 179, 8, 0.08)',
-                            }}
-                            title="Click to change buying price"
-                          >
-                            <span style={{ fontWeight: 800, fontSize: '13px', color: unitCost > 0 ? 'var(--color-admin-text)' : 'var(--color-warning)' }}>
-                              {unitCost > 0 ? formatCurrency(unitCost) : 'Set Cost ৳'}
-                            </span>
-                            <Edit2 size={11} color="var(--color-admin-muted)" />
-                          </div>
-                        )}
-                      </td>
-
-                      {/* Selling Price */}
-                      <td style={{ fontWeight: 700, color: 'var(--color-primary)' }}>
-                        {formatCurrency(unitSell)}
-                      </td>
-
-                      {/* Profit & Margin */}
-                      <td>
-                        {unitCost > 0 ? (
-                          <div>
-                            <strong style={{ fontSize: '13px', color: metrics.isProfitable ? 'var(--color-success)' : 'var(--color-danger)' }}>
-                              {formatCurrency(metrics.netProfit)}
-                            </strong>
-                            <div style={{ fontSize: '11px', color: 'var(--color-admin-muted)', fontWeight: 600 }}>
-                              {metrics.marginPercent}% margin
+                    <React.Fragment key={product.id}>
+                      <tr>
+                        <td>
+                          <strong style={{ color: 'var(--color-admin-text)' }}>{product.name_en}</strong>
+                          {product.variants && product.variants.length > 0 && (
+                            <div style={{ marginTop: '4px' }}>
+                              <button
+                                type="button"
+                                onClick={() => setExpandedIds(prev => ({ ...prev, [product.id]: !prev[product.id] }))}
+                                style={{
+                                  background: 'rgba(59, 130, 246, 0.08)',
+                                  border: '1px solid rgba(59, 130, 246, 0.25)',
+                                  color: 'var(--color-primary)',
+                                  borderRadius: '4px',
+                                  padding: '2px 8px',
+                                  fontSize: '11px',
+                                  fontWeight: 700,
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                }}
+                              >
+                                {expandedIds[product.id] ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                                <span>{product.variants.length} Variants ({expandedIds[product.id] ? 'Hide' : 'Manage SKUs'})</span>
+                              </button>
                             </div>
+                          )}
+                        </td>
+                        <td>
+                          <code style={{ fontSize: '12px', color: 'var(--color-admin-muted)' }}>{product.sku}</code>
+                        </td>
+
+                        {/* Buying Price / Costing Cell with 1-Click Inline Edit */}
+                        <td>
+                          {isEditingCost ? (
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                              <input
+                                type="number"
+                                className="admin-input"
+                                value={editingCostVal}
+                                onChange={e => setEditingCostVal(e.target.value)}
+                                placeholder="৳ Cost"
+                                autoFocus
+                                style={{ width: '90px', height: '30px', fontSize: '12px', padding: '2px 8px' }}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleSaveCostPrice(product)}
+                                className="btn btn-primary btn-sm"
+                                style={{ padding: '4px 6px', height: '30px' }}
+                                title="Save Buying Price"
+                              >
+                                <Check size={14} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setEditingCostId(null)}
+                                className="btn btn-secondary btn-sm"
+                                style={{ padding: '4px 6px', height: '30px' }}
+                                title="Cancel"
+                              >
+                                <X size={14} />
+                              </button>
+                            </div>
+                          ) : (
+                            <div
+                              onClick={() => {
+                                setEditingCostId(product.id);
+                                setEditingCostVal(unitCost || '');
+                              }}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                cursor: 'pointer',
+                                padding: '3px 8px',
+                                borderRadius: 'var(--radius-md)',
+                                border: '1px dashed var(--color-admin-border)',
+                                background: unitCost > 0 ? '#ffffff' : 'rgba(234, 179, 8, 0.08)',
+                              }}
+                              title="Click to change buying price"
+                            >
+                              <span style={{ fontWeight: 800, fontSize: '13px', color: unitCost > 0 ? 'var(--color-admin-text)' : 'var(--color-warning)' }}>
+                                {unitCost > 0 ? formatCurrency(unitCost) : 'Set Cost ৳'}
+                              </span>
+                              <Edit2 size={11} color="var(--color-admin-muted)" />
+                            </div>
+                          )}
+                        </td>
+
+                        {/* Selling Price */}
+                        <td style={{ fontWeight: 700, color: 'var(--color-primary)' }}>
+                          {formatCurrency(unitSell)}
+                        </td>
+
+                        {/* Profit & Margin */}
+                        <td>
+                          {unitCost > 0 ? (
+                            <div>
+                              <strong style={{ fontSize: '13px', color: metrics.isProfitable ? 'var(--color-success)' : 'var(--color-danger)' }}>
+                                {formatCurrency(metrics.netProfit)}
+                              </strong>
+                              <div style={{ fontSize: '11px', color: 'var(--color-admin-muted)', fontWeight: 600 }}>
+                                {metrics.marginPercent}% margin
+                              </div>
+                            </div>
+                          ) : (
+                            <span style={{ fontSize: '11px', color: 'var(--color-admin-muted)' }}>Cost not set</span>
+                          )}
+                        </td>
+
+                        {/* Current Stock */}
+                        <td>
+                          <span style={{ fontWeight: 800, fontSize: '15px', color: isLow ? 'var(--color-danger)' : 'var(--color-success)' }}>
+                            {product.stock_quantity}
+                          </span>
+                          {isLow && (
+                            <span className="badge badge-danger" style={{ marginLeft: '8px' }}>Low Stock</span>
+                          )}
+                        </td>
+
+                        {/* Total Cost Valuation */}
+                        <td>
+                          <strong style={{ color: 'var(--color-admin-text)', fontSize: '13px' }}>
+                            {unitCost > 0 ? formatCurrency(totalCostVal) : '—'}
+                          </strong>
+                        </td>
+
+                        {/* Restock Actions */}
+                        <td style={{ textAlign: 'right' }}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                            <button
+                              type="button"
+                              onClick={() => handleAdjustStock(product.id, -1, 'adjustment')}
+                              disabled={product.stock_quantity <= 0}
+                              className="btn btn-secondary btn-sm"
+                              style={{ background: '#ffffff', color: 'var(--color-admin-text)', borderColor: 'var(--color-admin-border)', padding: '4px 8px' }}
+                              title="Decrease 1"
+                            >
+                              <Minus size={12} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleAdjustStock(product.id, 5, 'restock')}
+                              className="btn btn-secondary btn-sm"
+                              style={{ background: '#ffffff', color: 'var(--color-admin-text)', borderColor: 'var(--color-admin-border)', padding: '4px 8px', fontWeight: 700 }}
+                              title="Restock +5"
+                            >
+                              +5
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleAdjustStock(product.id, 20, 'restock')}
+                              className="btn btn-primary btn-sm"
+                              style={{ padding: '4px 8px', fontWeight: 700 }}
+                              title="Restock +20"
+                            >
+                              +20
+                            </button>
                           </div>
-                        ) : (
-                          <span style={{ fontSize: '11px', color: 'var(--color-admin-muted)' }}>Cost not set</span>
-                        )}
-                      </td>
+                        </td>
+                      </tr>
 
-                      {/* Current Stock */}
-                      <td>
-                        <span style={{ fontWeight: 800, fontSize: '15px', color: isLow ? 'var(--color-danger)' : 'var(--color-success)' }}>
-                          {product.stock_quantity}
-                        </span>
-                        {isLow && (
-                          <span className="badge badge-danger" style={{ marginLeft: '8px' }}>Low Stock</span>
-                        )}
-                      </td>
+                      {/* Expandable Sub-Table for Product Variants */}
+                      {expandedIds[product.id] && product.variants && product.variants.length > 0 && (
+                        <tr key={`${product.id}-variants`}>
+                          <td colSpan={8} style={{ padding: '0 0 16px 20px', background: 'var(--color-admin-surface-2)' }}>
+                            <div style={{ background: '#ffffff', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-admin-border)', padding: '14px' }}>
+                              <div style={{ fontSize: '12px', fontWeight: 800, marginBottom: '10px', color: 'var(--color-admin-text)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <Layers size={14} color="var(--color-primary)" />
+                                <span>Variant Inventory & Financial Breakdown for "{product.name_en}"</span>
+                              </div>
+                              <table style={{ width: '100%', fontSize: '12px', borderCollapse: 'collapse' }}>
+                                <thead>
+                                  <tr style={{ borderBottom: '1px solid var(--color-admin-border)', textAlign: 'left', color: 'var(--color-admin-muted)' }}>
+                                    <th style={{ padding: '6px 8px' }}>Option Combination</th>
+                                    <th style={{ padding: '6px 8px' }}>SKU</th>
+                                    <th style={{ padding: '6px 8px' }}>Buying Cost (COGS)</th>
+                                    <th style={{ padding: '6px 8px' }}>Sale Price</th>
+                                    <th style={{ padding: '6px 8px' }}>Unit Margin</th>
+                                    <th style={{ padding: '6px 8px' }}>Stock</th>
+                                    <th style={{ padding: '6px 8px' }}>Valuation</th>
+                                    <th style={{ padding: '6px 8px', textAlign: 'right' }}>Quick Restock</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {product.variants.map(v => {
+                                    const vPricing = getVariantPricing(product.tags || [], v.sku, {
+                                      cost: unitCost,
+                                      regular: product.base_price,
+                                      sale: product.sale_price ?? product.base_price,
+                                      priceModifier: Number(v.price_modifier) || 0,
+                                    });
+                                    const vStock = v.stock_quantity || 0;
+                                    const vVal = vPricing.costPrice * vStock;
+                                    const vLabel = [v.size, v.color, v.material].filter(Boolean).join(' / ') || v.sku;
+                                    const isVLow = vStock <= 5;
 
-                      {/* Total Cost Valuation */}
-                      <td>
-                        <strong style={{ color: 'var(--color-admin-text)', fontSize: '13px' }}>
-                          {unitCost > 0 ? formatCurrency(totalCostVal) : '—'}
-                        </strong>
-                      </td>
-
-                      {/* Restock Actions */}
-                      <td style={{ textAlign: 'right' }}>
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                          <button
-                            type="button"
-                            onClick={() => handleAdjustStock(product.id, -1, 'adjustment')}
-                            disabled={product.stock_quantity <= 0}
-                            className="btn btn-secondary btn-sm"
-                            style={{ background: '#ffffff', color: 'var(--color-admin-text)', borderColor: 'var(--color-admin-border)', padding: '4px 8px' }}
-                            title="Decrease 1"
-                          >
-                            <Minus size={12} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleAdjustStock(product.id, 5, 'restock')}
-                            className="btn btn-secondary btn-sm"
-                            style={{ background: '#ffffff', color: 'var(--color-admin-text)', borderColor: 'var(--color-admin-border)', padding: '4px 8px', fontWeight: 700 }}
-                            title="Restock +5"
-                          >
-                            +5
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleAdjustStock(product.id, 20, 'restock')}
-                            className="btn btn-primary btn-sm"
-                            style={{ padding: '4px 8px', fontWeight: 700 }}
-                            title="Restock +20"
-                          >
-                            +20
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
+                                    return (
+                                      <tr key={v.id} style={{ borderBottom: '1px solid var(--color-admin-surface-2)' }}>
+                                        <td style={{ padding: '8px', fontWeight: 700, color: 'var(--color-admin-text)' }}>
+                                          {vLabel}
+                                        </td>
+                                        <td style={{ padding: '8px', color: 'var(--color-admin-muted)', fontFamily: 'monospace' }}>
+                                          {v.sku}
+                                        </td>
+                                        <td style={{ padding: '8px', fontWeight: 700, color: '#3b82f6' }}>
+                                          {vPricing.costPrice > 0 ? formatCurrency(vPricing.costPrice) : '—'}
+                                        </td>
+                                        <td style={{ padding: '8px', fontWeight: 700, color: 'var(--color-primary)' }}>
+                                          {formatCurrency(vPricing.salePrice)}
+                                        </td>
+                                        <td style={{ padding: '8px' }}>
+                                          <span style={{ color: vPricing.isProfitable ? '#16a34a' : '#ef4444', fontWeight: 700 }}>
+                                            {formatCurrency(vPricing.netProfit)} ({vPricing.marginPercent}%)
+                                          </span>
+                                        </td>
+                                        <td style={{ padding: '8px' }}>
+                                          <strong style={{ color: isVLow ? '#ef4444' : '#16a34a' }}>{vStock}</strong>
+                                          {isVLow && <span className="badge badge-danger" style={{ marginLeft: '6px', fontSize: '9px' }}>Low</span>}
+                                        </td>
+                                        <td style={{ padding: '8px', fontWeight: 700 }}>
+                                          {formatCurrency(vVal)}
+                                        </td>
+                                        <td style={{ padding: '8px', textAlign: 'right' }}>
+                                          <div style={{ display: 'inline-flex', gap: '4px' }}>
+                                            <button
+                                              type="button"
+                                              onClick={() => handleAdjustStock(product.id, -1, 'adjustment', v.id)}
+                                              disabled={vStock <= 0}
+                                              className="btn btn-secondary btn-sm"
+                                              style={{ padding: '2px 6px', height: '24px' }}
+                                              title="Decrease 1"
+                                            >
+                                              <Minus size={10} />
+                                            </button>
+                                            <button
+                                              type="button"
+                                              onClick={() => handleAdjustStock(product.id, 5, 'restock', v.id)}
+                                              className="btn btn-secondary btn-sm"
+                                              style={{ padding: '2px 6px', height: '24px', fontWeight: 700 }}
+                                              title="Restock +5"
+                                            >
+                                              +5
+                                            </button>
+                                            <button
+                                              type="button"
+                                              onClick={() => handleAdjustStock(product.id, 20, 'restock', v.id)}
+                                              className="btn btn-primary btn-sm"
+                                              style={{ padding: '2px 6px', height: '24px', fontWeight: 700 }}
+                                              title="Restock +20"
+                                            >
+                                              +20
+                                            </button>
+                                          </div>
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   );
                 })}
               </tbody>

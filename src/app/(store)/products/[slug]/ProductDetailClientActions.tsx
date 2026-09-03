@@ -27,21 +27,30 @@ export default function ProductDetailClientActions({ product }: ProductDetailCli
   const [isAdded, setIsAdded] = useState(false);
 
   const baseEffectivePrice = product.sale_price ?? product.base_price;
-  const currentPrice = selectedVariant
-    ? baseEffectivePrice + selectedVariant.price_modifier
+  const currentPrice = selectedVariant?.selling_price != null
+    ? Number(selectedVariant.selling_price)
+    : selectedVariant
+    ? baseEffectivePrice + Number(selectedVariant.price_modifier || 0)
     : baseEffectivePrice;
+
+  const currentRegularPrice = selectedVariant?.regular_price != null
+    ? Number(selectedVariant.regular_price)
+    : selectedVariant
+    ? product.base_price + Number(selectedVariant.price_modifier || 0)
+    : product.base_price;
 
   const effectiveStock = selectedVariant ? selectedVariant.stock_quantity : product.stock_quantity;
   const isOutOfStock = effectiveStock <= 0;
 
-  const hasDiscount = product.sale_price && product.sale_price < product.base_price;
+  const hasDiscount = currentRegularPrice > currentPrice && currentPrice > 0;
   const discountPercent = hasDiscount
-    ? calcDiscountPercent(product.base_price, product.sale_price!)
+    ? calcDiscountPercent(currentRegularPrice, currentPrice)
     : 0;
+  const savingsAmount = hasDiscount ? currentRegularPrice - currentPrice : 0;
 
   const handleAddToCart = () => {
     if (product.has_variants && product.variants && product.variants.length > 0 && !selectedVariant) {
-      showToast('Please choose a variant/size option before adding to cart', 'info');
+      showToast('Please choose your preferred option before adding to cart', 'info');
       return;
     }
     if (isOutOfStock) {
@@ -56,7 +65,7 @@ export default function ProductDetailClientActions({ product }: ProductDetailCli
 
   const handleBuyNow = () => {
     if (product.has_variants && product.variants && product.variants.length > 0 && !selectedVariant) {
-      showToast('Please select your preferred size/variant', 'info');
+      showToast('Please select your preferred option', 'info');
       return;
     }
     if (isOutOfStock) {
@@ -91,17 +100,20 @@ export default function ProductDetailClientActions({ product }: ProductDetailCli
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       {/* Price Box */}
-      <div className="pdp-price-box">
+      <div className="pdp-price-box" style={{ flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
         <span className="pdp-price">{formatCurrency(currentPrice)}</span>
         {hasDiscount && (
           <span className="pdp-original-price">
-            {formatCurrency(
-              product.base_price + (selectedVariant ? selectedVariant.price_modifier : 0)
-            )}
+            {formatCurrency(currentRegularPrice)}
           </span>
         )}
         {hasDiscount && (
           <span className="badge badge-danger">-{discountPercent}% OFF</span>
+        )}
+        {hasDiscount && savingsAmount > 0 && (
+          <span style={{ fontSize: '12px', color: '#16a34a', fontWeight: 700, background: 'rgba(22, 163, 74, 0.1)', padding: '2px 8px', borderRadius: '4px' }}>
+            Save {formatCurrency(savingsAmount)}
+          </span>
         )}
       </div>
 
@@ -111,18 +123,26 @@ export default function ProductDetailClientActions({ product }: ProductDetailCli
           variants={product.variants}
           selectedVariant={selectedVariant}
           onSelectVariant={setSelectedVariant}
+          tags={product.tags}
         />
       )}
 
-      {/* Stock Availability */}
+      {/* Stock Availability with Urgency */}
       <div>
-        {!isOutOfStock ? (
+        {effectiveStock > 5 ? (
           <span className="badge badge-success">
-            In Stock ({effectiveStock} available{selectedVariant ? ' for this option' : ''})
+            ✓ In Stock ({effectiveStock} available{selectedVariant ? ' for this option' : ''})
+          </span>
+        ) : effectiveStock > 0 ? (
+          <span
+            className="badge badge-warning"
+            style={{ background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', fontWeight: 700 }}
+          >
+            ⚠️ Only {effectiveStock} left in stock — order soon!
           </span>
         ) : (
           <span className="badge badge-danger">
-            {selectedVariant ? 'This Option is Currently Out of Stock' : 'Currently Out of Stock'}
+            ✕ {selectedVariant ? 'This Option is Currently Sold Out' : 'Currently Out of Stock'}
           </span>
         )}
       </div>

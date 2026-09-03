@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { Heart, ShoppingBag, Star, Check, Zap } from 'lucide-react';
+import { Heart, ShoppingBag, Star, Check, Zap, Layers } from 'lucide-react';
 import type { Product } from '@/types';
 import { formatCurrency, calcDiscountPercent } from '@/lib/utils/format';
 import { getOptimizedImageUrl } from '@/lib/utils/images';
@@ -52,9 +52,21 @@ export default function ProductCard({ product }: ProductCardProps) {
   const rawImage = product.images && product.images.length > 0 ? product.images[0] : null;
   const imageUrl = getOptimizedImageUrl(rawImage, 'thumb');
 
+  const hasVariants = Boolean(product.has_variants || (product.variants && product.variants.length > 0));
+  const hasPriceRange = Boolean(product.has_price_range);
+  const minPrice = product.min_price ?? effectivePrice;
+  const maxPrice = product.max_price ?? effectivePrice;
+  const minReg = product.min_regular_price ?? product.base_price;
+  const maxReg = product.max_regular_price ?? product.base_price;
+  const maxDisc = product.max_discount_percent ?? discountPercent;
+
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (hasVariants) {
+      router.push(`/products/${product.slug}`);
+      return;
+    }
     add(product, null, 1);
     setAddedAnim(true);
     showToast(`Added "${product.name_en}" to cart!`, 'success');
@@ -64,6 +76,10 @@ export default function ProductCard({ product }: ProductCardProps) {
   const handleBuyNow = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (hasVariants) {
+      router.push(`/products/${product.slug}`);
+      return;
+    }
     add(product, null, 1);
     router.push('/checkout');
   };
@@ -110,13 +126,29 @@ export default function ProductCard({ product }: ProductCardProps) {
           loading="lazy"
         />
 
-        {/* Badges Container */}
-        <div className="product-card__badge-container">
+        {/* Badges */}
+        <div className="product-card__badges">
           {product.is_flash_sale && (
-            <span className="badge badge-danger">⚡ Flash Sale</span>
+            <span className="badge badge-danger">Flash</span>
           )}
-          {hasDiscount && (
-            <span className="badge badge-warning">-{discountPercent}% OFF</span>
+          {maxDisc > 0 && (
+            <span className="badge badge-warning">
+              {hasPriceRange ? `Up to ${maxDisc}% OFF` : `-${maxDisc}%`}
+            </span>
+          )}
+          {hasVariants && (
+            <span
+              className="badge"
+              style={{
+                background: 'rgba(59, 130, 246, 0.9)',
+                color: '#ffffff',
+                backdropFilter: 'blur(4px)',
+                fontSize: '10px',
+                fontWeight: 700,
+              }}
+            >
+              {product.variant_count || product.variants?.length} Options
+            </span>
           )}
         </div>
 
@@ -125,7 +157,7 @@ export default function ProductCard({ product }: ProductCardProps) {
           type="button"
           onClick={handleToggleWishlist}
           className={`product-card__wishlist-btn ${isWishlisted ? 'product-card__wishlist-btn--active' : ''}`}
-          aria-label="Add to Wishlist"
+          aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
         >
           <Heart size={16} fill={isWishlisted ? 'currentColor' : 'none'} />
         </button>
@@ -196,10 +228,24 @@ export default function ProductCard({ product }: ProductCardProps) {
         </Link>
 
         {/* Price Row */}
-        <div className="product-card__price-row">
-          <span className="product-card__sale-price">{formatCurrency(effectivePrice)}</span>
-          {hasDiscount && (
-            <span className="product-card__base-price">{formatCurrency(product.base_price)}</span>
+        <div className="product-card__price-row" style={{ flexWrap: 'wrap', gap: '4px' }}>
+          <span className="product-card__sale-price">
+            {hasPriceRange
+              ? `${formatCurrency(minPrice)} – ${formatCurrency(maxPrice)}`
+              : formatCurrency(effectivePrice)}
+          </span>
+          {hasPriceRange ? (
+            minReg > minPrice && (
+              <span className="product-card__base-price">
+                {minReg === maxReg
+                  ? formatCurrency(minReg)
+                  : `${formatCurrency(minReg)} – ${formatCurrency(maxReg)}`}
+              </span>
+            )
+          ) : (
+            hasDiscount && (
+              <span className="product-card__base-price">{formatCurrency(product.base_price)}</span>
+            )
           )}
         </div>
 
@@ -210,7 +256,7 @@ export default function ProductCard({ product }: ProductCardProps) {
             onClick={handleAddToCart}
             disabled={product.stock_quantity <= 0}
             className="product-card__btn product-card__btn--cart"
-            title="Add to Cart"
+            title={hasVariants ? 'Choose Options' : 'Add to Cart'}
             id={`add-btn-${product.id}`}
           >
             {addedAnim ? (
@@ -220,6 +266,11 @@ export default function ProductCard({ product }: ProductCardProps) {
               </>
             ) : product.stock_quantity <= 0 ? (
               <span>Out</span>
+            ) : hasVariants ? (
+              <>
+                <Layers size={13} />
+                <span>Options</span>
+              </>
             ) : (
               <>
                 <ShoppingBag size={13} />
@@ -237,7 +288,7 @@ export default function ProductCard({ product }: ProductCardProps) {
             id={`buy-btn-${product.id}`}
           >
             <Zap size={13} fill="currentColor" />
-            <span>Buy Now</span>
+            <span>{hasVariants ? 'Options' : 'Buy Now'}</span>
           </button>
         </div>
       </div>
