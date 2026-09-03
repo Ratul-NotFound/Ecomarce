@@ -75,11 +75,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Insert response as direction 'out'
+    // If replying to guest (no target_user_id), embed [to:customer_name] so it stays in the conversation
+    const senderName = target_user_id
+      ? (profile.full_name || 'Admin Support')
+      : `${profile.full_name || 'Admin Support'} [to:${customer_name || 'Guest'}]`;
+
     const { data: newMessage, error } = await dbClient
       .from('chat_messages')
       .insert({
         user_id: target_user_id || null,
-        user_name: profile.full_name || 'Admin Support',
+        user_name: senderName,
         message: message.trim(),
         direction: 'out',
       })

@@ -94,7 +94,10 @@ export default function TelegramChatWidget() {
           const isTargetedToMe =
             newMsg.direction === 'out' &&
             ((user?.id && newMsg.user_id === user.id) ||
-              (sessionId && newMsg.user_name?.includes(sessionId.slice(-5))));
+              (sessionId && (
+                newMsg.user_name?.includes(sessionId) ||
+                newMsg.user_name?.includes(sessionId.slice(-5))
+              )));
 
           if (isTargetedToMe) {
             setMessages(prev => {

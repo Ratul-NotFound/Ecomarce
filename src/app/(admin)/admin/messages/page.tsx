@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   MessageSquare,
   Send,
@@ -12,9 +12,11 @@ import {
   Bot,
   RefreshCw,
   Sparkles,
+  ArrowLeft,
+  ChevronRight,
+  Check,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
-import { formatDate } from '@/lib/utils/format';
 
 interface ChatMessage {
   id: string;
@@ -28,6 +30,7 @@ interface ChatMessage {
 
 interface Conversation {
   userId: string;
+  isGuest: boolean;
   userName: string;
   lastMessage: ChatMessage;
   messages: ChatMessage[];
@@ -49,6 +52,7 @@ export default function AdminMessagesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
+  const [showMobileChat, setShowMobileChat] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const fetchMessages = async () => {
@@ -89,28 +93,67 @@ export default function AdminMessagesPage() {
     };
   }, []);
 
-  // Group messages cleanly by customer (user_id or unique user_name)
-  const conversations: Conversation[] = React.useMemo(() => {
+  // Group messages into distinct customer conversations
+  const conversations: Conversation[] = useMemo(() => {
     const groups: { [key: string]: ChatMessage[] } = {};
 
-    messages.forEach(msg => {
-      // Group by user_id if authenticated, or user_name (which contains unique session id for guests)
-      const key = msg.user_id || msg.user_name || 'Guest';
-      if (!groups[key]) {
-        groups[key] = [];
+    // Helper to determine which conversation a message belongs to
+    const getConvKey = (msg: ChatMessage): string => {
+      if (msg.user_id) return msg.user_id;
+
+      // If guest customer message: e.g. "Visitor (#abc12)"
+      const tagMatch = msg.user_name?.match(/#([a-zA-Z0-9_\-]+)/);
+      if (tagMatch) return 'guest_' + tagMatch[1];
+
+      // If outgoing reply to guest: e.g. "Admin Support [to:Visitor (#abc12)]"
+      const toMatch = msg.user_name?.match(/\[to:([^\]]+)\]/);
+      if (toMatch) {
+        const toTag = toMatch[1].match(/#([a-zA-Z0-9_\-]+)/);
+        if (toTag) return 'guest_' + toTag[1];
+        return 'guest_' + toMatch[1].trim();
       }
+
+      if (msg.direction === 'in') {
+        return 'guest_' + (msg.user_name || 'unknown');
+      }
+
+      // Ignore untargeted broadcasts that don't belong to any customer thread
+      return 'unassigned';
+    };
+
+    messages.forEach(msg => {
+      const key = getConvKey(msg);
+      if (key === 'unassigned') return;
+      if (!groups[key]) groups[key] = [];
       groups[key].push(msg);
     });
 
     return Object.entries(groups)
       .map(([key, msgs]) => {
         const latest = msgs[msgs.length - 1];
-        const customerMsg = msgs.find(m => m.direction === 'in');
-        const name = customerMsg?.user_name || (key.startsWith('Guest') ? 'Guest Visitor' : key);
+        const customerMsgs = msgs.filter(m => m.direction === 'in');
+
+        // Look for real customer name if available
+        const namedMsg = [...customerMsgs].reverse().find(
+          m =>
+            m.user_name &&
+            !m.user_name.toLowerCase().startsWith('visitor') &&
+            !m.user_name.toLowerCase().startsWith('guest')
+        );
+        const latestCustomer = customerMsgs[customerMsgs.length - 1];
+
+        let displayName =
+          namedMsg?.user_name ||
+          latestCustomer?.user_name ||
+          (key.startsWith('guest_') ? `Guest (${key.replace('guest_', '#')})` : 'Customer');
+
+        // Clean up any (#tag) from primary title
+        displayName = displayName.replace(/\s*\(#[^\)]+\)/g, '').trim() || 'Visitor';
 
         return {
           userId: key,
-          userName: name,
+          isGuest: key.startsWith('guest_'),
+          userName: displayName,
           lastMessage: latest,
           messages: msgs,
           unreadCount: msgs.filter(m => m.direction === 'in').length,
@@ -150,7 +193,7 @@ export default function AdminMessagesPage() {
 
     try {
       setIsSending(true);
-      const isGuest = activeConversation.userId.startsWith('Guest') || activeConversation.userId.includes('(');
+      const isGuest = activeConversation.isGuest;
 
       const res = await fetch('/api/admin/messages', {
         method: 'POST',
@@ -164,6 +207,7 @@ export default function AdminMessagesPage() {
 
       if (res.ok) {
         setReplyText('');
+        fetchMessages();
       }
     } catch (err) {
       console.error('Failed to send admin reply:', err);
@@ -173,8 +217,17 @@ export default function AdminMessagesPage() {
   };
 
   return (
-    <div suppressHydrationWarning style={{ height: 'calc(100vh - 120px)', display: 'flex', flexDirection: 'column' }}>
-      {/* Header */}
+    <div
+      suppressHydrationWarning
+      style={{
+        height: 'calc(100vh - 120px)',
+        display: 'flex',
+        flexDirection: 'column',
+        minWidth: 0,
+        width: '100%',
+      }}
+    >
+      {/* Page Header */}
       <div className="admin-page-header" style={{ marginBottom: '16px' }}>
         <div>
           <h1 className="admin-page-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -196,28 +249,35 @@ export default function AdminMessagesPage() {
         </button>
       </div>
 
-      {/* Main Split Chat Layout with Clean White Administrative Theme */}
+      {/* Main Split Chat Layout */}
       <div
         className="admin-card"
         style={{
           flex: 1,
           padding: 0,
-          display: 'grid',
-          gridTemplateColumns: '320px 1fr',
+          display: 'flex',
           overflow: 'hidden',
           borderRadius: 'var(--radius-xl)',
           border: '1px solid var(--color-admin-border)',
           background: '#ffffff',
+          minWidth: 0,
+          width: '100%',
+          position: 'relative',
         }}
       >
-        {/* Left: Customer Thread List */}
+        {/* Left Column: Customer Thread List */}
         <div
           style={{
+            width: '340px',
+            minWidth: '280px',
+            maxWidth: '380px',
             borderRight: '1px solid var(--color-admin-border)',
-            display: 'flex',
+            display: showMobileChat ? 'none' : 'flex',
             flexDirection: 'column',
             background: '#ffffff',
+            flexShrink: 0,
           }}
+          className="admin-chat-sidebar"
         >
           {/* Search Box */}
           <div style={{ padding: '14px', borderBottom: '1px solid var(--color-admin-border)' }}>
@@ -256,7 +316,10 @@ export default function AdminMessagesPage() {
                 return (
                   <div
                     key={conv.userId}
-                    onClick={() => setActiveUserId(conv.userId)}
+                    onClick={() => {
+                      setActiveUserId(conv.userId);
+                      setShowMobileChat(true);
+                    }}
                     style={{
                       padding: '14px 16px',
                       borderBottom: '1px solid var(--color-admin-border)',
@@ -267,11 +330,11 @@ export default function AdminMessagesPage() {
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
                         <div
                           style={{
-                            width: '28px',
-                            height: '28px',
+                            width: '30px',
+                            height: '30px',
                             borderRadius: '50%',
                             background: isSelected ? 'var(--color-primary)' : 'var(--color-primary-10)',
                             color: isSelected ? '#ffffff' : 'var(--color-primary)',
@@ -280,15 +343,25 @@ export default function AdminMessagesPage() {
                             justifyContent: 'center',
                             fontSize: '12px',
                             fontWeight: 800,
+                            flexShrink: 0,
                           }}
                         >
                           {conv.userName.charAt(0).toUpperCase()}
                         </div>
-                        <span style={{ fontWeight: 700, fontSize: '13px', color: 'var(--color-admin-text)' }}>
+                        <span
+                          style={{
+                            fontWeight: 700,
+                            fontSize: '13px',
+                            color: 'var(--color-admin-text)',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                          }}
+                        >
                           {conv.userName}
                         </span>
                       </div>
-                      <span style={{ fontSize: '10px', color: 'var(--color-admin-muted)' }}>
+                      <span style={{ fontSize: '10px', color: 'var(--color-admin-muted)', flexShrink: 0, marginLeft: '6px' }}>
                         {new Date(conv.lastMessage.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
@@ -314,22 +387,49 @@ export default function AdminMessagesPage() {
           </div>
         </div>
 
-        {/* Right: Active Chat Conversation */}
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#f8fafc' }}>
+        {/* Right Column: Active Chat Stream */}
+        <div
+          style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            height: '100%',
+            background: '#f8fafc',
+            minWidth: 0,
+            width: '100%',
+          }}
+        >
           {activeConversation ? (
             <>
               {/* Chat Header */}
               <div
                 style={{
-                  padding: '14px 20px',
+                  padding: '12px 20px',
                   borderBottom: '1px solid var(--color-admin-border)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   background: '#ffffff',
+                  minWidth: 0,
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowMobileChat(false)}
+                    style={{
+                      display: 'none',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      padding: '4px',
+                      color: 'var(--color-admin-text)',
+                    }}
+                    className="admin-chat-back-btn"
+                  >
+                    <ArrowLeft size={18} />
+                  </button>
+
                   <div
                     style={{
                       width: '36px',
@@ -342,22 +442,35 @@ export default function AdminMessagesPage() {
                       justifyContent: 'center',
                       fontSize: '14px',
                       fontWeight: 800,
+                      flexShrink: 0,
                     }}
                   >
                     {activeConversation.userName.charAt(0).toUpperCase()}
                   </div>
-                  <div>
-                    <div style={{ fontWeight: 800, fontSize: '14px', color: 'var(--color-admin-text)' }}>
+
+                  <div style={{ minWidth: 0 }}>
+                    <div
+                      style={{
+                        fontWeight: 800,
+                        fontSize: '14px',
+                        color: 'var(--color-admin-text)',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
                       {activeConversation.userName}
                     </div>
                     <div style={{ fontSize: '11px', color: 'var(--color-admin-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#22c55e' }}></span>
-                      <span>Customer Session • {activeConversation.messages.length} messages</span>
+                      <span>
+                        {activeConversation.isGuest ? 'Guest Visitor' : 'Verified Customer'} • {activeConversation.messages.length} messages
+                      </span>
                     </div>
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                   <span className="badge badge-primary" style={{ fontSize: '11px', fontWeight: 700 }}>
                     Telegram Synced ⚡
                   </span>
@@ -365,7 +478,17 @@ export default function AdminMessagesPage() {
               </div>
 
               {/* Chat Message Stream */}
-              <div style={{ flex: 1, overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div
+                style={{
+                  flex: 1,
+                  overflowY: 'auto',
+                  padding: '20px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '14px',
+                  minWidth: 0,
+                }}
+              >
                 {activeConversation.messages.map((msg, index) => {
                   const isAgent = msg.direction === 'out';
                   return (
@@ -375,10 +498,11 @@ export default function AdminMessagesPage() {
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: isAgent ? 'flex-end' : 'flex-start',
-                        maxWidth: '75%',
+                        maxWidth: '85%',
                         alignSelf: isAgent ? 'flex-end' : 'flex-start',
                       }}
                     >
+                      {/* Sender Meta Header */}
                       <div
                         style={{
                           fontSize: '11px',
@@ -391,34 +515,47 @@ export default function AdminMessagesPage() {
                       >
                         {isAgent ? (
                           <>
-                            <Shield size={11} color="var(--color-primary)" />
-                            <span style={{ fontWeight: 600 }}>{msg.user_name || 'Admin Support'}</span>
+                            <Shield size={12} color="var(--color-primary)" />
+                            <span style={{ fontWeight: 700, color: 'var(--color-primary)' }}>Admin Support (You)</span>
                           </>
                         ) : (
                           <>
-                            <User size={11} />
-                            <span style={{ fontWeight: 600 }}>{msg.user_name || 'Customer'}</span>
+                            <User size={12} />
+                            <span style={{ fontWeight: 700, color: 'var(--color-admin-text)' }}>
+                              {msg.user_name || activeConversation.userName}
+                            </span>
                           </>
                         )}
                         <span>•</span>
                         <span>{new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                       </div>
 
+                      {/* Message Bubble */}
                       <div
                         style={{
-                          padding: '10px 14px',
-                          borderRadius: isAgent ? '16px 16px 3px 16px' : '16px 16px 16px 3px',
+                          padding: '11px 16px',
+                          borderRadius: isAgent ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
                           background: isAgent ? 'var(--color-primary)' : '#ffffff',
                           color: isAgent ? '#ffffff' : 'var(--color-admin-text)',
                           border: isAgent ? 'none' : '1px solid var(--color-admin-border)',
                           fontSize: '13px',
                           lineHeight: 1.5,
-                          boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                          boxShadow: isAgent
+                            ? '0 4px 12px rgba(59, 130, 246, 0.25)'
+                            : '0 1px 3px rgba(15, 23, 42, 0.05)',
                           wordBreak: 'break-word',
                         }}
                       >
                         {msg.message}
                       </div>
+
+                      {/* Sent Indicator for Admin */}
+                      {isAgent && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '3px', marginTop: '2px', fontSize: '10px', color: 'var(--color-admin-muted)' }}>
+                          <Check size={11} color="var(--color-primary)" />
+                          <span>Sent</span>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -429,11 +566,13 @@ export default function AdminMessagesPage() {
               <div
                 style={{
                   display: 'flex',
-                  gap: '6px',
+                  gap: '8px',
                   overflowX: 'auto',
-                  padding: '8px 16px',
-                  background: '#ffffff',
+                  padding: '10px 16px',
+                  background: '#f8fafc',
                   borderTop: '1px solid var(--color-admin-border)',
+                  maxWidth: '100%',
+                  minWidth: 0,
                   scrollbarWidth: 'none',
                 }}
               >
@@ -446,9 +585,12 @@ export default function AdminMessagesPage() {
                     style={{
                       fontSize: '11px',
                       whiteSpace: 'nowrap',
-                      padding: '4px 10px',
+                      padding: '4px 12px',
                       borderRadius: 'var(--radius-full)',
                       flexShrink: 0,
+                      background: '#ffffff',
+                      borderColor: 'var(--color-admin-border)',
+                      color: 'var(--color-admin-text)',
                     }}
                     title="Click to instantly send this reply"
                   >
@@ -461,19 +603,27 @@ export default function AdminMessagesPage() {
               <form
                 onSubmit={handleSendReply}
                 style={{
-                  padding: '14px 16px',
+                  padding: '12px 16px',
                   borderTop: '1px solid var(--color-admin-border)',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '10px',
                   background: '#ffffff',
+                  width: '100%',
+                  minWidth: 0,
                 }}
               >
                 <input
                   type="text"
                   placeholder={`Reply to ${activeConversation.userName}...`}
                   className="admin-input"
-                  style={{ flex: 1, padding: '10px 14px', fontSize: '13px' }}
+                  style={{
+                    flex: 1,
+                    minWidth: 0,
+                    padding: '11px 16px',
+                    fontSize: '13px',
+                    borderRadius: 'var(--radius-lg)',
+                  }}
                   value={replyText}
                   onChange={e => setReplyText(e.target.value)}
                   disabled={isSending}
@@ -482,7 +632,18 @@ export default function AdminMessagesPage() {
                   type="submit"
                   disabled={!replyText.trim() || isSending}
                   className="btn btn-primary"
-                  style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 18px', flexShrink: 0 }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    padding: '10px 20px',
+                    fontWeight: 700,
+                    flexShrink: 0,
+                    minWidth: '96px',
+                    height: '42px',
+                    borderRadius: 'var(--radius-lg)',
+                  }}
                 >
                   <Send size={15} />
                   <span>{isSending ? 'Sending...' : 'Send'}</span>
@@ -497,6 +658,19 @@ export default function AdminMessagesPage() {
           )}
         </div>
       </div>
+
+      <style jsx global>{`
+        @media (max-width: 860px) {
+          .admin-chat-sidebar {
+            width: 100% !important;
+            max-width: 100% !important;
+            border-right: none !important;
+          }
+          .admin-chat-back-btn {
+            display: inline-flex !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

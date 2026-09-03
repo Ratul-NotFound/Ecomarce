@@ -18,12 +18,19 @@ export async function POST(request: NextRequest) {
       const msgText = update.message.text;
       const telegramMsgId = update.message.message_id;
 
-      // Extract user ID if this is a reply to an existing forwarded message
+      // Extract user ID or customer name if this is a reply to an existing forwarded message
       let targetUserId: string | null = null;
+      let targetCustomerName: string | null = null;
       const replyToText = update.message.reply_to_message?.text;
-      if (replyToText && replyToText.includes('User ID:')) {
-        const match = replyToText.match(/User ID:\s*([a-f0-9\-]+)/i);
-        if (match) targetUserId = match[1];
+      if (replyToText) {
+        if (replyToText.includes('User ID:')) {
+          const match = replyToText.match(/User ID:\s*([a-f0-9\-]+)/i);
+          if (match) targetUserId = match[1];
+        }
+        if (replyToText.includes('From:')) {
+          const fromMatch = replyToText.match(/From:\s*([^\n\r]+)/i);
+          if (fromMatch) targetCustomerName = fromMatch[1].trim();
+        }
       }
 
       const supabase = await createClient();
@@ -32,9 +39,13 @@ export async function POST(request: NextRequest) {
         dbClient = createAdminClient();
       }
 
+      const agentName = targetUserId
+        ? 'Support Agent'
+        : `Support Agent [to:${targetCustomerName || 'Guest'}]`;
+
       await dbClient.from('chat_messages').insert({
         user_id: targetUserId,
-        user_name: 'Support Agent',
+        user_name: agentName,
         message: msgText,
         direction: 'out',
         telegram_message_id: telegramMsgId,

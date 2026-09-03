@@ -29,8 +29,9 @@ export async function GET(request: NextRequest) {
       // If user is authenticated, find messages for this user_id
       query = query.or(`user_id.eq.${userId},user_name.ilike.%${sessionId || userId}%`);
     } else if (sessionId) {
-      // If guest, find messages tagged with their session_id in user_name
-      query = query.ilike('user_name', `%${sessionId}%`);
+      // If guest, find messages tagged with their session_id in user_name (both incoming and replies)
+      const shortId = sessionId.length > 5 ? sessionId.slice(-5) : sessionId;
+      query = query.or(`user_name.ilike.%${sessionId}%,user_name.ilike.%${shortId}%`);
     }
 
     const { data: messages, error } = await query;
