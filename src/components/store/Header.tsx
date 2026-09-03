@@ -8,6 +8,7 @@ import { ShoppingBag, Heart, User, Search, ShieldCheck, Package } from 'lucide-r
 import { STORE_CONFIG } from '@/lib/store-config';
 import { useCart } from '@/hooks/useCart';
 import { useAuth } from '@/hooks/useAuth';
+import NotificationBell from '@/components/store/NotificationBell';
 
 interface HeaderProps {
   categories?: Array<{ id: string; name_en: string; name_bn?: string | null; slug: string }>;
@@ -93,6 +94,9 @@ export default function Header({ categories = [], announcement }: HeaderProps) {
             >
               <Heart size={20} />
             </Link>
+
+            {/* Notification Bell (Both mobile and desktop) */}
+            <NotificationBell />
 
             {/* My Orders (Desktop only - mobile accesses via bottom Account tab) */}
             {user && (
