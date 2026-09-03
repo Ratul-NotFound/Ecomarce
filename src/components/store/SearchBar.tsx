@@ -22,6 +22,7 @@ export default function SearchBar({
   const [searchTerm, setSearchTerm] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
   const [results, setResults] = useState<{
     products: any[];
     categories: any[];
@@ -50,6 +51,7 @@ export default function SearchBar({
           const data = await res.json();
           if (active) {
             setResults(data);
+            setSelectedIndex(-1);
           }
         }
       } catch (err) {
@@ -57,7 +59,7 @@ export default function SearchBar({
       } finally {
         if (active) setIsLoading(false);
       }
-    }, 120);
+    }, 80); // Ultra-fast 80ms response for letter typing
 
     return () => {
       active = false;
@@ -90,6 +92,28 @@ export default function SearchBar({
     router.push(`/search?q=${encodeURIComponent(query)}`);
   };
 
+  // Helper to highlight matching letters in product/category title
+  const highlightMatch = (text: string, query: string) => {
+    const trimmed = query.trim();
+    if (!trimmed || !text) return text;
+    try {
+      const tokens = trimmed.split(/\s+/).filter(Boolean);
+      const regex = new RegExp(`(${tokens.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'gi');
+      const parts = text.split(regex);
+      return parts.map((part, i) =>
+        tokens.some(t => t.toLowerCase() === part.toLowerCase()) ? (
+          <span key={i} style={{ color: 'var(--color-primary)', fontWeight: 800 }}>
+            {part}
+          </span>
+        ) : (
+          part
+        )
+      );
+    } catch {
+      return text;
+    }
+  };
+
   return (
     <div
       ref={wrapperRef}
@@ -113,7 +137,10 @@ export default function SearchBar({
           ref={inputRef}
           type="text"
           value={searchTerm}
-          onChange={e => setSearchTerm(e.target.value)}
+          onChange={e => {
+            setSearchTerm(e.target.value);
+            setIsOpen(true);
+          }}
           onFocus={() => setIsOpen(true)}
           placeholder={placeholder}
           aria-label="Search"
@@ -170,10 +197,10 @@ export default function SearchBar({
             background: 'var(--color-surface)',
             border: '1px solid var(--color-border)',
             borderRadius: '16px',
-            boxShadow: '0 12px 32px rgba(0,0,0,0.12)',
+            boxShadow: '0 12px 36px rgba(0,0,0,0.14)',
             zIndex: 1000,
             overflow: 'hidden',
-            maxHeight: '420px',
+            maxHeight: '440px',
             overflowY: 'auto',
             WebkitOverflowScrolling: 'touch',
             animation: 'dropdownFadeIn 0.15s ease',
@@ -206,7 +233,7 @@ export default function SearchBar({
                       }}
                     >
                       <Sparkles size={11} color="var(--color-primary)" />
-                      <span>{sug}</span>
+                      <span>{highlightMatch(sug, searchTerm)}</span>
                     </button>
                   ))}
                 </div>
@@ -268,17 +295,17 @@ export default function SearchBar({
                   className="search-item-hover"
                 >
                   <Folder size={14} color="var(--color-primary)" />
-                  <span>{cat.name_en}</span>
+                  <span>{highlightMatch(cat.name_en, searchTerm)}</span>
                 </Link>
               ))}
             </div>
           )}
 
-          {/* 3. Matching Products List */}
+          {/* 3. Matching Products List with Real-Time Highlighted Letters */}
           {results.products.length > 0 ? (
             <div style={{ padding: '6px 8px' }}>
               <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', padding: '6px 8px' }}>
-                Products
+                Products ({results.products.length})
               </div>
               {results.products.map(prod => {
                 const img = prod.images?.[0];
@@ -302,9 +329,9 @@ export default function SearchBar({
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
                       <div
                         style={{
-                          width: '36px',
-                          height: '36px',
-                          minWidth: '36px',
+                          width: '38px',
+                          height: '38px',
+                          minWidth: '38px',
                           borderRadius: '8px',
                           background: '#f8fafc',
                           position: 'relative',
@@ -317,7 +344,7 @@ export default function SearchBar({
                         }}
                       >
                         {img ? (
-                          <Image src={img} alt={prod.name_en} fill sizes="36px" style={{ objectFit: 'cover' }} />
+                          <Image src={img} alt={prod.name_en} fill sizes="38px" style={{ objectFit: 'cover' }} />
                         ) : (
                           <Package size={16} color="var(--color-text-muted)" />
                         )}
@@ -334,7 +361,7 @@ export default function SearchBar({
                             whiteSpace: 'nowrap',
                           }}
                         >
-                          {prod.name_en}
+                          {highlightMatch(prod.name_en, searchTerm)}
                         </div>
                         {prod.category?.name_en && (
                           <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>

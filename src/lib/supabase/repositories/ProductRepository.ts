@@ -151,8 +151,10 @@ export class ProductRepository extends BaseRepository<Product> {
     if (filter.max_price !== undefined) query = query.lte('base_price', filter.max_price);
     if (filter.is_flash_sale) query = query.eq('is_flash_sale', true);
     if (filter.search) {
-      const term = filter.search.trim();
-      query = query.or(`name_en.ilike.%${term}%,description_en.ilike.%${term}%,name_bn.ilike.%${term}%`);
+      const tokens = filter.search.trim().split(/\s+/).filter(Boolean);
+      for (const token of tokens) {
+        query = query.or(`name_en.ilike.%${token}%,description_en.ilike.%${token}%,name_bn.ilike.%${token}%`);
+      }
     }
 
     const sortMap: Record<string, [string, { ascending: boolean }]> = {
