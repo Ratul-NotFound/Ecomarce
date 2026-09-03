@@ -166,60 +166,24 @@ export default function ProductCard({ product }: ProductCardProps) {
       {/* Content */}
       <div className="product-card__content">
         {/* Category, Exact Rating & Total Sold Row */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-          <span className="product-card__category">{product.category?.name_en || 'Top Pick'}</span>
+        <div className="product-card__meta-row">
+          <span className="product-card__category" title={product.category?.name_en || 'Top Pick'}>
+            {product.category?.name_en || 'Top Pick'}
+          </span>
 
-          {/* Social Proof: Exact Rating & Total Sold */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <div className="product-card__social-proof">
             {exactRating !== null && reviewCount > 0 ? (
               <div
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '2px',
-                  background: '#fef3c7',
-                  padding: '1px 5px',
-                  borderRadius: '4px',
-                }}
+                className="product-card__rating-pill"
                 title={`${exactRating.toFixed(1)} out of 5 stars (${reviewCount} verified reviews)`}
               >
                 <Star size={10} fill="#f59e0b" color="#f59e0b" />
-                <span style={{ fontSize: '11px', color: '#92400e', fontWeight: 800 }}>
-                  {exactRating.toFixed(1)}
-                </span>
-                <span style={{ fontSize: '10px', color: '#b45309', fontWeight: 600 }}>
-                  ({reviewCount})
-                </span>
+                <span className="product-card__rating-score">{exactRating.toFixed(1)}</span>
+                <span className="product-card__rating-count">({reviewCount})</span>
               </div>
-            ) : (
-              <div
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '2px',
-                  background: 'var(--color-surface-2)',
-                  padding: '1px 5px',
-                  borderRadius: '4px',
-                }}
-                title="No reviews yet"
-              >
-                <Star size={10} color="var(--color-text-muted)" />
-                <span style={{ fontSize: '10px', color: 'var(--color-text-muted)', fontWeight: 600 }}>
-                  0.0 (0)
-                </span>
-              </div>
-            )}
-
-            <span
-              style={{
-                fontSize: '11px',
-                color: 'var(--color-text-muted)',
-                fontWeight: 600,
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {soldFormatted} sold
-            </span>
+            ) : totalSold > 0 ? (
+              <span className="product-card__sold-text">{soldFormatted} sold</span>
+            ) : null}
           </div>
         </div>
 
@@ -228,7 +192,7 @@ export default function ProductCard({ product }: ProductCardProps) {
         </Link>
 
         {/* Price Row */}
-        <div className="product-card__price-row" style={{ flexWrap: 'wrap', gap: '4px' }}>
+        <div className="product-card__price-row">
           <span className="product-card__sale-price">
             {hasPriceRange
               ? `${formatCurrency(minPrice)} – ${formatCurrency(maxPrice)}`
@@ -249,48 +213,58 @@ export default function ProductCard({ product }: ProductCardProps) {
           )}
         </div>
 
-        {/* Dual Actions: Add to Cart + Buy Now */}
-        <div className="product-card__btn-group">
-          <button
-            type="button"
-            onClick={handleAddToCart}
-            disabled={product.stock_quantity <= 0}
-            className="product-card__btn product-card__btn--cart"
-            title={hasVariants ? 'Choose Options' : 'Add to Cart'}
-            id={`add-btn-${product.id}`}
-          >
-            {addedAnim ? (
-              <>
-                <Check size={13} />
-                <span>Added</span>
-              </>
-            ) : product.stock_quantity <= 0 ? (
-              <span>Out</span>
-            ) : hasVariants ? (
-              <>
-                <Layers size={13} />
-                <span>Options</span>
-              </>
-            ) : (
-              <>
-                <ShoppingBag size={13} />
-                <span>Cart</span>
-              </>
-            )}
-          </button>
+        {/* Actions: Full-width for Variants, Dual for Simple Products */}
+        {hasVariants ? (
+          <div className="product-card__btn-group product-card__btn-group--single">
+            <button
+              type="button"
+              onClick={handleAddToCart}
+              className="product-card__btn product-card__btn--select"
+              title="Choose Options"
+              id={`select-btn-${product.id}`}
+            >
+              <Layers size={13} />
+              <span>Select Options</span>
+            </button>
+          </div>
+        ) : (
+          <div className="product-card__btn-group">
+            <button
+              type="button"
+              onClick={handleAddToCart}
+              disabled={product.stock_quantity <= 0}
+              className="product-card__btn product-card__btn--cart"
+              title="Add to Cart"
+              id={`add-btn-${product.id}`}
+            >
+              {addedAnim ? (
+                <>
+                  <Check size={12} />
+                  <span>Added</span>
+                </>
+              ) : product.stock_quantity <= 0 ? (
+                <span>Out</span>
+              ) : (
+                <>
+                  <ShoppingBag size={12} />
+                  <span>Cart</span>
+                </>
+              )}
+            </button>
 
-          <button
-            type="button"
-            onClick={handleBuyNow}
-            disabled={product.stock_quantity <= 0}
-            className="product-card__btn product-card__btn--buy"
-            title="Buy Now"
-            id={`buy-btn-${product.id}`}
-          >
-            <Zap size={13} fill="currentColor" />
-            <span>{hasVariants ? 'Options' : 'Buy Now'}</span>
-          </button>
-        </div>
+            <button
+              type="button"
+              onClick={handleBuyNow}
+              disabled={product.stock_quantity <= 0}
+              className="product-card__btn product-card__btn--buy"
+              title="Buy Now"
+              id={`buy-btn-${product.id}`}
+            >
+              <Zap size={12} fill="currentColor" />
+              <span>Buy Now</span>
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
