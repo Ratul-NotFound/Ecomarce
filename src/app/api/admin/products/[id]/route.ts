@@ -54,8 +54,14 @@ export async function PUT(
       await dbClient.from('product_variants').delete().eq('product_id', id);
       if (variants.length > 0) {
         const variantsToInsert = variants.map((v: any) => ({
-          ...v,
           product_id: id,
+          sku: v.sku,
+          size: v.size || null,
+          color: v.color || null,
+          material: v.material || null,
+          price_modifier: Number(v.price_modifier) || 0,
+          stock_quantity: Number(v.stock_quantity) || 0,
+          images: Array.isArray(v.images) ? v.images : [],
         }));
         await dbClient.from('product_variants').insert(variantsToInsert);
       }

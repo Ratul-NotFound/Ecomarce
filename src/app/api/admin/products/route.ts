@@ -46,8 +46,14 @@ export async function POST(request: NextRequest) {
     // Insert variants if defined
     if (variants && variants.length > 0) {
       const variantsToInsert = variants.map((v: any) => ({
-        ...v,
         product_id: product.id,
+        sku: v.sku,
+        size: v.size || null,
+        color: v.color || null,
+        material: v.material || null,
+        price_modifier: Number(v.price_modifier) || 0,
+        stock_quantity: Number(v.stock_quantity) || 0,
+        images: Array.isArray(v.images) ? v.images : [],
       }));
       await dbClient.from('product_variants').insert(variantsToInsert);
     }

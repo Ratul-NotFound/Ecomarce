@@ -73,3 +73,39 @@ export function calculateDiscountPercent(basePrice: number, salePrice: number): 
   return Math.round(pct * 10) / 10;
 }
 
+/**
+ * Extracts a variant's cost price from product tags (e.g. "vcost:SKU-M:450").
+ */
+export function getVariantCostPrice(tags: string[] = [], sku: string, fallbackCost = 0): number {
+  if (!Array.isArray(tags) || !sku) return fallbackCost;
+  const cleanSku = sku.trim().toLowerCase();
+  const tag = tags.find(t => t.toLowerCase().startsWith(`vcost:${cleanSku}:`));
+  if (tag) {
+    const parts = tag.split(':');
+    const cost = parseFloat(parts[2]);
+    if (!isNaN(cost) && cost >= 0) return cost;
+  }
+  return fallbackCost;
+}
+
+/**
+ * Updates product tags with variant cost entries "vcost:<sku>:<amount>".
+ */
+export function syncVariantCostsToTags(
+  existingTags: string[] = [],
+  variantCosts: Array<{ sku: string; costPrice: number | string | null | undefined }>
+): string[] {
+  // Remove all existing vcost tags
+  let tags = existingTags.filter(t => !t.startsWith('vcost:'));
+
+  // Append new vcost tags
+  variantCosts.forEach(v => {
+    const cost = Number(v.costPrice);
+    if (v.sku && !isNaN(cost) && cost > 0) {
+      tags.push(`vcost:${v.sku.trim().toLowerCase()}:${cost}`);
+    }
+  });
+
+  return tags;
+}
+

@@ -81,6 +81,8 @@ export interface ProductVariant {
   price_modifier: number;
   stock_quantity: number;
   images: string[];
+  cost_price?: number | null;
+  selling_price?: number | null;
 }
 
 export interface Product {

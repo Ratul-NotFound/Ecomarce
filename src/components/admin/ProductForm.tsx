@@ -6,10 +6,32 @@ import ImageUploader from './ImageUploader';
 import ProductMediaManager from './ProductMediaManager';
 import { useToast } from '@/components/shared/ToastProvider';
 import { slugify, formatCurrency } from '@/lib/utils/format';
-import { getProductCostPrice, syncCostToTags, calculateProfitMetrics, calculateDiscountPrice, calculateDiscountPercent } from '@/lib/utils/pricing';
+import {
+  getProductCostPrice,
+  syncCostToTags,
+  getVariantCostPrice,
+  syncVariantCostsToTags,
+  calculateProfitMetrics,
+  calculateDiscountPrice,
+  calculateDiscountPercent,
+} from '@/lib/utils/pricing';
 import { getProductVideoUrl, syncVideoToTags } from '@/lib/utils/video';
 import type { Product, Category, ProductVariant } from '@/types';
-import { Plus, Trash2, Calculator, TrendingUp, Percent, Tag, Sparkles } from 'lucide-react';
+import {
+  Plus,
+  Trash2,
+  Calculator,
+  TrendingUp,
+  Percent,
+  Tag,
+  Sparkles,
+  Layers,
+  Box,
+  Copy,
+  CheckSquare,
+  ChevronDown,
+  ChevronUp,
+} from 'lucide-react';
 
 interface ProductFormProps {
   initialProduct?: Product | null;
@@ -88,15 +110,146 @@ export default function ProductForm({ initialProduct, categories = [] }: Product
     }
   };
 
-  // Dynamic variants
-  const [variants, setVariants] = useState<Array<{ size: string; color: string; price_modifier: number; stock_quantity: number }>>(
-    initialProduct?.variants?.map(v => ({
-      size: v.size || '',
-      color: v.color || '',
-      price_modifier: v.price_modifier || 0,
-      stock_quantity: v.stock_quantity || 0,
-    })) || []
+  // Top-Notch Multi-Attribute Variant Architecture
+  interface FormVariant {
+    id?: string;
+    size: string; // Size, Shoe size, Storage, Volume, Option 1
+    color: string; // Color, Option 2
+    material: string; // Edition, Material, Custom Option 3
+    sku: string;
+    cost_price: number | string;
+    selling_price: number | string;
+    price_modifier: number;
+    stock_quantity: number | string;
+  }
+
+  const [hasVariants, setHasVariants] = useState<boolean>(
+    Boolean(initialProduct?.has_variants || (initialProduct?.variants && initialProduct.variants.length > 0))
   );
+
+  const [variants, setVariants] = useState<FormVariant[]>(() => {
+    const baseEff = Number(initialProduct?.sale_price ?? initialProduct?.base_price ?? 0);
+    const prodCost = getProductCostPrice(initialProduct || {});
+
+    return (
+      initialProduct?.variants?.map((v, idx) => {
+        const vCost = getVariantCostPrice(initialProduct?.tags || [], v.sku, prodCost);
+        const sellPrice = v.price_modifier != null && baseEff > 0
+          ? baseEff + Number(v.price_modifier)
+          : (baseEff || '');
+
+        return {
+          id: v.id,
+          size: v.size || '',
+          color: v.color || '',
+          material: v.material || '',
+          sku: v.sku || `${initialProduct?.sku || 'SKU'}-V${idx + 1}`,
+          cost_price: vCost > 0 ? vCost : (prodCost > 0 ? prodCost : ''),
+          selling_price: sellPrice || '',
+          price_modifier: Number(v.price_modifier) || 0,
+          stock_quantity: v.stock_quantity ?? 10,
+        };
+      }) || []
+    );
+  });
+
+  // Bulk Generator State
+  const [showGenerator, setShowGenerator] = useState(false);
+  const [genPreset, setGenPreset] = useState<'apparel' | 'footwear' | 'electronics' | 'volume' | 'custom'>('apparel');
+  const [genOpt1Name, setGenOpt1Name] = useState('Size');
+  const [genOpt1Values, setGenOpt1Values] = useState('S, M, L, XL');
+  const [genOpt2Name, setGenOpt2Name] = useState('Color');
+  const [genOpt2Values, setGenOpt2Values] = useState('Black, Navy, White');
+  const [genDefaultCost, setGenDefaultCost] = useState<number | string>('');
+  const [genDefaultSell, setGenDefaultSell] = useState<number | string>('');
+  const [genDefaultStock, setGenDefaultStock] = useState<number | string>(10);
+
+  const applyGeneratorPreset = (preset: 'apparel' | 'footwear' | 'electronics' | 'volume' | 'custom') => {
+    setGenPreset(preset);
+    if (preset === 'apparel') {
+      setGenOpt1Name('Size');
+      setGenOpt1Values('S, M, L, XL');
+      setGenOpt2Name('Color');
+      setGenOpt2Values('Black, Navy, White');
+    } else if (preset === 'footwear') {
+      setGenOpt1Name('Shoe Size');
+      setGenOpt1Values('40, 41, 42, 43, 44');
+      setGenOpt2Name('Color');
+      setGenOpt2Values('Black, Brown, White');
+    } else if (preset === 'electronics') {
+      setGenOpt1Name('Storage');
+      setGenOpt1Values('128GB, 256GB, 512GB');
+      setGenOpt2Name('Color / Edition');
+      setGenOpt2Values('Midnight Black, Platinum Silver');
+    } else if (preset === 'volume') {
+      setGenOpt1Name('Volume / Weight');
+      setGenOpt1Values('50ml, 100ml, 250ml');
+      setGenOpt2Name('Variant Type');
+      setGenOpt2Values('Standard, Pro');
+    } else {
+      setGenOpt1Name('Option 1');
+      setGenOpt1Values('Option A, Option B');
+      setGenOpt2Name('Option 2');
+      setGenOpt2Values('Standard, Premium');
+    }
+  };
+
+  const handleGenerateCombinations = () => {
+    const opt1List = genOpt1Values.split(',').map(s => s.trim()).filter(Boolean);
+    const opt2List = genOpt2Values.split(',').map(s => s.trim()).filter(Boolean);
+
+    if (opt1List.length === 0 && opt2List.length === 0) {
+      showToast('Please enter at least one option value', 'error');
+      return;
+    }
+
+    const effectiveBase = Number(salePrice || basePrice || 0);
+    const sellPrice = genDefaultSell !== '' ? Number(genDefaultSell) : effectiveBase;
+    const modifier = effectiveBase > 0 && sellPrice > 0 ? sellPrice - effectiveBase : 0;
+    const costVal = genDefaultCost !== '' ? Number(genDefaultCost) : (Number(costPrice) || 0);
+    const stockVal = genDefaultStock !== '' ? Number(genDefaultStock) : 10;
+    const baseSkuClean = sku.trim() || 'PROD';
+
+    const newRows: FormVariant[] = [];
+
+    if (opt1List.length > 0 && opt2List.length > 0) {
+      opt1List.forEach(o1 => {
+        opt2List.forEach(o2 => {
+          const skuCode = `${baseSkuClean}-${o1.replace(/[^a-zA-Z0-9]/g, '')}-${o2.replace(/[^a-zA-Z0-9]/g, '')}`.toUpperCase();
+          newRows.push({
+            size: o1,
+            color: o2,
+            material: '',
+            sku: skuCode,
+            cost_price: costVal > 0 ? costVal : '',
+            selling_price: sellPrice > 0 ? sellPrice : '',
+            price_modifier: modifier,
+            stock_quantity: stockVal,
+          });
+        });
+      });
+    } else {
+      const singleList = opt1List.length > 0 ? opt1List : opt2List;
+      singleList.forEach(o => {
+        const skuCode = `${baseSkuClean}-${o.replace(/[^a-zA-Z0-9]/g, '')}`.toUpperCase();
+        newRows.push({
+          size: opt1List.length > 0 ? o : '',
+          color: opt2List.length > 0 ? o : '',
+          material: '',
+          sku: skuCode,
+          cost_price: costVal > 0 ? costVal : '',
+          selling_price: sellPrice > 0 ? sellPrice : '',
+          price_modifier: modifier,
+          stock_quantity: stockVal,
+        });
+      });
+    }
+
+    setVariants(prev => [...prev, ...newRows]);
+    setHasVariants(true);
+    setShowGenerator(false);
+    showToast(`Generated ${newRows.length} variant combinations!`, 'success');
+  };
 
   const handleNameChange = (val: string) => {
     setNameEn(val);
@@ -106,17 +259,56 @@ export default function ProductForm({ initialProduct, categories = [] }: Product
   };
 
   const handleAddVariant = () => {
-    setVariants([...variants, { size: 'M', color: '', price_modifier: 0, stock_quantity: 10 }]);
+    const effectiveBase = Number(salePrice || basePrice || 0);
+    const costVal = Number(costPrice) || '';
+    const newIdx = variants.length + 1;
+    setVariants([
+      ...variants,
+      {
+        size: 'Standard',
+        color: '',
+        material: '',
+        sku: `${sku.trim() || 'SKU'}-V${newIdx}`,
+        cost_price: costVal,
+        selling_price: effectiveBase || '',
+        price_modifier: 0,
+        stock_quantity: 10,
+      },
+    ]);
+    setHasVariants(true);
   };
 
   const handleRemoveVariant = (idx: number) => {
-    setVariants(variants.filter((_, i) => i !== idx));
+    const remaining = variants.filter((_, i) => i !== idx);
+    setVariants(remaining);
+    if (remaining.length === 0) {
+      setHasVariants(false);
+    }
   };
 
-  const handleVariantChange = (idx: number, field: string, val: any) => {
+  const handleVariantChange = (idx: number, field: keyof FormVariant, val: any) => {
     const updated = [...variants];
-    (updated[idx] as any)[field] = val;
+    const item = { ...updated[idx], [field]: val };
+
+    const effectiveBase = Number(salePrice || basePrice || 0);
+
+    if (field === 'selling_price') {
+      const numSell = Number(val);
+      if (!isNaN(numSell) && effectiveBase > 0) {
+        item.price_modifier = numSell - effectiveBase;
+      } else {
+        item.price_modifier = 0;
+      }
+    }
+
+    updated[idx] = item;
     setVariants(updated);
+  };
+
+  const handleAutoSyncStock = () => {
+    const total = variants.reduce((acc, v) => acc + (Number(v.stock_quantity) || 0), 0);
+    setStockQuantity(total);
+    showToast(`Synchronized total stock: ${total} units from ${variants.length} variants!`, 'success');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -137,8 +329,16 @@ export default function ProductForm({ initialProduct, categories = [] }: Product
       // Filter out empty slots, ensuring primary slot 0 is first
       const cleanImages = images.filter(img => Boolean(img && img.trim()));
 
-      const costTags = syncCostToTags(initialProduct?.tags || [], costPrice ? Number(costPrice) : null);
-      const finalTags = syncVideoToTags(costTags, videoUrl.trim() || null);
+      // Sync cost tags: product-level + variant-level
+      const baseCostTags = syncCostToTags(initialProduct?.tags || [], costPrice ? Number(costPrice) : null);
+      const variantCosts = variants.map(v => ({
+        sku: v.sku.trim(),
+        costPrice: v.cost_price,
+      }));
+      const variantCostTags = syncVariantCostsToTags(baseCostTags, variantCosts);
+      const finalTags = syncVideoToTags(variantCostTags, videoUrl.trim() || null);
+
+      const effectiveBase = Number(salePrice || basePrice || 0);
 
       const payload = {
         name_en: nameEn.trim(),
@@ -162,15 +362,28 @@ export default function ProductForm({ initialProduct, categories = [] }: Product
         is_flash_sale: isFlashSale,
         flash_sale_ends_at: isFlashSale ? new Date(Date.now() + 7 * 86400000).toISOString() : null,
         display_order: Number(displayOrder) || 0,
-        has_variants: variants.length > 0,
-        variants: variants.map((v, idx) => ({
-          sku: `${sku}-V${idx + 1}`,
-          size: v.size.trim() || null,
-          color: v.color.trim() || null,
-          price_modifier: Number(v.price_modifier) || 0,
-          stock_quantity: Number(v.stock_quantity) || 0,
-          images: [],
-        })),
+        has_variants: hasVariants && variants.length > 0,
+        variants: (hasVariants && variants.length > 0)
+          ? variants.map((v, idx) => {
+              const numSell = Number(v.selling_price);
+              const modifier = !isNaN(numSell) && effectiveBase > 0
+                ? numSell - effectiveBase
+                : (Number(v.price_modifier) || 0);
+
+              return {
+                id: v.id,
+                sku: v.sku.trim() || `${sku.trim()}-V${idx + 1}`,
+                size: v.size.trim() || null,
+                color: v.color.trim() || null,
+                material: v.material.trim() || null,
+                price_modifier: modifier,
+                cost_price: Number(v.cost_price) || 0,
+                selling_price: numSell || (effectiveBase + modifier),
+                stock_quantity: Number(v.stock_quantity) || 0,
+                images: [],
+              };
+            })
+          : [],
       };
 
       const url = isEditing ? `/api/admin/products/${initialProduct?.id}` : '/api/admin/products';
@@ -316,81 +529,398 @@ export default function ProductForm({ initialProduct, categories = [] }: Product
             </div>
           </div>
 
-          {/* Variants Builder */}
-          <div className="admin-card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          {/* Top-Notch Multi-Attribute Product Variants & Pricing Engine */}
+          <div className="admin-card" style={{ border: '1px solid var(--color-admin-border)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
               <div>
-                <h2 style={{ fontSize: '16px', fontWeight: 800, color: '#ffffff' }}>Product Variants</h2>
-                <p style={{ fontSize: '12px', color: 'var(--color-admin-muted)' }}>Sizes, Colors, and Price Modifiers</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Layers size={18} color="var(--color-primary-light)" />
+                  <h2 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--color-admin-text)', margin: 0 }}>
+                    Product Variants & Options
+                  </h2>
+                </div>
+                <p style={{ fontSize: '12px', color: 'var(--color-admin-muted)', marginTop: '4px' }}>
+                  Sizes, Colors, Storage capacities, Volumes, with independent selling and buying/cost prices
+                </p>
               </div>
-              <button
-                type="button"
-                onClick={handleAddVariant}
-                className="btn btn-secondary btn-sm"
-                style={{ background: 'var(--color-admin-surface-2)', color: '#ffffff', borderColor: 'var(--color-admin-border)' }}
-              >
-                <Plus size={14} />
-                <span>Add Variant</span>
-              </button>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowGenerator(!showGenerator)}
+                  className="btn btn-secondary btn-sm"
+                  style={{
+                    background: showGenerator ? 'var(--color-primary-10)' : 'var(--color-admin-surface-2)',
+                    color: showGenerator ? 'var(--color-primary)' : 'var(--color-admin-text)',
+                    borderColor: showGenerator ? 'var(--color-primary)' : 'var(--color-admin-border)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                  title="Generate combinations in bulk"
+                >
+                  <Sparkles size={14} />
+                  <span>{showGenerator ? 'Close Generator' : 'Bulk Generator'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleAddVariant}
+                  className="btn btn-primary btn-sm"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                >
+                  <Plus size={14} />
+                  <span>Add Single Variant</span>
+                </button>
+              </div>
             </div>
 
+            {/* 1-Click Combination Generator Panel */}
+            {showGenerator && (
+              <div
+                style={{
+                  background: 'var(--color-admin-surface-2)',
+                  border: '1px solid var(--color-admin-border)',
+                  borderRadius: 'var(--radius-lg)',
+                  padding: '16px',
+                  marginBottom: '20px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                  <strong style={{ fontSize: '13px', color: 'var(--color-admin-text)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Sparkles size={15} color="var(--color-primary-light)" />
+                    Bulk Variant Combination Generator
+                  </strong>
+                  <span style={{ fontSize: '11px', color: 'var(--color-admin-muted)' }}>
+                    Auto-creates all size × color permutations
+                  </span>
+                </div>
+
+                {/* Preset Chips */}
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '14px' }}>
+                  <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-admin-muted)', alignSelf: 'center', marginRight: '4px' }}>
+                    Quick Presets:
+                  </span>
+                  {[
+                    { id: 'apparel', label: '👕 Apparel (Size/Color)' },
+                    { id: 'footwear', label: '👟 Footwear (Sizes 40-44)' },
+                    { id: 'electronics', label: '📱 Electronics (Storage/Color)' },
+                    { id: 'volume', label: '🧴 Volume / Weight' },
+                    { id: 'custom', label: '✨ Custom' },
+                  ].map(p => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => applyGeneratorPreset(p.id as any)}
+                      style={{
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        padding: '4px 10px',
+                        borderRadius: 'var(--radius-full)',
+                        border: genPreset === p.id ? '1px solid var(--color-primary)' : '1px solid var(--color-admin-border)',
+                        background: genPreset === p.id ? 'var(--color-primary-10)' : 'var(--color-admin-surface)',
+                        color: genPreset === p.id ? 'var(--color-primary)' : 'var(--color-admin-text)',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginBottom: '12px' }}>
+                  <div>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-admin-text)', display: 'block', marginBottom: '4px' }}>
+                      {genOpt1Name} Options (comma-separated)
+                    </span>
+                    <input
+                      type="text"
+                      className="admin-input"
+                      value={genOpt1Values}
+                      onChange={e => setGenOpt1Values(e.target.value)}
+                      placeholder="e.g. S, M, L, XL"
+                      style={{ fontSize: '12px' }}
+                    />
+                  </div>
+
+                  <div>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-admin-text)', display: 'block', marginBottom: '4px' }}>
+                      {genOpt2Name} Options (comma-separated)
+                    </span>
+                    <input
+                      type="text"
+                      className="admin-input"
+                      value={genOpt2Values}
+                      onChange={e => setGenOpt2Values(e.target.value)}
+                      placeholder="e.g. Black, White, Navy"
+                      style={{ fontSize: '12px' }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '10px', marginBottom: '14px' }}>
+                  <div>
+                    <span style={{ fontSize: '11px', color: 'var(--color-admin-dim)' }}>Default Selling Price (৳)</span>
+                    <input
+                      type="number"
+                      className="admin-input"
+                      value={genDefaultSell}
+                      onChange={e => setGenDefaultSell(e.target.value)}
+                      placeholder={String(salePrice || basePrice || '0')}
+                      style={{ fontSize: '12px' }}
+                    />
+                  </div>
+
+                  <div>
+                    <span style={{ fontSize: '11px', color: 'var(--color-admin-dim)' }}>Default Buying/Cost Price (৳)</span>
+                    <input
+                      type="number"
+                      className="admin-input"
+                      value={genDefaultCost}
+                      onChange={e => setGenDefaultCost(e.target.value)}
+                      placeholder={String(costPrice || '0')}
+                      style={{ fontSize: '12px' }}
+                    />
+                  </div>
+
+                  <div>
+                    <span style={{ fontSize: '11px', color: 'var(--color-admin-dim)' }}>Stock Per Variant</span>
+                    <input
+                      type="number"
+                      className="admin-input"
+                      value={genDefaultStock}
+                      onChange={e => setGenDefaultStock(e.target.value)}
+                      placeholder="10"
+                      style={{ fontSize: '12px' }}
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleGenerateCombinations}
+                  className="btn btn-primary btn-sm"
+                  style={{ width: '100%', padding: '8px', fontWeight: 700, fontSize: '12px' }}
+                >
+                  ⚡ Generate All Combinations
+                </button>
+              </div>
+            )}
+
+            {/* Empty State */}
             {variants.length === 0 ? (
-              <div style={{ color: 'var(--color-admin-muted)', fontSize: '13px', fontStyle: 'italic' }}>
-                No variants configured. Product will sell as a single standard item.
+              <div
+                style={{
+                  textAlign: 'center',
+                  padding: '32px 16px',
+                  background: 'var(--color-admin-surface-2)',
+                  borderRadius: 'var(--radius-lg)',
+                  border: '1px dashed var(--color-admin-border)',
+                }}
+              >
+                <Box size={32} color="var(--color-admin-muted)" style={{ margin: '0 auto 8px', opacity: 0.6 }} />
+                <strong style={{ fontSize: '14px', color: 'var(--color-admin-text)', display: 'block' }}>
+                  No Variants Configured
+                </strong>
+                <p style={{ fontSize: '12px', color: 'var(--color-admin-muted)', marginTop: '4px', maxWidth: '400px', margin: '4px auto 14px' }}>
+                  This product currently sells as a single standard unit. Click <strong>Bulk Generator</strong> or <strong>Add Single Variant</strong> to configure sizes, colors, storage capacities, and individual pricing.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setShowGenerator(true)}
+                  className="btn btn-secondary btn-sm"
+                  style={{ background: 'var(--color-admin-surface)', color: 'var(--color-admin-text)', borderColor: 'var(--color-admin-border)' }}
+                >
+                  <Sparkles size={14} />
+                  <span>Open Combination Generator</span>
+                </button>
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {variants.map((v, idx) => (
-                  <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.2fr 1.2fr 1.2fr auto', gap: '8px', alignItems: 'center', background: 'var(--color-admin-surface-2)', padding: '12px', borderRadius: 'var(--radius-lg)' }}>
-                    <div>
-                      <span style={{ fontSize: '10px', color: 'var(--color-admin-dim)' }}>Size</span>
-                      <input
-                        type="text"
-                        placeholder="M / 42 / XL"
-                        className="admin-input"
-                        value={v.size}
-                        onChange={e => handleVariantChange(idx, 'size', e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <span style={{ fontSize: '10px', color: 'var(--color-admin-dim)' }}>Color</span>
-                      <input
-                        type="text"
-                        placeholder="Navy / Black"
-                        className="admin-input"
-                        value={v.color}
-                        onChange={e => handleVariantChange(idx, 'color', e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <span style={{ fontSize: '10px', color: 'var(--color-admin-dim)' }}>Price +/- (৳)</span>
-                      <input
-                        type="number"
-                        placeholder="0"
-                        className="admin-input"
-                        value={v.price_modifier}
-                        onChange={e => handleVariantChange(idx, 'price_modifier', e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <span style={{ fontSize: '10px', color: 'var(--color-admin-dim)' }}>Stock</span>
-                      <input
-                        type="number"
-                        placeholder="10"
-                        className="admin-input"
-                        value={v.stock_quantity}
-                        onChange={e => handleVariantChange(idx, 'stock_quantity', e.target.value)}
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveVariant(idx)}
-                      style={{ color: 'var(--color-danger)', background: 'none', border: 'none', cursor: 'pointer', marginTop: '14px' }}
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                ))}
+              /* Variants Matrix List */
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: 'var(--color-admin-muted)', padding: '0 4px' }}>
+                  <span>Configured Variants: <strong>{variants.length}</strong></span>
+                  <button
+                    type="button"
+                    onClick={handleAutoSyncStock}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--color-primary)',
+                      cursor: 'pointer',
+                      fontWeight: 700,
+                      fontSize: '11px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      textDecoration: 'underline',
+                    }}
+                  >
+                    ⚡ Auto-Sum Total Stock ({variants.reduce((acc, v) => acc + (Number(v.stock_quantity) || 0), 0)} units)
+                  </button>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {variants.map((v, idx) => {
+                    const effectiveBase = Number(salePrice || basePrice || 0);
+                    const sellVal = v.selling_price !== '' ? Number(v.selling_price) : effectiveBase;
+                    const costVal = Number(v.cost_price) || 0;
+                    const metrics = calculateProfitMetrics(sellVal, costVal);
+
+                    return (
+                      <div
+                        key={idx}
+                        style={{
+                          background: 'var(--color-admin-surface-2)',
+                          border: '1px solid var(--color-admin-border)',
+                          borderRadius: 'var(--radius-lg)',
+                          padding: '12px 14px',
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr)) auto',
+                          gap: '10px',
+                          alignItems: 'center',
+                        }}
+                      >
+                        {/* Option 1: Size / Storage / Volume */}
+                        <div>
+                          <span style={{ fontSize: '10px', color: 'var(--color-admin-dim)', display: 'block', marginBottom: '3px' }}>
+                            Size / Storage / Opt 1
+                          </span>
+                          <input
+                            type="text"
+                            placeholder="M / 128GB / 50ml"
+                            className="admin-input"
+                            value={v.size}
+                            onChange={e => handleVariantChange(idx, 'size', e.target.value)}
+                            style={{ fontSize: '12px', padding: '6px 8px' }}
+                          />
+                        </div>
+
+                        {/* Option 2: Color */}
+                        <div>
+                          <span style={{ fontSize: '10px', color: 'var(--color-admin-dim)', display: 'block', marginBottom: '3px' }}>
+                            Color / Opt 2
+                          </span>
+                          <input
+                            type="text"
+                            placeholder="Black / Silver"
+                            className="admin-input"
+                            value={v.color}
+                            onChange={e => handleVariantChange(idx, 'color', e.target.value)}
+                            style={{ fontSize: '12px', padding: '6px 8px' }}
+                          />
+                        </div>
+
+                        {/* SKU */}
+                        <div>
+                          <span style={{ fontSize: '10px', color: 'var(--color-admin-dim)', display: 'block', marginBottom: '3px' }}>
+                            Variant SKU
+                          </span>
+                          <input
+                            type="text"
+                            placeholder="PROD-M-BLK"
+                            className="admin-input"
+                            value={v.sku}
+                            onChange={e => handleVariantChange(idx, 'sku', e.target.value)}
+                            style={{ fontSize: '12px', padding: '6px 8px' }}
+                          />
+                        </div>
+
+                        {/* Buying Price / Costing (৳) */}
+                        <div>
+                          <span style={{ fontSize: '10px', color: '#3b82f6', fontWeight: 700, display: 'block', marginBottom: '3px' }}>
+                            Buying Price / Cost (৳)
+                          </span>
+                          <input
+                            type="number"
+                            placeholder="Buying cost"
+                            className="admin-input"
+                            value={v.cost_price}
+                            onChange={e => handleVariantChange(idx, 'cost_price', e.target.value)}
+                            style={{ fontSize: '12px', padding: '6px 8px' }}
+                            min="0"
+                          />
+                        </div>
+
+                        {/* Selling Price (৳) */}
+                        <div>
+                          <span style={{ fontSize: '10px', color: 'var(--color-primary-light)', fontWeight: 700, display: 'block', marginBottom: '3px' }}>
+                            Selling Price (৳)
+                          </span>
+                          <input
+                            type="number"
+                            placeholder={String(effectiveBase || 'Retail price')}
+                            className="admin-input"
+                            value={v.selling_price}
+                            onChange={e => handleVariantChange(idx, 'selling_price', e.target.value)}
+                            style={{ fontSize: '12px', padding: '6px 8px' }}
+                            min="0"
+                          />
+                        </div>
+
+                        {/* Live Profit Margin Badge */}
+                        <div style={{ textAlign: 'center', minWidth: '90px' }}>
+                          <span style={{ fontSize: '10px', color: 'var(--color-admin-dim)', display: 'block', marginBottom: '4px' }}>
+                            Margin / Profit
+                          </span>
+                          {costVal > 0 && sellVal > 0 ? (
+                            <span
+                              style={{
+                                display: 'inline-block',
+                                fontSize: '11px',
+                                fontWeight: 700,
+                                padding: '3px 8px',
+                                borderRadius: 'var(--radius-full)',
+                                background: metrics.isProfitable ? 'rgba(22, 163, 74, 0.12)' : 'rgba(239, 68, 68, 0.12)',
+                                color: metrics.isProfitable ? '#16a34a' : '#ef4444',
+                              }}
+                              title={`Unit Net Profit: ${formatCurrency(metrics.netProfit)}`}
+                            >
+                              {metrics.isProfitable ? '+' : ''}{formatCurrency(metrics.netProfit)} ({metrics.marginPercent}%)
+                            </span>
+                          ) : (
+                            <span style={{ fontSize: '11px', color: 'var(--color-admin-muted)' }}>
+                              Set cost
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Stock Quantity */}
+                        <div style={{ maxWidth: '85px' }}>
+                          <span style={{ fontSize: '10px', color: 'var(--color-admin-dim)', display: 'block', marginBottom: '3px' }}>
+                            Stock
+                          </span>
+                          <input
+                            type="number"
+                            placeholder="10"
+                            className="admin-input"
+                            value={v.stock_quantity}
+                            onChange={e => handleVariantChange(idx, 'stock_quantity', e.target.value)}
+                            style={{ fontSize: '12px', padding: '6px 8px' }}
+                            min="0"
+                          />
+                        </div>
+
+                        {/* Delete Button */}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveVariant(idx)}
+                          style={{
+                            color: 'var(--color-danger)',
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            padding: '6px',
+                            alignSelf: 'center',
+                          }}
+                          title="Remove variant"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>

@@ -31,6 +31,9 @@ export default function ProductDetailClientActions({ product }: ProductDetailCli
     ? baseEffectivePrice + selectedVariant.price_modifier
     : baseEffectivePrice;
 
+  const effectiveStock = selectedVariant ? selectedVariant.stock_quantity : product.stock_quantity;
+  const isOutOfStock = effectiveStock <= 0;
+
   const hasDiscount = product.sale_price && product.sale_price < product.base_price;
   const discountPercent = hasDiscount
     ? calcDiscountPercent(product.base_price, product.sale_price!)
@@ -39,6 +42,10 @@ export default function ProductDetailClientActions({ product }: ProductDetailCli
   const handleAddToCart = () => {
     if (product.has_variants && product.variants && product.variants.length > 0 && !selectedVariant) {
       showToast('Please choose a variant/size option before adding to cart', 'info');
+      return;
+    }
+    if (isOutOfStock) {
+      showToast(selectedVariant ? 'This option is currently out of stock' : 'Product is out of stock', 'error');
       return;
     }
     add(product, selectedVariant, quantity);
@@ -50,6 +57,10 @@ export default function ProductDetailClientActions({ product }: ProductDetailCli
   const handleBuyNow = () => {
     if (product.has_variants && product.variants && product.variants.length > 0 && !selectedVariant) {
       showToast('Please select your preferred size/variant', 'info');
+      return;
+    }
+    if (isOutOfStock) {
+      showToast(selectedVariant ? 'This option is currently out of stock' : 'Product is out of stock', 'error');
       return;
     }
     add(product, selectedVariant, quantity);
@@ -70,10 +81,10 @@ export default function ProductDetailClientActions({ product }: ProductDetailCli
       } else {
         await supabase.from('wishlists').insert({ user_id: user.id, product_id: product.id });
         setIsWishlisted(true);
-        showToast('Saved to wishlist!', 'success');
+        showToast('Added to wishlist', 'success');
       }
     } catch {
-      setIsWishlisted(!isWishlisted);
+      showToast('Error updating wishlist', 'error');
     }
   };
 
@@ -105,12 +116,14 @@ export default function ProductDetailClientActions({ product }: ProductDetailCli
 
       {/* Stock Availability */}
       <div>
-        {product.stock_quantity > 0 ? (
+        {!isOutOfStock ? (
           <span className="badge badge-success">
-            In Stock ({product.stock_quantity} available)
+            In Stock ({effectiveStock} available{selectedVariant ? ' for this option' : ''})
           </span>
         ) : (
-          <span className="badge badge-danger">Currently Out of Stock</span>
+          <span className="badge badge-danger">
+            {selectedVariant ? 'This Option is Currently Out of Stock' : 'Currently Out of Stock'}
+          </span>
         )}
       </div>
 
@@ -122,7 +135,7 @@ export default function ProductDetailClientActions({ product }: ProductDetailCli
             type="button"
             onClick={() => setQuantity(Math.max(1, quantity - 1))}
             style={{ width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-secondary)' }}
-            disabled={quantity <= 1}
+            disabled={quantity <= 1 || isOutOfStock}
             aria-label="Decrease quantity"
           >
             <Minus size={14} />
@@ -134,7 +147,7 @@ export default function ProductDetailClientActions({ product }: ProductDetailCli
             type="button"
             onClick={() => setQuantity(quantity + 1)}
             style={{ width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-secondary)' }}
-            disabled={quantity >= product.stock_quantity}
+            disabled={quantity >= effectiveStock || isOutOfStock}
             aria-label="Increase quantity"
           >
             <Plus size={14} />
@@ -147,25 +160,25 @@ export default function ProductDetailClientActions({ product }: ProductDetailCli
         <button
           type="button"
           onClick={handleAddToCart}
-          disabled={product.stock_quantity <= 0}
+          disabled={isOutOfStock}
           className="btn btn-secondary"
           style={{ flex: 1, minWidth: '150px', padding: '14px 20px', borderRadius: 'var(--radius-xl)' }}
           id="pdp-add-to-cart-btn"
         >
           {isAdded ? <Check size={18} /> : <ShoppingBag size={18} />}
-          <span>{isAdded ? 'Added to Cart!' : 'Add to Cart'}</span>
+          <span>{isAdded ? 'Added to Cart!' : isOutOfStock ? 'Out of Stock' : 'Add to Cart'}</span>
         </button>
 
         <button
           type="button"
           onClick={handleBuyNow}
-          disabled={product.stock_quantity <= 0}
+          disabled={isOutOfStock}
           className="btn btn-primary"
           style={{ flex: 1, minWidth: '150px', padding: '14px 20px', borderRadius: 'var(--radius-xl)' }}
           id="pdp-buy-now-btn"
         >
           <Zap size={18} fill="currentColor" />
-          <span>Buy Now / অর্ডার করুন</span>
+          <span>{isOutOfStock ? 'Sold Out' : 'Buy Now / অর্ডার করুন'}</span>
         </button>
 
         <button
