@@ -529,7 +529,7 @@ export default function ProductForm({ initialProduct, categories = [] }: Product
         {/* Left Column: Core Fields */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div className="admin-card">
-            <h2 style={{ fontSize: '16px', fontWeight: 800, color: '#ffffff', marginBottom: '16px' }}>
+            <h2 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--color-admin-text)', marginBottom: '16px' }}>
               Basic Product Information
             </h2>
 
@@ -1442,21 +1442,53 @@ export default function ProductForm({ initialProduct, categories = [] }: Product
                 </div>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '8px' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: '#ffffff', fontSize: '14px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '12px' }}>
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    cursor: 'pointer',
+                    color: 'var(--color-admin-text)',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    padding: '8px 12px',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--color-admin-border)',
+                    background: isFeatured ? 'rgba(59, 130, 246, 0.05)' : '#ffffff',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
                   <input
                     type="checkbox"
                     checked={isFeatured}
                     onChange={e => setIsFeatured(e.target.checked)}
+                    style={{ width: '16px', height: '16px', accentColor: 'var(--color-primary)', cursor: 'pointer' }}
                   />
                   <span>Feature on Homepage Spotlight</span>
                 </label>
 
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: '#ffffff', fontSize: '14px' }}>
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    cursor: 'pointer',
+                    color: 'var(--color-admin-text)',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    padding: '8px 12px',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--color-admin-border)',
+                    background: isFlashSale ? 'rgba(59, 130, 246, 0.05)' : '#ffffff',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
                   <input
                     type="checkbox"
                     checked={isFlashSale}
                     onChange={e => setIsFlashSale(e.target.checked)}
+                    style={{ width: '16px', height: '16px', accentColor: 'var(--color-primary)', cursor: 'pointer' }}
                   />
                   <span>Include in Flash Sale Banner (7-day timer)</span>
                 </label>
@@ -1489,7 +1521,13 @@ export default function ProductForm({ initialProduct, categories = [] }: Product
               type="button"
               onClick={() => router.push('/admin/products')}
               className="btn btn-secondary"
-              style={{ background: 'var(--color-admin-surface-2)', color: '#ffffff', borderColor: 'var(--color-admin-border)' }}
+              style={{
+                background: '#ffffff',
+                color: 'var(--color-admin-text)',
+                borderColor: 'var(--color-admin-border)',
+                fontWeight: 700,
+                padding: '14px 24px',
+              }}
             >
               Cancel
             </button>

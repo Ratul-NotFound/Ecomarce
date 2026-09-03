@@ -830,7 +830,7 @@ export default function AdminCustomizePage() {
                                 <button
                                   type="button"
                                   onClick={() => openEditSlideModal(b)}
-                                  style={{ background: 'none', border: '1px solid var(--color-admin-border)', color: '#fff', padding: '4px 6px', borderRadius: '4px', cursor: 'pointer' }}
+                                  style={{ background: '#ffffff', border: '1px solid var(--color-admin-border)', color: 'var(--color-admin-text)', padding: '4px 6px', borderRadius: '4px', cursor: 'pointer' }}
                                   title="Edit Slide"
                                 >
                                   <Edit3 size={13} />
