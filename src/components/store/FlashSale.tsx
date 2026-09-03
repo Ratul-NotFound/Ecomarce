@@ -38,8 +38,9 @@ export default function FlashSale({ products = [] }: FlashSaleProps) {
         </div>
 
         <Link href="/deals" className="flash-sale-see-all">
-          <span>See All Deals</span>
-          <ArrowRight size={14} />
+          <span className="flash-sale-see-all-full">See All Deals</span>
+          <span className="flash-sale-see-all-short">See All</span>
+          <ArrowRight size={13} />
         </Link>
       </div>
 

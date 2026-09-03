@@ -165,106 +165,105 @@ export default function ProductCard({ product }: ProductCardProps) {
 
       {/* Content */}
       <div className="product-card__content">
-        {/* Category, Exact Rating & Total Sold Row */}
+        {/* Category & Exact Rating Row */}
         <div className="product-card__meta-row">
-          <span className="product-card__category" title={product.category?.name_en || 'Top Pick'}>
-            {product.category?.name_en || 'Top Pick'}
-          </span>
+          <span className="product-card__category">{product.category?.name_en || 'Top Pick'}</span>
 
-          <div className="product-card__social-proof">
-            {exactRating !== null && reviewCount > 0 ? (
-              <div
-                className="product-card__rating-pill"
-                title={`${exactRating.toFixed(1)} out of 5 stars (${reviewCount} verified reviews)`}
-              >
-                <Star size={10} fill="#f59e0b" color="#f59e0b" />
-                <span className="product-card__rating-score">{exactRating.toFixed(1)}</span>
-                <span className="product-card__rating-count">({reviewCount})</span>
-              </div>
-            ) : totalSold > 0 ? (
-              <span className="product-card__sold-text">{soldFormatted} sold</span>
-            ) : null}
-          </div>
-        </div>
-
-        <Link href={`/products/${product.slug}`}>
-          <h3 className="product-card__title">{product.name_en}</h3>
-        </Link>
-
-        {/* Price Row */}
-        <div className="product-card__price-row">
-          <span className="product-card__sale-price">
-            {hasPriceRange
-              ? `${formatCurrency(minPrice)} – ${formatCurrency(maxPrice)}`
-              : formatCurrency(effectivePrice)}
-          </span>
-          {hasPriceRange ? (
-            minReg > minPrice && (
-              <span className="product-card__base-price">
-                {minReg === maxReg
-                  ? formatCurrency(minReg)
-                  : `${formatCurrency(minReg)} – ${formatCurrency(maxReg)}`}
-              </span>
-            )
+          {/* Social Proof: Rating Badge */}
+          {exactRating !== null && reviewCount > 0 ? (
+            <div
+              className="product-card__rating-badge product-card__rating-badge--rated"
+              title={`${exactRating.toFixed(1)} out of 5 stars (${reviewCount} verified reviews)`}
+            >
+              <Star size={9} fill="#f59e0b" color="#f59e0b" />
+              <span className="product-card__rating-num">{exactRating.toFixed(1)}</span>
+              <span className="product-card__rating-count">({reviewCount})</span>
+            </div>
           ) : (
-            hasDiscount && (
-              <span className="product-card__base-price">{formatCurrency(product.base_price)}</span>
-            )
+            <div
+              className="product-card__rating-badge"
+              title="No reviews yet"
+            >
+              <Star size={9} color="var(--color-text-muted)" />
+              <span className="product-card__rating-empty">0.0 (0)</span>
+            </div>
           )}
         </div>
 
-        {/* Actions: Full-width for Variants, Dual for Simple Products */}
-        {hasVariants ? (
-          <div className="product-card__btn-group product-card__btn-group--single">
-            <button
-              type="button"
-              onClick={handleAddToCart}
-              className="product-card__btn product-card__btn--select"
-              title="Choose Options"
-              id={`select-btn-${product.id}`}
-            >
-              <Layers size={13} />
-              <span>Select Options</span>
-            </button>
-          </div>
-        ) : (
-          <div className="product-card__btn-group">
-            <button
-              type="button"
-              onClick={handleAddToCart}
-              disabled={product.stock_quantity <= 0}
-              className="product-card__btn product-card__btn--cart"
-              title="Add to Cart"
-              id={`add-btn-${product.id}`}
-            >
-              {addedAnim ? (
-                <>
-                  <Check size={12} />
-                  <span>Added</span>
-                </>
-              ) : product.stock_quantity <= 0 ? (
-                <span>Out</span>
-              ) : (
-                <>
-                  <ShoppingBag size={12} />
-                  <span>Cart</span>
-                </>
-              )}
-            </button>
+        <Link href={`/products/${product.slug}`} className="product-card__title-link">
+          <h3 className="product-card__title">{product.name_en}</h3>
+        </Link>
 
-            <button
-              type="button"
-              onClick={handleBuyNow}
-              disabled={product.stock_quantity <= 0}
-              className="product-card__btn product-card__btn--buy"
-              title="Buy Now"
-              id={`buy-btn-${product.id}`}
-            >
-              <Zap size={12} fill="currentColor" />
-              <span>Buy Now</span>
-            </button>
+        {/* Price & Sold Row */}
+        <div className="product-card__price-row">
+          <div className="product-card__price-wrap">
+            <span className="product-card__sale-price">
+              {hasPriceRange
+                ? `${formatCurrency(minPrice)} – ${formatCurrency(maxPrice)}`
+                : formatCurrency(effectivePrice)}
+            </span>
+            {hasPriceRange ? (
+              minReg > minPrice && (
+                <span className="product-card__base-price">
+                  {minReg === maxReg
+                    ? formatCurrency(minReg)
+                    : `${formatCurrency(minReg)} – ${formatCurrency(maxReg)}`}
+                </span>
+              )
+            ) : (
+              hasDiscount && (
+                <span className="product-card__base-price">{formatCurrency(product.base_price)}</span>
+              )
+            )}
           </div>
-        )}
+
+          <span className="product-card__sold-count">
+            {soldFormatted} sold
+          </span>
+        </div>
+
+        {/* Dual Actions: Add to Cart + Buy Now */}
+        <div className="product-card__btn-group">
+          <button
+            type="button"
+            onClick={handleAddToCart}
+            disabled={product.stock_quantity <= 0}
+            className="product-card__btn product-card__btn--cart"
+            title={hasVariants ? 'Choose Options' : 'Add to Cart'}
+            id={`add-btn-${product.id}`}
+          >
+            {addedAnim ? (
+              <>
+                <Check size={11} />
+                <span>Added</span>
+              </>
+            ) : product.stock_quantity <= 0 ? (
+              <span>Out</span>
+            ) : hasVariants ? (
+              <>
+                <Layers size={11} />
+                <span>Options</span>
+              </>
+            ) : (
+              <>
+                <ShoppingBag size={11} />
+                <span>Cart</span>
+              </>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleBuyNow}
+            disabled={product.stock_quantity <= 0}
+            className="product-card__btn product-card__btn--buy"
+            title="Buy Now"
+            id={`buy-btn-${product.id}`}
+          >
+            <Zap size={11} fill="currentColor" />
+            <span>{hasVariants ? 'Options' : 'Buy Now'}</span>
+          </button>
+        </div>
       </div>
     </div>
   );

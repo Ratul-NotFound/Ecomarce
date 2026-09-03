@@ -113,8 +113,8 @@ export default function DealProductCard({ product }: DealProductCardProps) {
       </Link>
 
       <div className="deal-card__content">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px', minHeight: '18px' }}>
-          <span style={{ fontSize: '11px', color: 'var(--color-primary)', fontWeight: 700, maxWidth: '90px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+          <span style={{ fontSize: '11px', color: 'var(--color-primary)', fontWeight: 700 }}>
             {product.category?.name_en || 'Flash Deal'}
           </span>
           {exactRating !== null && reviewCount > 0 ? (
@@ -130,14 +130,31 @@ export default function DealProductCard({ product }: DealProductCardProps) {
               title={`${exactRating.toFixed(1)} out of 5 stars (${reviewCount} verified reviews)`}
             >
               <Star size={10} fill="#f59e0b" color="#f59e0b" />
-              <span style={{ fontSize: '10.5px', color: '#92400e', fontWeight: 800 }}>
+              <span style={{ fontSize: '11px', color: '#92400e', fontWeight: 800 }}>
                 {exactRating.toFixed(1)}
               </span>
-              <span style={{ fontSize: '9.5px', color: '#b45309', fontWeight: 600 }}>
+              <span style={{ fontSize: '10px', color: '#b45309', fontWeight: 600 }}>
                 ({reviewCount})
               </span>
             </div>
-          ) : null}
+          ) : (
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '2px',
+                background: 'var(--color-surface-2)',
+                padding: '1px 5px',
+                borderRadius: '4px',
+              }}
+              title="No reviews yet"
+            >
+              <Star size={10} color="var(--color-text-muted)" />
+              <span style={{ fontSize: '10px', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                0.0 (0)
+              </span>
+            </div>
+          )}
         </div>
 
         <Link href={`/products/${product.slug}`} className="deal-card__title">
@@ -182,47 +199,34 @@ export default function DealProductCard({ product }: DealProductCardProps) {
           </div>
         </div>
 
-        {/* Actions */}
-        {hasVariants ? (
-          <div className="deal-card__actions" style={{ gridTemplateColumns: '1fr' }}>
-            <button
-              type="button"
-              onClick={handleAddToCart}
-              className="deal-card__btn deal-card__btn--buy"
-              title="Choose Options"
-              style={{ width: '100%' }}
-            >
-              <Layers size={13} />
-              <span>Select Options</span>
-            </button>
-          </div>
-        ) : (
-          <div className="deal-card__actions">
-            <button
-              type="button"
-              onClick={handleAddToCart}
-              className="deal-card__btn deal-card__btn--cart"
-              title="Add to Cart"
-            >
-              {addedAnim ? (
-                <Check size={13} color="var(--color-success)" />
-              ) : (
-                <ShoppingBag size={13} />
-              )}
-              <span>Cart</span>
-            </button>
+        {/* Dual Actions */}
+        <div className="deal-card__actions">
+          <button
+            type="button"
+            onClick={handleAddToCart}
+            className="deal-card__btn deal-card__btn--cart"
+            title={hasVariants ? 'Choose Options' : 'Add to Cart'}
+          >
+            {addedAnim ? (
+              <Check size={14} color="var(--color-success)" />
+            ) : hasVariants ? (
+              <Layers size={14} />
+            ) : (
+              <ShoppingBag size={14} />
+            )}
+            <span>{hasVariants ? 'Options' : 'Cart'}</span>
+          </button>
 
-            <button
-              type="button"
-              onClick={handleBuyNow}
-              className="deal-card__btn deal-card__btn--buy"
-              title="Buy Now"
-            >
-              <Zap size={13} fill="currentColor" />
-              <span>Buy Now</span>
-            </button>
-          </div>
-        )}
+          <button
+            type="button"
+            onClick={handleBuyNow}
+            className="deal-card__btn deal-card__btn--buy"
+            title="Buy Now"
+          >
+            <Zap size={14} fill="currentColor" />
+            <span>{hasVariants ? 'Options' : 'Buy Now'}</span>
+          </button>
+        </div>
       </div>
     </div>
   );
