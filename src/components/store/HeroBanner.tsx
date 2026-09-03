@@ -33,9 +33,9 @@ export default function HeroBanner({ banners = [] }: HeroBannerProps) {
     },
     {
       id: 'default-fashion',
-      title_en: 'Premium Urban Autumn Collection',
-      title_bn: 'প্রিমিয়াম আরবান অটাম ফ্যাশন কালেকশন',
-      subtitle: '✨ EXCLUSIVE MINIMALIST STYLES',
+      title_en: 'Bespoke Menswear & Urban Luxury',
+      title_bn: 'প্রিমিয়াম আরবান ফ্যাশন ও স্যুট কালেকশন',
+      subtitle: '✨ EXCLUSIVE DESIGNER STYLES · UP TO 40% OFF',
       image_url: '/images/banners/hero-fashion.jpg',
       link_url: '/category/fashion',
       type: 'hero_banner',
