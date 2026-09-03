@@ -325,7 +325,6 @@ function AccountContent() {
       <div
         className="account-tabs-mobile"
         style={{
-          display: 'grid',
           gridTemplateColumns: 'repeat(4, 1fr)',
           background: 'var(--color-surface-2)',
           padding: '4px',

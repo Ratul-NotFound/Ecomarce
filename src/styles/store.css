@@ -2412,11 +2412,11 @@
 }
 
 .account-header-mobile {
-  display: none;
+  display: none !important;
 }
 
 .account-tabs-mobile {
-  display: none;
+  display: none !important;
 }
 
 .account-nav-item {
@@ -2453,15 +2453,15 @@
   }
 
   .account-sidebar-desktop {
-    display: none;
+    display: none !important;
   }
 
   .account-header-mobile {
-    display: flex;
+    display: flex !important;
   }
 
   .account-tabs-mobile {
-    display: flex;
+    display: grid !important;
   }
 }
 
