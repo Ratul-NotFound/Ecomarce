@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import { ShoppingBag, Heart, User, Search, ShieldCheck } from 'lucide-react';
+import { ShoppingBag, Heart, User, Search, ShieldCheck, Package } from 'lucide-react';
 import { STORE_CONFIG } from '@/lib/store-config';
 import { useCart } from '@/hooks/useCart';
 import { useAuth } from '@/hooks/useAuth';
@@ -91,6 +91,18 @@ export default function Header({ categories = [], announcement }: HeaderProps) {
             >
               <Heart size={20} />
             </Link>
+
+            {/* My Orders (Desktop shortcut when logged in) */}
+            {user && (
+              <Link
+                href="/account?tab=orders"
+                className="header-action-btn desktop-only-cart"
+                title="My Orders"
+                id="header-my-orders-btn"
+              >
+                <Package size={20} />
+              </Link>
+            )}
 
             {/* Cart (Desktop only - mobile uses bottom nav) */}
             <Link
