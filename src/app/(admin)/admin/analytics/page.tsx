@@ -29,7 +29,7 @@ export default async function AdminAnalyticsPage() {
         <div>
           <h1 className="admin-page-title">Store Traffic & Analytics</h1>
           <p style={{ color: 'var(--color-admin-muted)', fontSize: '14px', marginTop: '4px' }}>
-            Filter revenue by Days / Weeks / Months, monitor sales trajectory, and analyze fulfillment metrics.
+            Monitor real-time website traffic, hourly/daily/weekly/monthly trends, unique visitor IPs, and revenue performance.
           </p>
         </div>
       </div>

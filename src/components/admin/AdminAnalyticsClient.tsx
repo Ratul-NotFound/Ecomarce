@@ -15,9 +15,11 @@ import {
   CheckCircle2,
   Clock,
   ArrowUpRight,
+  Globe,
 } from 'lucide-react';
 import KPICard from '@/components/admin/KPICard';
 import SalesAnalyticsChart from '@/components/admin/SalesAnalyticsChart';
+import TrafficAnalyticsView from '@/components/admin/TrafficAnalyticsView';
 import { formatCurrency } from '@/lib/utils/format';
 import type { Order, Product } from '@/types';
 
@@ -27,6 +29,7 @@ interface AdminAnalyticsClientProps {
 }
 
 export default function AdminAnalyticsClient({ orders, products }: AdminAnalyticsClientProps) {
+  const [activeTab, setActiveTab] = useState<'traffic' | 'sales'>('traffic');
   const [timeframe, setTimeframe] = useState<'today' | 'week' | 'month' | 'all'>('month');
 
   // Filter orders by timeframe
@@ -121,17 +124,79 @@ export default function AdminAnalyticsClient({ orders, products }: AdminAnalytic
 
   return (
     <div>
-      {/* Timeframe Filter Buttons */}
+      {/* Top Module Switcher */}
       <div
         style={{
           display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: '20px',
+          gap: '10px',
+          marginBottom: '24px',
+          borderBottom: '1px solid var(--color-admin-border)',
+          paddingBottom: '14px',
           flexWrap: 'wrap',
-          gap: '12px',
         }}
       >
+        <button
+          type="button"
+          onClick={() => setActiveTab('traffic')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '10px 20px',
+            borderRadius: 'var(--radius-lg)',
+            fontSize: '14px',
+            fontWeight: 800,
+            background: activeTab === 'traffic' ? 'var(--color-primary)' : '#ffffff',
+            color: activeTab === 'traffic' ? '#ffffff' : 'var(--color-admin-text)',
+            border: '1px solid ' + (activeTab === 'traffic' ? 'var(--color-primary)' : 'var(--color-admin-border)'),
+            cursor: 'pointer',
+            boxShadow: activeTab === 'traffic' ? '0 2px 8px rgba(37,99,235,0.2)' : 'none',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <Globe size={18} />
+          <span>Website Traffic & Visitor IPs</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('sales')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '10px 20px',
+            borderRadius: 'var(--radius-lg)',
+            fontSize: '14px',
+            fontWeight: 800,
+            background: activeTab === 'sales' ? 'var(--color-primary)' : '#ffffff',
+            color: activeTab === 'sales' ? '#ffffff' : 'var(--color-admin-text)',
+            border: '1px solid ' + (activeTab === 'sales' ? 'var(--color-primary)' : 'var(--color-admin-border)'),
+            cursor: 'pointer',
+            boxShadow: activeTab === 'sales' ? '0 2px 8px rgba(37,99,235,0.2)' : 'none',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <DollarSign size={18} />
+          <span>Sales & Revenue Performance</span>
+        </button>
+      </div>
+
+      {activeTab === 'traffic' ? (
+        <TrafficAnalyticsView />
+      ) : (
+        <>
+          {/* Timeframe Filter Buttons */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '20px',
+              flexWrap: 'wrap',
+              gap: '12px',
+            }}
+          >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-admin-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Calendar size={16} color="var(--color-primary)" />
@@ -399,6 +464,8 @@ export default function AdminAnalyticsClient({ orders, products }: AdminAnalytic
           </div>
         </div>
       </div>
+        </>
+      )}
     </div>
   );
 }
