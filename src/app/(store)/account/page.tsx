@@ -23,6 +23,10 @@ import {
   Star,
   ShoppingBag,
   Copy,
+  ChevronRight,
+  ShieldCheck,
+  CheckCircle2,
+  Clock,
   ExternalLink,
 } from 'lucide-react';
 import type { Address, Order } from '@/types';
@@ -36,7 +40,6 @@ function AccountContent() {
   const tabParam = searchParams.get('tab');
   const [activeTab, setActiveTab] = useState<'orders' | 'addresses' | 'profile' | 'rewards'>('orders');
 
-  // Sync tab with URL parameter if present
   useEffect(() => {
     if (tabParam === 'orders' || tabParam === 'addresses' || tabParam === 'profile' || tabParam === 'rewards') {
       setActiveTab(tabParam);
@@ -70,12 +73,12 @@ function AccountContent() {
     }
   }, [profile]);
 
-  // Fetch customer orders and saved addresses
+  // Fetch orders and addresses
   useEffect(() => {
     if (!user) return;
     const supabase = createClient();
 
-    // 1. Fetch Orders
+    // 1. Orders
     supabase
       .from('orders')
       .select('*')
@@ -88,7 +91,7 @@ function AccountContent() {
         setOrdersLoading(false);
       });
 
-    // 2. Fetch Addresses
+    // 2. Addresses
     supabase
       .from('addresses')
       .select('*')
@@ -99,7 +102,7 @@ function AccountContent() {
       });
   }, [user?.id]);
 
-  // Derived order counts
+  // Counts
   const activeOrdersCount = useMemo(
     () => orders.filter(o => ['pending', 'confirmed', 'processing', 'shipped', 'out_for_delivery'].includes(o.status)).length,
     [orders]
@@ -107,7 +110,7 @@ function AccountContent() {
   const deliveredOrdersCount = useMemo(() => orders.filter(o => o.status === 'delivered').length, [orders]);
   const cancelledOrdersCount = useMemo(() => orders.filter(o => o.status === 'cancelled').length, [orders]);
 
-  // Filtered orders list
+  // Filtered orders
   const filteredOrders = useMemo(() => {
     if (orderFilter === 'active') {
       return orders.filter(o => ['pending', 'confirmed', 'processing', 'shipped', 'out_for_delivery'].includes(o.status));
@@ -124,19 +127,22 @@ function AccountContent() {
   if (loading) {
     return (
       <div className="container" style={{ padding: '80px 16px', textAlign: 'center' }}>
-        <p style={{ color: 'var(--color-text-muted)', fontSize: '14px' }}>Loading your account...</p>
+        <p style={{ color: 'var(--color-text-muted)', fontSize: '14px' }}>Loading your dashboard...</p>
       </div>
     );
   }
 
   if (!user) {
     return (
-      <div className="container" style={{ padding: '80px 16px', textAlign: 'center' }}>
-        <h1 style={{ fontSize: '22px', fontWeight: 800, marginBottom: '12px' }}>Sign in to your account</h1>
-        <p style={{ color: 'var(--color-text-secondary)', marginBottom: '24px', fontSize: '14px' }}>
-          Access your order history, live package tracking, saved delivery addresses, and loyalty rewards.
+      <div className="container" style={{ padding: '80px 16px', textAlign: 'center', maxWidth: '420px' }}>
+        <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'var(--color-primary-10)', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+          <User size={28} />
+        </div>
+        <h1 style={{ fontSize: '20px', fontWeight: 800, marginBottom: '8px' }}>Sign in to ShopBD</h1>
+        <p style={{ color: 'var(--color-text-secondary)', marginBottom: '20px', fontSize: '13.5px' }}>
+          Track your orders, manage delivery addresses, and view your loyalty rewards.
         </p>
-        <Link href="/auth?redirect=/account" className="btn btn-primary" id="account-signin-btn">
+        <Link href="/auth?redirect=/account" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }}>
           Sign In / Register
         </Link>
       </div>
@@ -189,12 +195,12 @@ function AccountContent() {
 
       if (error) throw error;
 
-      showToast('New delivery address saved', 'success');
+      showToast('Address saved', 'success');
       setAddresses([data as Address, ...addresses]);
       setShowAddressModal(false);
       setAddrStreet('');
     } catch (err: any) {
-      showToast(err.message || 'Failed to add address', 'error');
+      showToast(err.message || 'Failed to save address', 'error');
     }
   };
 
@@ -203,7 +209,7 @@ function AccountContent() {
       const supabase = createClient();
       await supabase.from('addresses').delete().eq('id', addrId).eq('user_id', user.id);
       setAddresses(addresses.filter(a => a.id !== addrId));
-      showToast('Address deleted', 'info');
+      showToast('Address removed', 'info');
     } catch {
       showToast('Failed to delete address', 'error');
     }
@@ -218,16 +224,16 @@ function AccountContent() {
   const referralLink = `${typeof window !== 'undefined' ? window.location.origin : ''}/auth?ref=${profile?.referral_code || ''}`;
 
   return (
-    <div className="container" style={{ padding: '16px 16px 120px', maxWidth: '720px' }}>
+    <div className="container" style={{ padding: '16px 16px 140px', maxWidth: '680px' }}>
       {/* ────────────────────────────────────────────────────────────
-          1. CLEAN PROFILE HEADER (Simple, uncluttered, professional)
+          1. ELEGANT, MINIMALIST PROFILE HEADER
       ──────────────────────────────────────────────────────────── */}
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '12px 0 16px',
+          paddingBottom: '16px',
           borderBottom: '1px solid var(--color-border)',
           marginBottom: '16px',
           gap: '12px',
@@ -236,26 +242,27 @@ function AccountContent() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
           <div
             style={{
-              width: '44px',
-              height: '44px',
-              minWidth: '44px',
+              width: '42px',
+              height: '42px',
+              minWidth: '42px',
               borderRadius: '50%',
-              background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+              background: 'linear-gradient(135deg, #1e293b, #0f172a)',
               color: '#ffffff',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '18px',
+              fontSize: '16px',
               fontWeight: 800,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
               flexShrink: 0,
             }}
           >
             {profile?.full_name?.charAt(0) || user.email?.charAt(0)?.toUpperCase() || 'U'}
           </div>
 
-          <div style={{ minWidth: 0, overflow: 'hidden' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '16px', fontWeight: 800, color: 'var(--color-text-primary)' }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontSize: '15px', fontWeight: 800, color: 'var(--color-text-primary)' }}>
                 {profile?.full_name || 'My Account'}
               </span>
               {profile?.role === 'admin' && (
@@ -268,6 +275,8 @@ function AccountContent() {
                     borderRadius: '4px',
                     background: 'rgba(37,99,235,0.1)',
                     color: 'var(--color-primary)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
                   }}
                 >
                   Admin ↗
@@ -285,13 +294,13 @@ function AccountContent() {
           onClick={handleSignOut}
           title="Sign Out"
           style={{
-            display: 'flex',
+            display: 'inline-flex',
             alignItems: 'center',
             gap: '5px',
             fontSize: '12px',
             fontWeight: 600,
             color: 'var(--color-text-secondary)',
-            background: 'none',
+            background: 'var(--color-surface-2)',
             border: '1px solid var(--color-border)',
             borderRadius: 'var(--radius-lg)',
             padding: '6px 10px',
@@ -305,27 +314,26 @@ function AccountContent() {
       </div>
 
       {/* ────────────────────────────────────────────────────────────
-          2. CLEAN PRIMARY TAB NAVIGATION (Orders, Addresses, Profile, Rewards)
+          2. MINIMALIST HORIZONTAL UNDERLINE TABS (Single Row, No Clutter!)
       ──────────────────────────────────────────────────────────── */}
       <div
         style={{
           display: 'flex',
-          gap: '8px',
+          borderBottom: '1px solid var(--color-border)',
+          marginBottom: '16px',
+          gap: '24px',
           overflowX: 'auto',
           WebkitOverflowScrolling: 'touch',
           scrollbarWidth: 'none',
-          marginBottom: '16px',
         }}
       >
         {[
-          { id: 'orders', label: `My Orders (${orders.length})`, icon: Package },
-          { id: 'addresses', label: `Addresses (${addresses.length})`, icon: MapPin },
-          { id: 'profile', label: 'Profile', icon: User },
-          { id: 'rewards', label: `Rewards (${profile?.points || 0} pts)`, icon: Gift },
+          { id: 'orders', label: 'My Orders', badge: orders.length },
+          { id: 'addresses', label: 'Addresses', badge: addresses.length },
+          { id: 'profile', label: 'Profile' },
+          { id: 'rewards', label: 'Rewards' },
         ].map(tab => {
           const isActive = activeTab === tab.id;
-          const IconComp = tab.icon;
-
           return (
             <button
               key={tab.id}
@@ -335,32 +343,44 @@ function AccountContent() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
-                padding: '8px 14px',
-                fontSize: '13px',
-                fontWeight: isActive ? 700 : 500,
-                borderRadius: 'var(--radius-full)',
-                border: '1px solid ' + (isActive ? 'var(--color-primary)' : 'var(--color-border)'),
-                background: isActive ? 'var(--color-primary)' : 'var(--color-surface)',
-                color: isActive ? '#ffffff' : 'var(--color-text-secondary)',
+                padding: '10px 0 12px',
+                fontSize: '13.5px',
+                fontWeight: isActive ? 800 : 500,
+                color: isActive ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+                border: 'none',
+                borderBottom: isActive ? '2px solid var(--color-primary)' : '2px solid transparent',
+                background: 'none',
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
-                flexShrink: 0,
                 transition: 'all 0.15s ease',
               }}
             >
-              <IconComp size={14} />
               <span>{tab.label}</span>
+              {typeof tab.badge === 'number' && tab.badge > 0 && (
+                <span
+                  style={{
+                    fontSize: '10.5px',
+                    fontWeight: 700,
+                    padding: '1px 6px',
+                    borderRadius: '10px',
+                    background: isActive ? 'var(--color-primary)' : 'var(--color-surface-2)',
+                    color: isActive ? '#ffffff' : 'var(--color-text-muted)',
+                  }}
+                >
+                  {tab.badge}
+                </span>
+              )}
             </button>
           );
         })}
       </div>
 
       {/* ────────────────────────────────────────────────────────────
-          3. MY ORDERS TAB (Clean, uncluttered, focused)
+          3. TAB 1: MY ORDERS SECTION
       ──────────────────────────────────────────────────────────── */}
       {activeTab === 'orders' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          {/* Sub-Filters: All, In Transit, Delivered */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {/* Subtle Status Filter Tabs (Minimal underline / subtle pills) */}
           <div
             style={{
               display: 'flex',
@@ -368,6 +388,7 @@ function AccountContent() {
               overflowX: 'auto',
               WebkitOverflowScrolling: 'touch',
               scrollbarWidth: 'none',
+              marginBottom: '4px',
             }}
           >
             {[
@@ -385,9 +406,9 @@ function AccountContent() {
                   style={{
                     fontSize: '12px',
                     fontWeight: isSelected ? 700 : 500,
-                    padding: '4px 10px',
-                    borderRadius: 'var(--radius-md)',
-                    border: 'none',
+                    padding: '5px 11px',
+                    borderRadius: 'var(--radius-full)',
+                    border: '1px solid ' + (isSelected ? 'var(--color-primary)' : 'var(--color-border)'),
                     background: isSelected ? 'var(--color-primary-10)' : 'transparent',
                     color: isSelected ? 'var(--color-primary)' : 'var(--color-text-muted)',
                     cursor: 'pointer',
@@ -401,9 +422,9 @@ function AccountContent() {
             })}
           </div>
 
-          {/* Orders List / Empty State */}
+          {/* Orders Stream */}
           {ordersLoading ? (
-            <div style={{ padding: '40px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '14px' }}>
+            <div style={{ padding: '40px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '13px' }}>
               Loading orders...
             </div>
           ) : filteredOrders.length === 0 ? (
@@ -411,17 +432,17 @@ function AccountContent() {
               style={{
                 background: 'var(--color-surface)',
                 border: '1px solid var(--color-border)',
-                borderRadius: 'var(--radius-xl)',
+                borderRadius: '16px',
                 padding: '40px 20px',
                 textAlign: 'center',
               }}
             >
-              <Package size={40} color="var(--color-text-muted)" style={{ margin: '0 auto 10px', opacity: 0.6 }} />
-              <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '4px' }}>
+              <Package size={36} color="var(--color-text-muted)" style={{ margin: '0 auto 10px', opacity: 0.5 }} />
+              <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '4px' }}>
                 {orderFilter === 'all' ? 'No orders yet' : `No ${orderFilter} orders`}
               </div>
               <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)', marginBottom: '16px' }}>
-                Discover our curated products and place your first order.
+                Explore our catalog to find exciting products.
               </p>
               <Link href="/" className="btn btn-primary btn-sm">
                 Start Shopping
@@ -431,49 +452,80 @@ function AccountContent() {
             filteredOrders.map(order => {
               const firstItem = (order.items_snapshot || [])[0];
               const totalItemsCount = (order.items_snapshot || []).reduce((sum, it) => sum + (it.quantity || 1), 0);
-              const isDelivered = order.status === 'delivered';
+
+              // Status dot and style
+              let statusDotColor = '#f59e0b';
+              let statusBg = 'rgba(245, 158, 11, 0.1)';
+              let statusTextColor = '#b45309';
+
+              if (order.status === 'delivered') {
+                statusDotColor = '#10b981';
+                statusBg = 'rgba(16, 185, 129, 0.1)';
+                statusTextColor = '#059669';
+              } else if (order.status === 'shipped' || order.status === 'out_for_delivery') {
+                statusDotColor = '#2563eb';
+                statusBg = 'rgba(37, 99, 235, 0.1)';
+                statusTextColor = '#2563eb';
+              } else if (order.status === 'cancelled') {
+                statusDotColor = '#ef4444';
+                statusBg = 'rgba(239, 68, 68, 0.1)';
+                statusTextColor = '#dc2626';
+              }
 
               return (
                 <div
                   key={order.id}
                   style={{
                     background: '#ffffff',
-                    border: '1px solid var(--color-border)',
+                    border: '1px solid rgba(0,0,0,0.08)',
                     borderRadius: '16px',
                     padding: '16px',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '12px',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                    boxShadow: '0 1px 4px rgba(0,0,0,0.03)',
                   }}
                 >
-                  {/* Order Top Bar: Order ID + Status Badge */}
+                  {/* Top Bar: Order ID + Status with Dot */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span style={{ fontSize: '14px', fontWeight: 800, color: 'var(--color-text-primary)' }}>
                         #{order.order_number}
                       </span>
-                      <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                      <span style={{ fontSize: '11.5px', color: 'var(--color-text-muted)' }}>
                         • {formatDate(order.created_at)}
                       </span>
                     </div>
 
-                    <span className={`badge badge-${order.status}`} style={{ fontSize: '11px', padding: '2px 8px' }}>
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        fontSize: '11.5px',
+                        fontWeight: 700,
+                        padding: '3px 8px',
+                        borderRadius: '12px',
+                        background: statusBg,
+                        color: statusTextColor,
+                      }}
+                    >
+                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: statusDotColor }} />
                       {getStatusLabel(order.status)}
                     </span>
                   </div>
 
-                  {/* Primary Product Snapshot */}
+                  {/* Product Preview */}
                   {firstItem && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '4px 0' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '2px 0' }}>
                       <div
                         style={{
-                          width: '56px',
-                          height: '56px',
-                          minWidth: '56px',
-                          borderRadius: '10px',
+                          width: '54px',
+                          height: '54px',
+                          minWidth: '54px',
+                          borderRadius: '12px',
                           background: '#f8fafc',
-                          border: '1px solid var(--color-border)',
+                          border: '1px solid rgba(0,0,0,0.06)',
                           position: 'relative',
                           overflow: 'hidden',
                           display: 'flex',
@@ -487,11 +539,11 @@ function AccountContent() {
                             src={firstItem.image_snapshot}
                             alt={firstItem.name_snapshot || 'Product'}
                             fill
-                            sizes="56px"
+                            sizes="54px"
                             style={{ objectFit: 'cover' }}
                           />
                         ) : (
-                          <Package size={22} color="var(--color-text-muted)" />
+                          <Package size={20} color="var(--color-text-muted)" />
                         )}
                       </div>
 
@@ -511,24 +563,24 @@ function AccountContent() {
                           {firstItem.name_snapshot}
                         </div>
                         <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '3px' }}>
-                          {totalItemsCount > 1 ? `${totalItemsCount} items • ` : `Qty: ${firstItem.quantity} • `}
-                          {order.payment_method?.toUpperCase()}
+                          Qty: {firstItem.quantity} • {order.payment_method?.toUpperCase()}
+                          {totalItemsCount > 1 && ` (+${totalItemsCount - 1} more)`}
                         </div>
                       </div>
 
                       <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                        <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--color-primary)' }}>
+                        <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--color-text-primary)' }}>
                           {formatCurrency(order.total)}
                         </div>
                       </div>
                     </div>
                   )}
 
-                  {/* Bottom Action Buttons: Clean 2-column touch row */}
+                  {/* Bottom Actions Row */}
                   <div
                     style={{
                       display: 'grid',
-                      gridTemplateColumns: '1fr 1.2fr',
+                      gridTemplateColumns: '1fr 1.3fr',
                       gap: '8px',
                       borderTop: '1px solid #f1f5f9',
                       paddingTop: '12px',
@@ -546,6 +598,7 @@ function AccountContent() {
                         gap: '6px',
                         fontSize: '12.5px',
                         height: '38px',
+                        borderRadius: '10px',
                       }}
                     >
                       <FileText size={14} />
@@ -562,6 +615,7 @@ function AccountContent() {
                         gap: '6px',
                         fontSize: '12.5px',
                         height: '38px',
+                        borderRadius: '10px',
                       }}
                     >
                       <Truck size={14} />
@@ -577,17 +631,17 @@ function AccountContent() {
       )}
 
       {/* ────────────────────────────────────────────────────────────
-          4. ADDRESSES TAB
+          4. TAB 2: SAVED ADDRESSES SECTION
       ──────────────────────────────────────────────────────────── */}
       {activeTab === 'addresses' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h2 style={{ fontSize: '16px', fontWeight: 800, margin: 0 }}>Delivery Addresses</h2>
+            <h2 style={{ fontSize: '15px', fontWeight: 800, margin: 0 }}>Saved Addresses</h2>
             <button
               type="button"
               onClick={() => setShowAddressModal(true)}
               className="btn btn-primary btn-sm"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '12px', height: '34px' }}
             >
               <Plus size={14} />
               <span>Add Address</span>
@@ -595,48 +649,48 @@ function AccountContent() {
           </div>
 
           {addresses.length === 0 ? (
-            <div style={{ background: 'var(--color-surface)', padding: '32px 16px', borderRadius: 'var(--radius-xl)', textAlign: 'center', border: '1px solid var(--color-border)' }}>
-              <MapPin size={32} color="var(--color-text-muted)" style={{ margin: '0 auto 10px' }} />
-              <p style={{ color: 'var(--color-text-secondary)', fontSize: '13.5px' }}>No saved addresses yet.</p>
+            <div style={{ background: 'var(--color-surface)', padding: '32px 16px', borderRadius: '16px', textAlign: 'center', border: '1px solid var(--color-border)' }}>
+              <MapPin size={32} color="var(--color-text-muted)" style={{ margin: '0 auto 8px', opacity: 0.5 }} />
+              <p style={{ color: 'var(--color-text-secondary)', fontSize: '13px' }}>No saved addresses yet.</p>
             </div>
           ) : (
             addresses.map(addr => (
               <div
                 key={addr.id}
                 style={{
-                  background: 'var(--color-surface)',
-                  border: '1px solid var(--color-border)',
-                  borderRadius: '16px',
-                  padding: '16px',
-                  position: 'relative',
+                  background: '#ffffff',
+                  border: '1px solid rgba(0,0,0,0.08)',
+                  borderRadius: '14px',
+                  padding: '14px 16px',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                  <span className="badge badge-primary">{addr.label}</span>
+                  <span className="badge badge-primary" style={{ fontSize: '10.5px' }}>{addr.label}</span>
                   <button
                     type="button"
                     onClick={() => handleDeleteAddress(addr.id)}
                     style={{ color: 'var(--color-danger)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}
                   >
-                    <Trash2 size={16} />
+                    <Trash2 size={15} />
                   </button>
                 </div>
-                <div style={{ fontWeight: 800, fontSize: '14px' }}>{addr.full_name}</div>
-                <div style={{ fontSize: '13px', color: 'var(--color-text-secondary)', margin: '4px 0' }}>
+                <div style={{ fontWeight: 800, fontSize: '13.5px' }}>{addr.full_name}</div>
+                <div style={{ fontSize: '12.5px', color: 'var(--color-text-secondary)', margin: '3px 0' }}>
                   {addr.street_address}, {addr.upazila}, {addr.district}
                 </div>
-                <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>📞 {addr.phone}</div>
+                <div style={{ fontSize: '11.5px', color: 'var(--color-text-muted)' }}>📞 {addr.phone}</div>
               </div>
             ))
           )}
 
-          {/* Add Address Form */}
+          {/* Add Address Modal Form */}
           {showAddressModal && (
-            <div style={{ background: 'var(--color-surface)', border: '2px solid var(--color-primary)', borderRadius: '16px', padding: '16px' }}>
+            <div style={{ background: '#ffffff', border: '2px solid var(--color-primary)', borderRadius: '16px', padding: '16px' }}>
               <h3 style={{ fontSize: '15px', fontWeight: 800, marginBottom: '12px' }}>New Address</h3>
               <form onSubmit={handleAddAddress} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <div className="form-group">
-                  <label className="form-label">Label (e.g. Home, Office)</label>
+                  <label className="form-label">Label (Home, Office)</label>
                   <input
                     type="text"
                     className="form-input"
@@ -646,7 +700,7 @@ function AccountContent() {
                   />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Recipient Name</label>
+                  <label className="form-label">Recipient Full Name</label>
                   <input
                     type="text"
                     className="form-input"
@@ -710,12 +764,12 @@ function AccountContent() {
       )}
 
       {/* ────────────────────────────────────────────────────────────
-          5. PROFILE TAB
+          5. TAB 3: PROFILE TAB
       ──────────────────────────────────────────────────────────── */}
       {activeTab === 'profile' && (
-        <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '16px', padding: '20px' }}>
-          <h2 style={{ fontSize: '16px', fontWeight: 800, marginBottom: '16px' }}>Personal Profile</h2>
-          <form onSubmit={handleUpdateProfile} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        <div style={{ background: '#ffffff', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '16px', padding: '18px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+          <h2 style={{ fontSize: '15px', fontWeight: 800, marginBottom: '14px' }}>Personal Profile</h2>
+          <form onSubmit={handleUpdateProfile} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div className="form-group">
               <label className="form-label">Full Name</label>
               <input
@@ -752,7 +806,7 @@ function AccountContent() {
               type="submit"
               disabled={isUpdating}
               className="btn btn-primary btn-sm"
-              style={{ width: 'fit-content' }}
+              style={{ width: 'fit-content', height: '38px', marginTop: '4px' }}
             >
               {isUpdating ? 'Saving...' : 'Save Profile Changes'}
             </button>
@@ -761,7 +815,7 @@ function AccountContent() {
       )}
 
       {/* ────────────────────────────────────────────────────────────
-          6. REWARDS TAB
+          6. TAB 4: REWARDS TAB
       ──────────────────────────────────────────────────────────── */}
       {activeTab === 'rewards' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -777,8 +831,8 @@ function AccountContent() {
             </p>
           </div>
 
-          <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '16px', padding: '16px' }}>
-            <h3 style={{ fontSize: '15px', fontWeight: 800, marginBottom: '6px' }}>Invite Friends & Earn</h3>
+          <div style={{ background: '#ffffff', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '16px', padding: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+            <h3 style={{ fontSize: '14.5px', fontWeight: 800, marginBottom: '4px' }}>Invite Friends & Earn</h3>
             <p style={{ fontSize: '12.5px', color: 'var(--color-text-secondary)', marginBottom: '12px' }}>
               Share your referral link with friends to earn bonus reward points.
             </p>
