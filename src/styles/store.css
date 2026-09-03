@@ -1218,75 +1218,277 @@
 }
 
 /* ────────────────────────────────────────────────────────────
-   FLASH SALE SECTION
+   FLASH SALE SECTION (Mobile-Responsive Overhaul)
    ──────────────────────────────────────────────────────────── */
 .flash-sale-box {
-  background: linear-gradient(135deg, #090e1a 0%, #1e293b 100%);
-  border-radius: var(--radius-2xl);
-  padding: var(--space-6);
-  margin: var(--space-8) 0;
+  background: linear-gradient(145deg, #090e1a 0%, #1e293b 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-xl);
+  padding: 14px 12px 16px;
+  margin: 16px 0 24px;
   color: #ffffff;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.35), 0 0 25px rgba(245, 158, 11, 0.04);
+  position: relative;
+  overflow: hidden;
 }
 
 @media (min-width: 768px) {
   .flash-sale-box {
-    padding: var(--space-8);
+    border-radius: var(--radius-2xl);
+    padding: var(--space-6) var(--space-8);
+    margin: var(--space-8) 0;
   }
 }
 
 .flash-sale-header {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-  margin-bottom: var(--space-6);
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
 }
 
 @media (min-width: 640px) {
   .flash-sale-header {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
+    flex-wrap: nowrap;
+    margin-bottom: 18px;
+  }
+}
+
+.flash-sale-title-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+@media (min-width: 640px) {
+  .flash-sale-title-group {
+    gap: 16px;
   }
 }
 
 .flash-sale-title {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  font-size: var(--text-2xl);
-  font-weight: 800;
-  color: #ffffff;
+  gap: 8px;
 }
 
-.countdown-wrapper {
+.flash-sale-icon-badge {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  justify-content: center;
+  color: #ffffff;
+  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.4);
+  flex-shrink: 0;
+}
+
+.flash-icon-zap {
+  animation: pulseZap 2s infinite ease-in-out;
+}
+
+@keyframes pulseZap {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
+.flash-sale-heading-primary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 16px;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.3px;
+}
+
+@media (min-width: 640px) {
+  .flash-sale-heading-primary {
+    font-size: 22px;
+  }
+}
+
+.flash-sale-badge-bn {
+  font-size: 10.5px;
+  font-weight: 600;
+  background: rgba(245, 158, 11, 0.18);
+  color: #fbbf24;
+  padding: 1px 7px;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  display: none;
+}
+
+@media (min-width: 440px) {
+  .flash-sale-badge-bn {
+    display: inline-block;
+  }
+}
+
+.flash-sale-see-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #fbbf24;
+  text-decoration: none;
+  padding: 5px 10px;
+  border-radius: var(--radius-full);
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.flash-sale-see-all:hover {
+  background: rgba(245, 158, 11, 0.25);
+  color: #ffffff;
+  transform: translateX(2px);
+}
+
+@media (min-width: 640px) {
+  .flash-sale-see-all {
+    font-size: 13px;
+    padding: 6px 14px;
+  }
+}
+
+/* Countdown responsive styles */
+.countdown-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+@media (min-width: 640px) {
+  .countdown-wrapper {
+    gap: 6px;
+  }
 }
 
 .countdown-digit {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: var(--radius-md);
-  padding: var(--space-2) var(--space-3);
-  min-width: 44px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  padding: 3px 5px;
+  min-width: 32px;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (min-width: 640px) {
+  .countdown-digit {
+    border-radius: var(--radius-md);
+    padding: 6px 10px;
+    min-width: 44px;
+  }
 }
 
 .countdown-num {
-  font-size: var(--text-lg);
+  font-size: 12.5px;
   font-weight: 800;
   line-height: 1;
-  color: var(--color-accent);
+  color: #fbbf24;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (min-width: 640px) {
+  .countdown-num {
+    font-size: 17px;
+  }
 }
 
 .countdown-label {
-  font-size: 9px;
+  font-size: 7.5px;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.7);
-  letter-spacing: 0.5px;
+  color: rgba(255, 255, 255, 0.65);
+  letter-spacing: 0.3px;
+  line-height: 1;
+  margin-top: 2px;
+}
+
+@media (min-width: 640px) {
+  .countdown-label {
+    font-size: 9px;
+    margin-top: 3px;
+  }
+}
+
+.countdown-separator {
+  font-size: 13px;
+  font-weight: 800;
+  color: #fbbf24;
+  margin-top: -3px;
+}
+
+@media (min-width: 640px) {
+  .countdown-separator {
+    font-size: 18px;
+  }
+}
+
+/* Flash Sale Products Track */
+.flash-sale-products-track {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 6px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  margin: 0 -2px;
+  padding-left: 2px;
+  padding-right: 2px;
+}
+
+.flash-sale-products-track::-webkit-scrollbar {
+  display: none;
+}
+
+.flash-sale-card-wrapper {
+  flex: 0 0 168px;
+  width: 168px;
+  scroll-snap-align: start;
+}
+
+@media (min-width: 440px) and (max-width: 767px) {
+  .flash-sale-card-wrapper {
+    flex: 0 0 185px;
+    width: 185px;
+  }
+}
+
+@media (min-width: 768px) {
+  .flash-sale-products-track {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-4);
+    overflow-x: visible;
+    margin: 0;
+    padding: 0;
+  }
+
+  .flash-sale-card-wrapper {
+    flex: initial;
+    width: auto;
+  }
+}
+
+@media (min-width: 1024px) {
+  .flash-sale-products-track {
+    gap: var(--space-5);
+  }
 }
 
 /* ────────────────────────────────────────────────────────────

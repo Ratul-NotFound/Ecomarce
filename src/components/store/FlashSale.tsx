@@ -1,8 +1,11 @@
+'use client';
+
 import React from 'react';
+import Link from 'next/link';
 import type { Product } from '@/types';
 import ProductCard from './ProductCard';
 import CountdownTimer from './CountdownTimer';
-import { Zap } from 'lucide-react';
+import { Zap, ArrowRight } from 'lucide-react';
 
 interface FlashSaleProps {
   products: Product[];
@@ -14,18 +17,37 @@ export default function FlashSale({ products = [] }: FlashSaleProps) {
   const firstFlashEnd = products[0]?.flash_sale_ends_at || null;
 
   return (
-    <section className="flash-sale-box">
+    <section className="flash-sale-box" aria-label="Flash Sale Deals">
       <div className="flash-sale-header">
-        <div className="flash-sale-title">
-          <Zap size={28} color="var(--color-accent)" fill="currentColor" />
-          <span>Flash Sale / ফ্ল্যাশ সেল</span>
+        <div className="flash-sale-title-group">
+          <div className="flash-sale-title">
+            <span className="flash-sale-icon-badge">
+              <Zap size={18} className="flash-icon-zap" fill="currentColor" />
+            </span>
+            <div className="flash-sale-heading-text">
+              <span className="flash-sale-heading-primary">
+                Flash Sale
+                <span className="flash-sale-badge-bn">ফ্ল্যাশ সেল</span>
+              </span>
+            </div>
+          </div>
+
+          <div className="flash-sale-timer-block">
+            <CountdownTimer targetDate={firstFlashEnd} />
+          </div>
         </div>
-        <CountdownTimer targetDate={firstFlashEnd} />
+
+        <Link href="/deals" className="flash-sale-see-all">
+          <span>See All Deals</span>
+          <ArrowRight size={14} />
+        </Link>
       </div>
 
-      <div className="product-grid">
-        {products.slice(0, 4).map(product => (
-          <ProductCard key={product.id} product={product} />
+      <div className="flash-sale-products-track">
+        {products.slice(0, 8).map(product => (
+          <div key={product.id} className="flash-sale-card-wrapper">
+            <ProductCard product={product} />
+          </div>
         ))}
       </div>
     </section>
