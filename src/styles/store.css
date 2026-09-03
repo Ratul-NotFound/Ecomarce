@@ -2260,3 +2260,133 @@
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(239, 68, 68, 0.45);
 }
+
+/* ────────────────────────────────────────────────────────────
+   USER ACCOUNT DASHBOARD & ORDER TIMELINE (MOBILE-FIRST)
+   ──────────────────────────────────────────────────────────── */
+.order-timeline-desktop {
+  display: block;
+}
+
+.order-timeline-mobile {
+  display: none;
+}
+
+.account-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.account-kpi-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: 16px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.account-kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.account-kpi-card--active {
+  border-color: var(--color-primary);
+  background: var(--color-primary-10);
+}
+
+.account-tabs-nav {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 12px;
+  margin-bottom: 24px;
+}
+
+.account-tabs-nav::-webkit-scrollbar {
+  display: none;
+}
+
+.account-order-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: 20px;
+  box-shadow: var(--shadow-xs);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transition: border-color 0.2s ease;
+}
+
+.account-order-card:hover {
+  border-color: var(--color-primary-light);
+}
+
+.order-card__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--color-border);
+  padding-top: 14px;
+}
+
+.address-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 640px) {
+  .order-timeline-desktop {
+    display: none;
+  }
+
+  .order-timeline-mobile {
+    display: block;
+  }
+
+  .account-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+
+  .account-kpi-card {
+    padding: 12px;
+  }
+
+  .account-order-card {
+    padding: 16px;
+    gap: 14px;
+  }
+
+  .order-card__actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .order-card__actions .btn {
+    width: 100%;
+    justify-content: center;
+    font-size: 12px;
+    padding: 8px 10px;
+  }
+
+  .address-form-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+

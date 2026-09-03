@@ -41,10 +41,15 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
   return (
     <div className="container" style={{ padding: '32px 16px 80px', maxWidth: '840px' }}>
       {/* Header breadcrumb & actions */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <Link href="/orders" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', color: 'var(--color-primary)', fontWeight: 600 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
+        <Link
+          href="/account?tab=orders"
+          className="btn btn-secondary btn-sm"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+          id="back-to-orders-btn"
+        >
           <ArrowLeft size={16} />
-          <span>My Orders</span>
+          <span>Back to My Orders</span>
         </Link>
 
         <a
@@ -53,6 +58,7 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
           rel="noopener noreferrer"
           className="btn btn-secondary btn-sm"
           id="download-invoice-btn"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
         >
           <FileText size={16} />
           <span>View Invoice / রশিদ</span>
@@ -157,6 +163,18 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
             <span>{formatCurrency(order.total)}</span>
           </div>
         </div>
+      </div>
+
+      {/* Bottom Navigation Link for Mobile / Convenient Exit */}
+      <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'center' }}>
+        <Link
+          href="/account?tab=orders"
+          className="btn btn-secondary"
+          style={{ width: '100%', maxWidth: '340px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+        >
+          <ArrowLeft size={16} />
+          <span>Back to My Orders & Dashboard</span>
+        </Link>
       </div>
     </div>
   );
