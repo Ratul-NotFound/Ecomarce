@@ -8,7 +8,7 @@ import ProductGrid from '@/components/store/ProductGrid';
 import ProductDetailClientActions from './ProductDetailClientActions';
 import type { Metadata } from 'next';
 import { STORE_CONFIG } from '@/lib/store-config';
-import { ShieldCheck, Truck, RotateCcw } from 'lucide-react';
+import { ShieldCheck, Truck, RotateCcw, Star } from 'lucide-react';
 import { getProductVideoUrl } from '@/lib/utils/video';
 
 interface ProductPageProps {
@@ -75,6 +75,34 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
               {product.name_bn}
             </div>
           )}
+
+          {/* Real Rating & Total Sold metrics synced with DB */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '10px', marginBottom: '8px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <div className="stars" style={{ display: 'flex', color: (product.review_count || 0) > 0 ? '#f59e0b' : 'var(--color-text-muted)' }}>
+                {[1, 2, 3, 4, 5].map(star => (
+                  <Star
+                    key={star}
+                    size={15}
+                    fill={(product.review_count || 0) > 0 && Math.round(Number(product.avg_rating || 0)) >= star ? 'currentColor' : 'none'}
+                    stroke="currentColor"
+                  />
+                ))}
+              </div>
+              <span style={{ fontWeight: 800, fontSize: '14px' }}>
+                {(product.avg_rating || 0).toFixed(1)}
+              </span>
+              <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                ({product.review_count || 0} reviews)
+              </span>
+            </div>
+
+            <span style={{ color: 'var(--color-border)' }}>•</span>
+
+            <span style={{ fontSize: '13px', color: 'var(--color-text-secondary)', fontWeight: 600 }}>
+              🔥 {product.total_sold || 0} sold
+            </span>
+          </div>
 
           {/* Client Interactive Ordering Island (Variants, Quantity, Add to Cart, Buy Now) */}
           <ProductDetailClientActions product={product} />

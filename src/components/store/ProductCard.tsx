@@ -31,20 +31,22 @@ export default function ProductCard({ product }: ProductCardProps) {
     ? calcDiscountPercent(product.base_price, product.sale_price!)
     : 0;
 
-  // Exact Rating calculation
-  const reviews = product.reviews || [];
-  const exactRating = product.avg_rating
-    ? Number(product.avg_rating).toFixed(1)
-    : reviews.length > 0
-    ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1)
-    : (4.6 + ((product.id.charCodeAt(0) % 4) * 0.1)).toFixed(1);
+  // 1. Exact Rating strictly synced from actual database reviews
+  const reviews = Array.isArray(product.reviews) ? product.reviews : [];
+  const validRatings = reviews
+    .map((r: any) => (typeof r === 'number' ? r : Number(r?.rating)))
+    .filter((r: number) => !isNaN(r) && r > 0);
 
-  // Total Sold calculation
-  const soldCount =
-    typeof product.total_sold === 'number' && product.total_sold > 0
-      ? product.total_sold
-      : Math.max(12, (product.id.charCodeAt(1) % 65) + 14);
-  const soldFormatted = soldCount >= 1000 ? `${(soldCount / 1000).toFixed(1)}k` : soldCount;
+  const reviewCount = product.review_count ?? validRatings.length;
+  const exactRating = product.avg_rating !== undefined && product.avg_rating !== null && product.avg_rating > 0
+    ? Number(product.avg_rating)
+    : reviewCount > 0
+    ? Number((validRatings.reduce((sum: number, r: number) => sum + r, 0) / reviewCount).toFixed(1))
+    : null;
+
+  // 2. Exact Total Sold strictly synced with database column
+  const totalSold = typeof product.total_sold === 'number' ? product.total_sold : (Number(product.total_sold) || 0);
+  const soldFormatted = totalSold >= 1000 ? `${(totalSold / 1000).toFixed(1)}k` : totalSold;
 
   // Ultra-optimized Tier 1 thumbnail (~20KB)
   const rawImage = product.images && product.images.length > 0 ? product.images[0] : null;
@@ -137,22 +139,44 @@ export default function ProductCard({ product }: ProductCardProps) {
 
           {/* Social Proof: Exact Rating & Total Sold */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '2px',
-                background: '#fef3c7',
-                padding: '1px 5px',
-                borderRadius: '4px',
-              }}
-              title={`${exactRating} out of 5 stars`}
-            >
-              <Star size={10} fill="#f59e0b" color="#f59e0b" />
-              <span style={{ fontSize: '11px', color: '#92400e', fontWeight: 800 }}>
-                {exactRating}
-              </span>
-            </div>
+            {exactRating !== null && reviewCount > 0 ? (
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '2px',
+                  background: '#fef3c7',
+                  padding: '1px 5px',
+                  borderRadius: '4px',
+                }}
+                title={`${exactRating.toFixed(1)} out of 5 stars (${reviewCount} verified reviews)`}
+              >
+                <Star size={10} fill="#f59e0b" color="#f59e0b" />
+                <span style={{ fontSize: '11px', color: '#92400e', fontWeight: 800 }}>
+                  {exactRating.toFixed(1)}
+                </span>
+                <span style={{ fontSize: '10px', color: '#b45309', fontWeight: 600 }}>
+                  ({reviewCount})
+                </span>
+              </div>
+            ) : (
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '2px',
+                  background: 'var(--color-surface-2)',
+                  padding: '1px 5px',
+                  borderRadius: '4px',
+                }}
+                title="No reviews yet"
+              >
+                <Star size={10} color="var(--color-text-muted)" />
+                <span style={{ fontSize: '10px', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                  0.0 (0)
+                </span>
+              </div>
+            )}
 
             <span
               style={{

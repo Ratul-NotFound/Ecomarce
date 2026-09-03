@@ -44,6 +44,7 @@ export default function ProductForm({ initialProduct, categories = [] }: Product
     initialProduct ? getProductVideoUrl(initialProduct) || '' : ''
   );
   const [stockQuantity, setStockQuantity] = useState<number | string>(initialProduct?.stock_quantity ?? 10);
+  const [totalSold, setTotalSold] = useState<number | string>(initialProduct?.total_sold ?? 0);
   const [lowStockThreshold, setLowStockThreshold] = useState<number | string>(initialProduct?.low_stock_threshold ?? 5);
   const [descriptionEn, setDescriptionEn] = useState(initialProduct?.description_en || '');
   const [descriptionBn, setDescriptionBn] = useState(initialProduct?.description_bn || '');
@@ -152,6 +153,7 @@ export default function ProductForm({ initialProduct, categories = [] }: Product
         video_url: videoUrl.trim() || null,
         tags: finalTags,
         stock_quantity: Number(stockQuantity) || 0,
+        total_sold: Number(totalSold) || 0,
         low_stock_threshold: Number(lowStockThreshold) || 5,
         description_en: descriptionEn.trim() || null,
         description_bn: descriptionBn.trim() || null,
@@ -640,7 +642,7 @@ export default function ProductForm({ initialProduct, categories = [] }: Product
                 );
               })()}
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px' }}>
                 <div className="form-group">
                   <label className="admin-label" htmlFor="prod-stock">Total Stock Quantity *</label>
                   <input
@@ -652,6 +654,22 @@ export default function ProductForm({ initialProduct, categories = [] }: Product
                     min="0"
                     required
                   />
+                </div>
+
+                <div className="form-group">
+                  <label className="admin-label" htmlFor="prod-total-sold">Total Sold (Units)</label>
+                  <input
+                    id="prod-total-sold"
+                    type="number"
+                    className="admin-input"
+                    value={totalSold}
+                    onChange={e => setTotalSold(e.target.value)}
+                    min="0"
+                    placeholder="0"
+                  />
+                  <span style={{ fontSize: '10px', color: 'var(--color-admin-muted)' }}>
+                    Auto-increments with orders
+                  </span>
                 </div>
 
                 <div className="form-group">

@@ -155,7 +155,7 @@ export default function ReviewSection({ productId, reviews = [] }: ReviewSection
   const avgRating =
     reviewList.length > 0
       ? (reviewList.reduce((acc, r) => acc + r.rating, 0) / reviewList.length).toFixed(1)
-      : '5.0';
+      : '0.0';
 
   return (
     <div style={{ marginTop: '32px', borderTop: '1px solid var(--color-border)', paddingTop: '32px' }}>
@@ -164,9 +164,14 @@ export default function ReviewSection({ productId, reviews = [] }: ReviewSection
         <div>
           <h2 style={{ fontSize: '20px', fontWeight: 800 }}>Customer Reviews</h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
-            <div className="stars" style={{ display: 'flex', color: '#f59e0b' }}>
+            <div className="stars" style={{ display: 'flex', color: reviewList.length > 0 ? '#f59e0b' : 'var(--color-text-muted)' }}>
               {[1, 2, 3, 4, 5].map(star => (
-                <Star key={star} size={18} fill="currentColor" />
+                <Star
+                  key={star}
+                  size={18}
+                  fill={reviewList.length > 0 && Math.round(Number(avgRating)) >= star ? 'currentColor' : 'none'}
+                  stroke="currentColor"
+                />
               ))}
             </div>
             <span style={{ fontWeight: 800, fontSize: '16px' }}>{avgRating}</span>

@@ -2,6 +2,31 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { BaseRepository } from './BaseRepository';
 import type { Product, ProductFilter, PaginatedResult } from '@/types';
 
+/**
+ * Attaches real, computed review metrics and clean sold count from the database
+ */
+export function attachProductMetrics(p: any): Product {
+  if (!p) return p;
+
+  const rawReviews = Array.isArray(p.reviews) ? p.reviews : [];
+  const validRatings = rawReviews
+    .map((r: any) => (typeof r === 'number' ? r : Number(r?.rating)))
+    .filter((r: number) => !isNaN(r) && r > 0);
+
+  const reviewCount = validRatings.length;
+  const avgRating = reviewCount > 0
+    ? Number((validRatings.reduce((sum: number, r: number) => sum + r, 0) / reviewCount).toFixed(1))
+    : 0;
+
+  return {
+    ...p,
+    total_sold: typeof p.total_sold === 'number' ? p.total_sold : Number(p.total_sold) || 0,
+    avg_rating: avgRating,
+    review_count: reviewCount,
+    reviews: rawReviews,
+  };
+}
+
 export class ProductRepository extends BaseRepository<Product> {
   constructor(supabase: SupabaseClient) {
     super(supabase, 'products');
@@ -14,7 +39,8 @@ export class ProductRepository extends BaseRepository<Product> {
       .eq('slug', slug)
       .eq('is_active', true)
       .single();
-    return data as Product | null;
+
+    return data ? attachProductMetrics(data) : null;
   }
 
   async findAll(filter: ProductFilter = {}): Promise<PaginatedResult<Product>> {
@@ -25,7 +51,7 @@ export class ProductRepository extends BaseRepository<Product> {
 
     let query = this.supabase
       .from('products')
-      .select('*, category:categories(id, name_en, name_bn, slug)', { count: 'exact' })
+      .select('*, category:categories(id, name_en, name_bn, slug), reviews:product_reviews(rating)', { count: 'exact' })
       .eq('is_active', true)
       .range(from, to);
 
@@ -52,34 +78,37 @@ export class ProductRepository extends BaseRepository<Product> {
     if (error) {
       return this.paginate([], 0, page, pageSize);
     }
-    return this.paginate((data as Product[]) ?? [], count ?? 0, page, pageSize);
+    const mapped = (data || []).map(attachProductMetrics);
+    return this.paginate(mapped, count ?? 0, page, pageSize);
   }
 
   async findFeatured(limit = 8): Promise<Product[]> {
     const { data } = await this.supabase
       .from('products')
-      .select('*, category:categories(id, name_en, name_bn, slug)')
+      .select('*, category:categories(id, name_en, name_bn, slug), reviews:product_reviews(rating)')
       .eq('is_active', true)
       .eq('is_featured', true)
       .order('display_order', { ascending: true })
       .limit(limit);
-    return (data as Product[]) ?? [];
+
+    return (data || []).map(attachProductMetrics);
   }
 
   async findFlashSale(): Promise<Product[]> {
     const { data } = await this.supabase
       .from('products')
-      .select('*, category:categories(id, name_en, name_bn, slug)')
+      .select('*, category:categories(id, name_en, name_bn, slug), reviews:product_reviews(rating)')
       .eq('is_active', true)
       .eq('is_flash_sale', true)
       .order('display_order', { ascending: true });
-    return (data as Product[]) ?? [];
+
+    return (data || []).map(attachProductMetrics);
   }
 
   async findRelated(productId: string, categoryId: string | null, limit = 6): Promise<Product[]> {
     let query = this.supabase
       .from('products')
-      .select('*, category:categories(id, name_en, name_bn, slug)')
+      .select('*, category:categories(id, name_en, name_bn, slug), reviews:product_reviews(rating)')
       .eq('is_active', true)
       .neq('id', productId)
       .order('total_sold', { ascending: false })
@@ -90,7 +119,7 @@ export class ProductRepository extends BaseRepository<Product> {
     }
 
     const { data } = await query;
-    return (data as Product[]) ?? [];
+    return (data || []).map(attachProductMetrics);
   }
 
   async incrementViews(productId: string): Promise<void> {
@@ -118,6 +147,7 @@ export class ProductRepository extends BaseRepository<Product> {
       .select('*')
       .lte('stock_quantity', threshold)
       .order('stock_quantity', { ascending: true });
+
     return (data as Product[]) ?? [];
   }
 }

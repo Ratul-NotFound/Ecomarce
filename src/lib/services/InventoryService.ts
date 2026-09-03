@@ -91,6 +91,22 @@ export class InventoryService {
         notes: `Deducted for Order #${orderId}`,
         adminId,
       });
+
+      // Increment product total_sold accurately
+      try {
+        const { data: p } = await this.supabase
+          .from('products')
+          .select('total_sold')
+          .eq('id', item.productId)
+          .single();
+        const currentSold = Number(p?.total_sold) || 0;
+        await this.supabase
+          .from('products')
+          .update({ total_sold: currentSold + item.quantity })
+          .eq('id', item.productId);
+      } catch (err) {
+        console.warn('Failed to increment total_sold for product:', item.productId, err);
+      }
     }
   }
 
