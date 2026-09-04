@@ -45,7 +45,7 @@ export default function CategoryGrid({ categories = [] }: CategoryGridProps) {
     { id: '2', name_en: 'Electronics', name_bn: 'ইলেকট্রনিক্স', slug: 'electronics', parent_id: null, image_url: null, display_order: 2, is_active: true, meta_title: null, meta_description: null, created_at: '' },
     { id: '3', name_en: 'Lifestyle', name_bn: 'লাইফস্টাইল', slug: 'lifestyle', parent_id: null, image_url: null, display_order: 3, is_active: true, meta_title: null, meta_description: null, created_at: '' },
     { id: '4', name_en: 'Sports', name_bn: 'স্পোর্টস', slug: 'sports', parent_id: null, image_url: null, display_order: 4, is_active: true, meta_title: null, meta_description: null, created_at: '' },
-    { id: '5', name_en: 'Home & Living', name_bn: 'হোম ও লিভিং', slug: 'home-garden', parent_id: null, image_url: null, display_order: 5, is_active: true, meta_title: null, meta_description: null, created_at: '' },
+    { id: '5', name_en: 'Home & Living', name_bn: 'হোম ও লিভিং', slug: 'home-living', parent_id: null, image_url: null, display_order: 5, is_active: true, meta_title: null, meta_description: null, created_at: '' },
   ];
 
   return (

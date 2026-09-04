@@ -25,6 +25,17 @@ export function invalidateCategoryCache() {
   _categorySlugCache.clear();
 }
 
+const SLUG_ALIASES: Record<string, string> = {
+  'home-garden': 'home-living',
+  'home': 'home-living',
+  'living': 'home-living',
+  'watches': 'lifestyle',
+  'sports-fitness': 'sports',
+  'gadgets': 'electronics',
+  'cloth': 'fashion',
+  'clothing': 'fashion',
+};
+
 export class CategoryRepository extends BaseRepository<Category> {
   constructor(supabase: SupabaseClient) {
     super(supabase, 'categories');
@@ -48,21 +59,35 @@ export class CategoryRepository extends BaseRepository<Category> {
     return result;
   }
 
-  async findBySlug(slug: string): Promise<Category | null> {
+  async findBySlug(rawSlug: string): Promise<Category | null> {
+    const slug = (rawSlug || '').trim().toLowerCase();
+    const effectiveSlug = SLUG_ALIASES[slug] || slug;
+
     const now = Date.now();
-    const cached = _categorySlugCache.get(slug);
+    const cached = _categorySlugCache.get(effectiveSlug);
     if (cached && now < cached.expiry) {
       return cached.category;
     }
 
-    const { data } = await this.supabase
+    // Try direct slug match
+    let { data } = await this.supabase
       .from('categories')
       .select('*')
-      .eq('slug', slug)
+      .eq('slug', effectiveSlug)
       .maybeSingle();
 
+    // If not found by exact slug, try ilike on name_en
+    if (!data) {
+      const { data: byName } = await this.supabase
+        .from('categories')
+        .select('*')
+        .ilike('name_en', `%${effectiveSlug}%`)
+        .maybeSingle();
+      data = byName;
+    }
+
     const result = (data as Category) || null;
-    _categorySlugCache.set(slug, { category: result, expiry: now + 60_000 });
+    _categorySlugCache.set(effectiveSlug, { category: result, expiry: now + 60_000 });
     return result;
   }
 
