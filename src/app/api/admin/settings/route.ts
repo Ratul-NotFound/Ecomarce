@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 
@@ -41,6 +42,33 @@ export async function POST(request: NextRequest) {
         value,
       });
     }
+
+    // If flash sale end time is updated, ensure both keys stay synced
+    const flashEnd = body.flash_sale_end_time || body.homepage_flash_sale_end;
+    if (flashEnd !== undefined) {
+      await dbClient.from('store_settings').upsert({
+        key: 'flash_sale_end_time',
+        value: flashEnd,
+      });
+      await dbClient.from('store_settings').upsert({
+        key: 'homepage_flash_sale_end',
+        value: flashEnd,
+      });
+
+      // Synchronize all active flash sale products to the same target date
+      if (flashEnd) {
+        await dbClient
+          .from('products')
+          .update({ flash_sale_ends_at: flashEnd })
+          .eq('is_flash_sale', true);
+      }
+    }
+
+    // Invalidate Next.js cache so Homepage and Deals page update instantly
+    try {
+      revalidatePath('/', 'page');
+      revalidatePath('/deals', 'page');
+    } catch {}
 
     return NextResponse.json({ success: true, message: 'Settings updated successfully' });
   } catch (err: any) {

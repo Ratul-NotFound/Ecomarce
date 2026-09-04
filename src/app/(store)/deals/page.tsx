@@ -78,7 +78,7 @@ export default async function DealsPage({ searchParams }: DealsPageProps) {
     );
   }
 
-  const flashSaleEndTime = resolveFlashSaleEndTime(settings, products);
+  const flashSaleEndTime = resolveFlashSaleEndTime(settings);
 
   return (
     <div className="deals-page-container">

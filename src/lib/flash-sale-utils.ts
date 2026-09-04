@@ -58,20 +58,25 @@ export function getDeterministicFlashSaleEnd(cycleHours: number = 24): Date {
  * 3. Deterministic daily anchor (midnight BST) — guarantees never null, never drifts.
  */
 export function resolveFlashSaleEndTime(
-  settings?: { homepage_flash_sale_end?: string | null; deals_timer_hours?: number },
+  settings?: {
+    homepage_flash_sale_end?: string | null;
+    flash_sale_end_time?: string | null;
+    deals_timer_hours?: number;
+  },
   products?: Array<{ flash_sale_ends_at?: string | null; is_flash_sale?: boolean }>
 ): string {
   const now = Date.now();
 
-  // 1. Store settings override
-  if (settings?.homepage_flash_sale_end) {
-    const settingEnd = new Date(settings.homepage_flash_sale_end).getTime();
+  // 1. Primary Master: Store Settings (Admin controlled via Settings or Customizer)
+  const settingTarget = settings?.flash_sale_end_time || settings?.homepage_flash_sale_end;
+  if (settingTarget) {
+    const settingEnd = new Date(settingTarget).getTime();
     if (!isNaN(settingEnd) && settingEnd > now) {
       return new Date(settingEnd).toISOString();
     }
   }
 
-  // 2. Active products with future dates
+  // 2. Secondary fallback: Active products if they have a future date
   if (products && products.length > 0) {
     const validEndTimes = products
       .filter(p => p.is_flash_sale !== false && p.flash_sale_ends_at)
@@ -84,7 +89,7 @@ export function resolveFlashSaleEndTime(
     }
   }
 
-  // 3. Fallback to synchronized cycle anchor (e.g. daily midnight BST or deals_timer_hours)
+  // 3. Guaranteed zero-drift fallback: Synchronized real-time daily anchor (Midnight BST UTC+6)
   const cycleHours = settings?.deals_timer_hours && settings.deals_timer_hours > 0 ? settings.deals_timer_hours : 24;
   return getDeterministicFlashSaleEnd(cycleHours).toISOString();
 }

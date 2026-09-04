@@ -64,7 +64,7 @@ export async function getStoreSettings(): Promise<StorefrontCustomSettings> {
         ? String(settingsMap['homepage_flash_sale_enabled']) === 'true' || settingsMap['homepage_flash_sale_enabled'] === true
         : DEFAULT_STOREFRONT_SETTINGS.homepage_flash_sale_enabled,
       homepage_flash_sale_title: settingsMap['homepage_flash_sale_title'] || DEFAULT_STOREFRONT_SETTINGS.homepage_flash_sale_title,
-      homepage_flash_sale_end: settingsMap['homepage_flash_sale_end'] || DEFAULT_STOREFRONT_SETTINGS.homepage_flash_sale_end,
+      homepage_flash_sale_end: settingsMap['homepage_flash_sale_end'] || settingsMap['flash_sale_end_time'] || DEFAULT_STOREFRONT_SETTINGS.homepage_flash_sale_end,
       homepage_featured_title: settingsMap['homepage_featured_title'] || DEFAULT_STOREFRONT_SETTINGS.homepage_featured_title,
       homepage_new_arrivals_title: settingsMap['homepage_new_arrivals_title'] || DEFAULT_STOREFRONT_SETTINGS.homepage_new_arrivals_title,
       homepage_sections_order: sectionsOrder,

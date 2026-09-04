@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/components/shared/ToastProvider';
 import { STORE_CONFIG } from '@/lib/store-config';
-import { Sliders, Palette, Phone, ShieldCheck, Send, CreditCard, Eye, EyeOff, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Sliders, Palette, Phone, ShieldCheck, Send, CreditCard, Eye, EyeOff, CheckCircle2, AlertCircle, Zap } from 'lucide-react';
 import { DEFAULT_PAYMENT_SETTINGS, getMergedPaymentSettings, PaymentSettings, PaymentMethodConfig } from '@/lib/utils/payment-config';
 
 export default function AdminSettingsPage() {
@@ -16,6 +16,12 @@ export default function AdminSettingsPage() {
   const [insideDhakaFee, setInsideDhakaFee] = useState<number | string>(STORE_CONFIG.shipping.insideDhaka);
   const [outsideDhakaFee, setOutsideDhakaFee] = useState<number | string>(STORE_CONFIG.shipping.outsideDhaka);
   const [freeAbove, setFreeAbove] = useState<number | string>(STORE_CONFIG.shipping.freeAbove);
+
+  // Flash Sale Synchronization State
+  const [flashSaleEnabled, setFlashSaleEnabled] = useState(true);
+  const [flashSaleTitle, setFlashSaleTitle] = useState('⚡ Flash Deals & Steals');
+  const [flashSaleEndTime, setFlashSaleEndTime] = useState<string | null>(null);
+  const [dealsTimerHours, setDealsTimerHours] = useState<number>(6);
 
   // Payment Customization Settings (Hide / Unhide & Numbers)
   const [paymentSettings, setPaymentSettings] = useState<PaymentSettings>(DEFAULT_PAYMENT_SETTINGS);
@@ -56,6 +62,14 @@ export default function AdminSettingsPage() {
           if (s.telegram_orders_topic_id) setOrdersTopicId(s.telegram_orders_topic_id);
           if (s.telegram_messages_topic_id) setMessagesTopicId(s.telegram_messages_topic_id);
           if (s.primary_color) setPrimaryColor(s.primary_color);
+
+          if (s.homepage_flash_sale_enabled !== undefined) {
+            setFlashSaleEnabled(String(s.homepage_flash_sale_enabled) === 'true' || s.homepage_flash_sale_enabled === true);
+          }
+          if (s.homepage_flash_sale_title) setFlashSaleTitle(s.homepage_flash_sale_title);
+          const flashTarget = s.flash_sale_end_time || s.homepage_flash_sale_end;
+          if (flashTarget) setFlashSaleEndTime(flashTarget);
+          if (s.deals_timer_hours) setDealsTimerHours(Number(s.deals_timer_hours) || 6);
         }
       });
   }, []);
@@ -100,6 +114,11 @@ export default function AdminSettingsPage() {
         telegram_orders_topic_id: ordersTopicId,
         telegram_messages_topic_id: messagesTopicId,
         primary_color: primaryColor,
+        homepage_flash_sale_enabled: flashSaleEnabled,
+        homepage_flash_sale_title: flashSaleTitle,
+        homepage_flash_sale_end: flashSaleEndTime,
+        flash_sale_end_time: flashSaleEndTime,
+        deals_timer_hours: Number(dealsTimerHours) || 6,
       };
 
       const res = await fetch('/api/admin/settings', {
@@ -144,6 +163,175 @@ export default function AdminSettingsPage() {
       </div>
 
       <form onSubmit={handleSaveSettings} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        {/* ────────────────────────────────────────────────────────────
+           FLASH SALE & DAILY DEALS SYNCHRONIZATION (GLOBAL)
+           ──────────────────────────────────────────────────────────── */}
+        <div className="admin-card">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: 'rgba(245, 158, 11, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#f59e0b' }}>
+                <Zap size={20} fill="currentColor" />
+              </div>
+              <div>
+                <h2 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--color-admin-text)' }}>
+                  ⚡ Flash Sale & Daily Deals Synchronization (Global)
+                </h2>
+                <p style={{ fontSize: '12px', color: 'var(--color-admin-muted)', marginTop: '2px' }}>
+                  Controls the master live countdown timer displayed simultaneously across Homepage and Deals page (<code style={{ color: 'var(--color-primary-light)' }}>/deals</code>).
+                </p>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '11px', fontWeight: 700, padding: '4px 10px', borderRadius: 'var(--radius-full)', background: flashSaleEndTime ? 'rgba(36, 231, 235, 0.15)' : 'rgba(34, 197, 94, 0.15)', color: flashSaleEndTime ? 'var(--color-primary-light)' : 'var(--color-success)' }}>
+                {flashSaleEndTime ? '● Fixed Campaign Target' : '● Auto Daily Midnight (Zero Drift)'}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  const next = !flashSaleEnabled;
+                  setFlashSaleEnabled(next);
+                  showToast(`Flash Sale ${next ? 'enabled (ON)' : 'disabled (OFF)'}`, 'info');
+                }}
+                className={`btn btn-sm ${flashSaleEnabled ? 'btn-primary' : 'btn-secondary'}`}
+                style={{ fontSize: '11px', padding: '5px 12px' }}
+              >
+                {flashSaleEnabled ? 'Flash Sale ON' : 'Flash Sale OFF'}
+              </button>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+            <div className="form-group">
+              <label className="admin-label">Flash Sale Section Title</label>
+              <input
+                type="text"
+                className="admin-input"
+                value={flashSaleTitle}
+                onChange={e => setFlashSaleTitle(e.target.value)}
+                placeholder="e.g. ⚡ Flash Deals & Steals"
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="admin-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span>Campaign End Date & Time (UTC/BST)</span>
+                {flashSaleEndTime && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFlashSaleEndTime(null);
+                      showToast('Switched to Auto Daily Midnight (Midnight BST)', 'info');
+                    }}
+                    style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '11px', cursor: 'pointer', fontWeight: 700 }}
+                  >
+                    ✕ Reset to Auto
+                  </button>
+                )}
+              </label>
+              <input
+                type="datetime-local"
+                className="admin-input"
+                value={
+                  flashSaleEndTime
+                    ? (() => {
+                        try {
+                          const d = new Date(flashSaleEndTime);
+                          return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+                        } catch {
+                          return '';
+                        }
+                      })()
+                    : ''
+                }
+                onChange={e => {
+                  const val = e.target.value;
+                  setFlashSaleEndTime(val ? new Date(val).toISOString() : null);
+                }}
+              />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '12px', alignItems: 'center' }}>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-admin-muted)' }}>Quick Presets:</span>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              style={{ fontSize: '11px', padding: '4px 10px' }}
+              onClick={() => {
+                setFlashSaleEndTime(null);
+                showToast('Synchronized to Auto Daily Midnight', 'info');
+              }}
+            >
+              ⚡ Auto Daily Midnight
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              style={{ fontSize: '11px', padding: '4px 10px' }}
+              onClick={() => {
+                const t = new Date(Date.now() + 6 * 3600 * 1000).toISOString();
+                setFlashSaleEndTime(t);
+                showToast('Flash sale timer set to +6 Hours from now', 'info');
+              }}
+            >
+              +6 Hours
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              style={{ fontSize: '11px', padding: '4px 10px' }}
+              onClick={() => {
+                const t = new Date(Date.now() + 12 * 3600 * 1000).toISOString();
+                setFlashSaleEndTime(t);
+                showToast('Flash sale timer set to +12 Hours from now', 'info');
+              }}
+            >
+              +12 Hours
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              style={{ fontSize: '11px', padding: '4px 10px' }}
+              onClick={() => {
+                const t = new Date(Date.now() + 24 * 3600 * 1000).toISOString();
+                setFlashSaleEndTime(t);
+                showToast('Flash sale timer set to +24 Hours from now', 'info');
+              }}
+            >
+              +24 Hours
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              style={{ fontSize: '11px', padding: '4px 10px' }}
+              onClick={() => {
+                const t = new Date(Date.now() + 48 * 3600 * 1000).toISOString();
+                setFlashSaleEndTime(t);
+                showToast('Flash sale timer set to +48 Hours from now', 'info');
+              }}
+            >
+              +48 Hours
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              style={{ fontSize: '11px', padding: '4px 10px' }}
+              onClick={() => {
+                const t = new Date(Date.now() + 7 * 86400 * 1000).toISOString();
+                setFlashSaleEndTime(t);
+                showToast('Flash sale timer set to +7 Days from now', 'info');
+              }}
+            >
+              +7 Days
+            </button>
+          </div>
+
+          <div style={{ marginTop: '12px', background: 'var(--color-admin-surface-2)', padding: '10px 14px', borderRadius: 'var(--radius-md)', fontSize: '12px', color: 'var(--color-admin-muted)', lineHeight: '1.5' }}>
+            💡 <strong>100% Real-Time Synchronization:</strong> When saved, this timestamp is broadcasted live to both the Homepage (<code style={{ color: 'var(--color-primary-light)' }}>/</code>) and Deals page (<code style={{ color: 'var(--color-primary-light)' }}>/deals</code>). When set to Auto, it synchronizes to midnight Bangladesh Standard Time with zero client-side clock drift.
+          </div>
+        </div>
+
         {/* ────────────────────────────────────────────────────────────
            PAYMENT METHODS CUSTOMIZATION (HIDE / UNHIDE)
            ──────────────────────────────────────────────────────────── */}

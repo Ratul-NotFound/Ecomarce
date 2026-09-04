@@ -183,7 +183,7 @@ export default async function HomePage() {
     flashSaleProducts = demoSampleProducts.filter(p => p.is_flash_sale);
   }
 
-  const flashSaleEndTime = resolveFlashSaleEndTime(settings, flashSaleProducts);
+  const flashSaleEndTime = resolveFlashSaleEndTime(settings);
 
   // Dynamic Section Map for Sequence Customization
   const sectionMap: Record<string, React.ReactNode> = {

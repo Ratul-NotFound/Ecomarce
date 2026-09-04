@@ -1062,6 +1062,30 @@ export default function AdminCustomizePage() {
                               className="btn btn-secondary btn-sm"
                               style={{ fontSize: '11px', padding: '3px 8px' }}
                               onClick={() => {
+                                const t = new Date(Date.now() + 6 * 3600 * 1000).toISOString();
+                                updateSetting({ homepage_flash_sale_end: t });
+                                showToast('Set to +6 Hours from now', 'info');
+                              }}
+                            >
+                              +6 Hours
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-secondary btn-sm"
+                              style={{ fontSize: '11px', padding: '3px 8px' }}
+                              onClick={() => {
+                                const t = new Date(Date.now() + 12 * 3600 * 1000).toISOString();
+                                updateSetting({ homepage_flash_sale_end: t });
+                                showToast('Set to +12 Hours from now', 'info');
+                              }}
+                            >
+                              +12 Hours
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-secondary btn-sm"
+                              style={{ fontSize: '11px', padding: '3px 8px' }}
+                              onClick={() => {
                                 const t = new Date(Date.now() + 24 * 3600 * 1000).toISOString();
                                 updateSetting({ homepage_flash_sale_end: t });
                                 showToast('Set to +24 Hours from now', 'info');

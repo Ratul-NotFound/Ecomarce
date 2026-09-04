@@ -473,8 +473,8 @@ export default function ProductForm({ initialProduct, categories = [] }: Product
         images: cleanImages,
         is_flash_sale: isFlashSale,
         flash_sale_ends_at: isFlashSale
-          ? (initialData?.flash_sale_ends_at && new Date(initialData.flash_sale_ends_at).getTime() > Date.now()
-              ? initialData.flash_sale_ends_at
+          ? (initialProduct?.flash_sale_ends_at && new Date(initialProduct.flash_sale_ends_at).getTime() > Date.now()
+              ? initialProduct.flash_sale_ends_at
               : new Date(Date.now() + 7 * 86400000).toISOString())
           : null,
         display_order: Number(displayOrder) || 0,
