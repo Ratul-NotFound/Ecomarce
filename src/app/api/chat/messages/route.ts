@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { TelegramService } from '@/lib/services/TelegramService';
 import { checkRateLimit } from '@/lib/utils/rate-limiter';
+import { sanitizeText, sanitizeName, sanitizeUUID } from '@/lib/utils/sanitize';
 
 export async function GET(request: NextRequest) {
   try {
@@ -77,10 +78,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Message cannot exceed 1000 characters' }, { status: 400 });
     }
 
-    const cleanMessage = message.trim();
+    // Sanitize all user inputs to prevent XSS via stored content
+    const cleanMessage   = sanitizeText(message, 1000);
     const cleanSessionId = session_id ? String(session_id).replace(/[^a-zA-Z0-9_-]/g, '').slice(-5) : 'visitor';
-    const cleanUserName = typeof user_name === 'string' ? user_name.slice(0, 100) : 'Visitor';
-    const cleanUserId = typeof user_id === 'string' ? user_id.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 100) : null;
+    const cleanUserName  = sanitizeName(user_name, 100) || 'Visitor';
+    const cleanUserId    = sanitizeUUID(user_id);   // null if not a valid UUID
 
     const supabase = await createClient();
     let dbClient = supabase;

@@ -35,6 +35,10 @@ const withPWA = require('next-pwa')({
 });
 
 const nextConfig: NextConfig = {
+  // ── Security ────────────────────────────────────────────────
+  // Remove X-Powered-By: Next.js header to prevent tech fingerprinting
+  poweredByHeader: false,
+
   // Allowed development origins for LAN / Mobile Wi-Fi testing
   allowedDevOrigins: ['169.254.28.239', 'localhost', '127.0.0.1'],
 
@@ -72,18 +76,34 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        // Apply security headers to all routes
         source: '/(.*)',
         headers: [
           { key: 'X-Frame-Options',           value: 'DENY' },
           { key: 'X-Content-Type-Options',     value: 'nosniff' },
-          { key: 'Referrer-Policy',            value: 'origin-when-cross-origin' },
-          { key: 'Permissions-Policy',         value: 'camera=(), microphone=(), geolocation=()' },
+          { key: 'X-XSS-Protection',           value: '1; mode=block' },
+          { key: 'Referrer-Policy',            value: 'strict-origin-when-cross-origin' },
+          { key: 'Permissions-Policy',         value: 'camera=(), microphone=(), geolocation=(), payment=()' },
+          { key: 'Strict-Transport-Security',  value: 'max-age=31536000; includeSubDomains; preload' },
+          { key: 'X-DNS-Prefetch-Control',     value: 'off' },
+          { key: 'X-Download-Options',         value: 'noopen' },
+          { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
+          { key: 'Cross-Origin-Resource-Policy', value: 'same-site' },
+        ],
+      },
+      {
+        // API responses must never be cached by proxies or browsers
+        source: '/api/(.*)',
+        headers: [
+          { key: 'Cache-Control', value: 'no-store, no-cache, must-revalidate, proxy-revalidate' },
+          { key: 'Pragma',        value: 'no-cache' },
+          { key: 'Expires',       value: '0' },
         ],
       },
       {
         source: '/sw.js',
         headers: [
-          { key: 'Cache-Control',        value: 'public, max-age=0, must-revalidate' },
+          { key: 'Cache-Control',          value: 'public, max-age=0, must-revalidate' },
           { key: 'Service-Worker-Allowed', value: '/' },
         ],
       },

@@ -1,11 +1,23 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { getStoreSettings } from '@/lib/store-settings';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getMergedPaymentSettings } from '@/lib/utils/payment-config';
+import { checkRateLimit } from '@/lib/utils/rate-limiter';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    // Rate limit: 20 settings requests per minute per IP (public endpoint)
+    const ip =
+      request.headers.get('cf-connecting-ip') ||
+      request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
+      request.headers.get('x-real-ip') ||
+      '127.0.0.1';
+    const rate = checkRateLimit(`settings:${ip}`, 20, 60_000);
+    if (!rate.allowed) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+    }
+
     const storefrontSettings = await getStoreSettings();
 
     // Fetch payment methods securely

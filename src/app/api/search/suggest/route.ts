@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { checkRateLimit } from '@/lib/utils/rate-limiter';
 
 // 60-second in-memory cache for ultra-low latency (<5ms)
 let cachedProducts: any[] | null = null;
@@ -109,7 +110,20 @@ function scoreProduct(product: any, query: string): number {
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const q = (searchParams.get('q') || '').trim();
+
+    // Rate limit: 30 search suggestions per minute per IP
+    const ip =
+      (request.headers as any).get?.('cf-connecting-ip') ||
+      (request.headers as any).get?.('x-forwarded-for')?.split(',')[0].trim() ||
+      '127.0.0.1';
+    const rate = checkRateLimit(`search:${ip}`, 30, 60_000);
+    if (!rate.allowed) {
+      return NextResponse.json({ products: [], categories: [], suggestions: [], total_matches: 0 }, { status: 429 });
+    }
+
+    // Cap query length to prevent DoS via pathologically long strings
+    const rawQ = (searchParams.get('q') || '').trim();
+    const q = rawQ.slice(0, 100);
 
     const now = Date.now();
     const supabase = await createClient();

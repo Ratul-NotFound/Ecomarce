@@ -7,9 +7,28 @@ import { TelegramService } from '@/lib/services/TelegramService';
 import { InventoryService } from '@/lib/services/InventoryService';
 import { getShippingFee } from '@/lib/utils/bangladesh-districts';
 import { STORE_CONFIG } from '@/lib/store-config';
+import { checkRateLimit } from '@/lib/utils/rate-limiter';
+
+const ORDER_LIMIT_PER_HOUR = 5;   // Max 5 orders per hour per IP
+const MAX_CART_ITEMS       = 50;  // Max 50 distinct line items
+const MAX_ITEM_QUANTITY    = 999; // Max qty per item (already enforced below too)
 
 export async function POST(request: NextRequest) {
   try {
+    // ── Rate limit: 5 orders per hour per IP ──────────────────
+    const clientIp =
+      request.headers.get('cf-connecting-ip') ||
+      request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
+      request.headers.get('x-real-ip') ||
+      '127.0.0.1';
+    const orderRateCheck = checkRateLimit(`order_create:${clientIp}`, ORDER_LIMIT_PER_HOUR, 60 * 60 * 1000);
+    if (!orderRateCheck.allowed) {
+      return NextResponse.json(
+        { error: `Too many orders placed. Please wait before placing another order.` },
+        { status: 429 }
+      );
+    }
+
     const supabase = await createClient();
     const {
       data: { user },
@@ -28,6 +47,14 @@ export async function POST(request: NextRequest) {
 
     if (!cart || cart.length === 0) {
       return NextResponse.json({ error: 'Cart is empty' }, { status: 400 });
+    }
+
+    // ── Cart size cap to prevent DoS via giant payloads ──────
+    if (cart.length > MAX_CART_ITEMS) {
+      return NextResponse.json(
+        { error: `Cart cannot exceed ${MAX_CART_ITEMS} items.` },
+        { status: 400 }
+      );
     }
 
     if (!address || !address.full_name || !address.phone || !address.district || !address.street_address) {
