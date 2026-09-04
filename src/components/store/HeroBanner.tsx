@@ -22,7 +22,7 @@ export default function HeroBanner({ banners = [] }: HeroBannerProps) {
       id: 'default-tech',
       title_en: 'Next-Gen Flagship Audio & Wearables',
       title_bn: 'নেক্সট-জেন ফ্ল্যাগশিপ অডিও ও স্মার্ট গ্যাজেটস',
-      subtitle: '🔥 SPECIAL LAUNCH OFFER · UP TO 35% OFF',
+      subtitle: '🔥 SPECIAL LAUNCH · UP TO 35% OFF',
       image_url: '/images/banners/hero-tech.jpg',
       link_url: '/category/electronics',
       type: 'hero_banner',
@@ -35,7 +35,7 @@ export default function HeroBanner({ banners = [] }: HeroBannerProps) {
       id: 'default-fashion',
       title_en: 'Bespoke Menswear & Urban Luxury',
       title_bn: 'প্রিমিয়াম আরবান ফ্যাশন ও স্যুট কালেকশন',
-      subtitle: '✨ EXCLUSIVE DESIGNER STYLES · UP TO 40% OFF',
+      subtitle: '✨ DESIGNER STYLES · UP TO 40% OFF',
       image_url: '/images/banners/hero-fashion.jpg',
       link_url: '/category/fashion',
       type: 'hero_banner',
@@ -48,7 +48,7 @@ export default function HeroBanner({ banners = [] }: HeroBannerProps) {
       id: 'default-watches',
       title_en: 'Timeless Luxury & Handcrafted Leather',
       title_bn: 'টাইমলেস ক্রোনোগ্রাফ ঘড়ি ও লেদার এক্সেসরিজ',
-      subtitle: '⚡ MASTER CRAFTSMANSHIP · LUXURY SERIES',
+      subtitle: '⚡ LUXURY SERIES · HANDCRAFTED',
       image_url: '/images/banners/hero-watches.jpg',
       link_url: '/category/watches',
       type: 'hero_banner',
@@ -61,7 +61,7 @@ export default function HeroBanner({ banners = [] }: HeroBannerProps) {
       id: 'default-gadgets',
       title_en: 'Magical Ambient Lights & Moon Decor',
       title_bn: 'ম্যাজিকাল ফেয়ারি লাইটস, মুন ল্যাম্পস ও গ্যালাক্সি প্রজেক্টর',
-      subtitle: '✨ FAIRY LIGHTS, MOON LAMPS & GADGETS · FLAT 30% OFF',
+      subtitle: '✨ MOON LAMPS & GADGETS · 30% OFF',
       image_url: '/images/banners/hero-gadgets.jpg',
       link_url: '/category/electronics',
       type: 'hero_banner',
@@ -142,13 +142,13 @@ export default function HeroBanner({ banners = [] }: HeroBannerProps) {
               transition: 'all 0.7s cubic-bezier(0.4, 0, 0.2, 1)',
             }}
           />
-          {/* Dual Multi-Stop Gradient ensuring high contrast on all devices */}
+          {/* Multi-Stop Dark Gradient for readability */}
           <div
             style={{
               position: 'absolute',
               inset: 0,
               background:
-                'linear-gradient(90deg, rgba(15,23,42,0.92) 0%, rgba(15,23,42,0.78) 45%, rgba(15,23,42,0.3) 80%, rgba(15,23,42,0.15) 100%)',
+                'linear-gradient(90deg, rgba(15,23,42,0.94) 0%, rgba(15,23,42,0.82) 45%, rgba(15,23,42,0.35) 80%, rgba(15,23,42,0.2) 100%)',
             }}
           />
         </div>
@@ -162,7 +162,7 @@ export default function HeroBanner({ banners = [] }: HeroBannerProps) {
       >
         {current.subtitle && (
           <div className="hero-badge">
-            <Sparkles size={12} color="#f59e0b" />
+            <Sparkles size={11} color="#f59e0b" />
             <span>{current.subtitle}</span>
           </div>
         )}
@@ -188,7 +188,7 @@ export default function HeroBanner({ banners = [] }: HeroBannerProps) {
             className="hero-cta-primary"
           >
             <span>Explore Collection</span>
-            <ArrowRight size={15} />
+            <ArrowRight size={14} />
           </Link>
 
           <Link
@@ -200,14 +200,14 @@ export default function HeroBanner({ banners = [] }: HeroBannerProps) {
         </div>
       </div>
 
-      {/* Navigation Arrows (Desktop & Tablet only - hidden on mobile to eliminate text clutter) */}
+      {/* Navigation Arrows (Desktop Only - strictly hidden on mobile devices) */}
       {activeBanners.length > 1 && (
         <>
           <button
             type="button"
             onClick={handlePrev}
             aria-label="Previous Slide"
-            className="hero-nav-btn"
+            className="hero-nav-arrow-btn"
             style={{ left: '16px' }}
           >
             <ChevronLeft size={22} />
@@ -217,7 +217,7 @@ export default function HeroBanner({ banners = [] }: HeroBannerProps) {
             type="button"
             onClick={handleNext}
             aria-label="Next Slide"
-            className="hero-nav-btn"
+            className="hero-nav-arrow-btn"
             style={{ right: '16px' }}
           >
             <ChevronRight size={22} />
@@ -230,14 +230,14 @@ export default function HeroBanner({ banners = [] }: HeroBannerProps) {
         <div
           style={{
             position: 'absolute',
-            bottom: '12px',
+            bottom: '10px',
             left: '50%',
             transform: 'translateX(-50%)',
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
             zIndex: 3,
-            padding: '4px 10px',
+            padding: '4px 8px',
             borderRadius: '9999px',
             background: 'rgba(0, 0, 0, 0.35)',
             backdropFilter: 'blur(6px)',
@@ -249,8 +249,8 @@ export default function HeroBanner({ banners = [] }: HeroBannerProps) {
               type="button"
               onClick={() => setCurrentIndex(idx)}
               style={{
-                width: idx === currentIndex ? '22px' : '6px',
-                height: '6px',
+                width: idx === currentIndex ? '20px' : '5px',
+                height: '5px',
                 borderRadius: '9999px',
                 background: idx === currentIndex ? '#ffffff' : 'rgba(255,255,255,0.45)',
                 border: 'none',
