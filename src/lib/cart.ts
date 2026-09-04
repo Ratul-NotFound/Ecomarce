@@ -101,3 +101,40 @@ export function calculateCartTotals(items: CartItem[]): {
     { subtotal: 0, itemCount: 0 }
   );
 }
+
+const DIRECT_BUY_STORAGE_KEY = 'shopbd_direct_buy_item';
+
+export function setDirectBuyItem(product: Product, variant: ProductVariant | null = null, quantity = 1): CartItem {
+  const item: CartItem = {
+    product_id: product.id,
+    variant_id: variant?.id || null,
+    quantity,
+    product,
+    variant: variant || undefined,
+  };
+  if (typeof window !== 'undefined') {
+    try {
+      sessionStorage.setItem(DIRECT_BUY_STORAGE_KEY, JSON.stringify(item));
+      localStorage.setItem(DIRECT_BUY_STORAGE_KEY, JSON.stringify(item));
+    } catch {}
+  }
+  return item;
+}
+
+export function getDirectBuyItem(): CartItem | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = sessionStorage.getItem(DIRECT_BUY_STORAGE_KEY) || localStorage.getItem(DIRECT_BUY_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function clearDirectBuyItem(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    sessionStorage.removeItem(DIRECT_BUY_STORAGE_KEY);
+    localStorage.removeItem(DIRECT_BUY_STORAGE_KEY);
+  } catch {}
+}

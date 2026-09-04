@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Image from 'next/image';
 import { useCart } from '@/hooks/useCart';
 import { useAuth } from '@/hooks/useAuth';
 import { formatCurrency } from '@/lib/utils/format';
@@ -9,16 +10,44 @@ import { DISTRICTS, getShippingFee } from '@/lib/utils/bangladesh-districts';
 import { STORE_CONFIG } from '@/lib/store-config';
 import { useToast } from '@/components/shared/ToastProvider';
 import { createClient } from '@/lib/supabase/client';
-import { CheckCircle2, ShieldCheck, Truck, CreditCard, ArrowRight, Copy, Check, Smartphone, Banknote, Hash, Phone, Sparkles, Tag, X } from 'lucide-react';
-import type { Address, PaymentMethod } from '@/types';
+import { 
+  CheckCircle2, 
+  ShieldCheck, 
+  Truck, 
+  CreditCard, 
+  ArrowRight, 
+  Copy, 
+  Check, 
+  Banknote, 
+  Hash, 
+  Phone, 
+  Sparkles, 
+  Tag, 
+  Trash2, 
+  Plus, 
+  Minus, 
+  Zap, 
+  ShoppingBag 
+} from 'lucide-react';
+import type { Address, PaymentMethod, CartItem } from '@/types';
 import { DEFAULT_PAYMENT_SETTINGS, getMergedPaymentSettings, PaymentSettings } from '@/lib/utils/payment-config';
 import { NagadLogo, BkashLogo } from '@/components/shared/PaymentLogos';
+import { getOptimizedImageUrl } from '@/lib/utils/images';
+import { 
+  getDirectBuyItem, 
+  setDirectBuyItem, 
+  clearDirectBuyItem, 
+  updateCartQuantity, 
+  removeFromCart 
+} from '@/lib/cart';
 
 function CheckoutContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialCoupon = searchParams.get('coupon') || '';
-  const { cart, subtotal, clear } = useCart();
+  const isDirectParam = searchParams.get('direct') === '1';
+
+  const { cart, clear } = useCart();
   const { user, profile } = useAuth();
   const { showToast } = useToast();
 
@@ -27,6 +56,7 @@ function CheckoutContent() {
   const [shippingOutsideDhaka, setShippingOutsideDhaka] = useState<number>(STORE_CONFIG.shipping.outsideDhaka);
   const [freeShippingAbove, setFreeShippingAbove] = useState<number>(STORE_CONFIG.shipping.freeAbove);
 
+  // Address & Checkout Details
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [district, setDistrict] = useState('Dhaka');
@@ -37,6 +67,12 @@ function CheckoutContent() {
   const [senderPhone, setSenderPhone] = useState('');
   const [copiedNumber, setCopiedNumber] = useState<string | null>(null);
 
+  // Direct buy vs Regular cart checkout items
+  const [isDirectMode, setIsDirectMode] = useState<boolean>(isDirectParam);
+  const [directItem, setDirectItem] = useState<CartItem | null>(null);
+  const [activeItems, setActiveItems] = useState<CartItem[]>([]);
+  const [hasInitializedItems, setHasInitializedItems] = useState(false);
+
   // Coupon state
   const [couponInput, setCouponInput] = useState('');
   const [couponCode, setCouponCode] = useState(initialCoupon);
@@ -46,6 +82,27 @@ function CheckoutContent() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [savedAddresses, setSavedAddresses] = useState<Address[]>([]);
+
+  // 1. Initialize Direct Buy vs Full Cart items
+  useEffect(() => {
+    const directStored = getDirectBuyItem();
+    if (isDirectParam && directStored) {
+      setDirectItem(directStored);
+      setIsDirectMode(true);
+      setActiveItems([directStored]);
+    } else {
+      setIsDirectMode(false);
+      setActiveItems(cart);
+    }
+    setHasInitializedItems(true);
+  }, [isDirectParam]);
+
+  // Sync active items with cart updates if in full cart mode
+  useEffect(() => {
+    if (hasInitializedItems && !isDirectMode) {
+      setActiveItems(cart);
+    }
+  }, [cart, isDirectMode, hasInitializedItems]);
 
   const handleCopyNumber = (num: string, providerName: string) => {
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
@@ -100,7 +157,6 @@ function CheckoutContent() {
           if (res.settings.payment_methods) {
             const merged = getMergedPaymentSettings(res.settings.payment_methods);
             setPaymentSettings(merged);
-            // If current selected payment method is disabled/hidden, switch to first active method
             if (!merged[paymentMethod]?.enabled) {
               const firstActive = (['cod', 'bkash', 'nagad'] as const).find(k => merged[k]?.enabled);
               if (firstActive) setPaymentMethod(firstActive);
@@ -111,7 +167,57 @@ function CheckoutContent() {
       .catch(() => {});
   }, [paymentMethod]);
 
-  // Check initial coupon or claimed coupon from deals page
+  // Dynamic calculations for Active Items
+  const activeSubtotal = useMemo(() => {
+    return activeItems.reduce((acc, item) => {
+      const unitPrice = item.variant
+        ? (item.product.sale_price ?? item.product.base_price) + item.variant.price_modifier
+        : (item.product.sale_price ?? item.product.base_price);
+      return acc + unitPrice * item.quantity;
+    }, 0);
+  }, [activeItems]);
+
+  const isFreeShipping = activeSubtotal >= freeShippingAbove;
+  const shippingFee = activeSubtotal > 0 ? (isFreeShipping ? 0 : getShippingFee(district, shippingInsideDhaka, shippingOutsideDhaka)) : 0;
+  const grandTotal = Math.max(0, activeSubtotal + shippingFee - discountAmount);
+
+  // Validate or re-validate coupon
+  const validateCoupon = async (codeToValidate: string, itemsList: CartItem[], total: number) => {
+    if (!codeToValidate || total <= 0 || itemsList.length === 0) {
+      setDiscountAmount(0);
+      setAppliedCoupon(null);
+      return;
+    }
+
+    try {
+      const itemsPayload = itemsList.map(i => ({
+        product_id: i.product_id,
+        price: i.variant ? (i.product.sale_price ?? i.product.base_price) + i.variant.price_modifier : (i.product.sale_price ?? i.product.base_price),
+        quantity: i.quantity,
+      }));
+
+      const res = await fetch('/api/coupons/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: codeToValidate, total, items: itemsPayload }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.valid) {
+        setDiscountAmount(data.discount);
+        setAppliedCoupon({ code: codeToValidate, discount: data.discount });
+        setCouponCode(codeToValidate);
+      } else {
+        setDiscountAmount(0);
+        setAppliedCoupon(null);
+      }
+    } catch {
+      setDiscountAmount(0);
+      setAppliedCoupon(null);
+    }
+  };
+
+  // Initial coupon check
   useEffect(() => {
     let effectiveCoupon = initialCoupon;
     if (!effectiveCoupon && typeof window !== 'undefined') {
@@ -122,29 +228,10 @@ function CheckoutContent() {
       }
     }
 
-    if (effectiveCoupon && subtotal > 0 && cart.length > 0) {
-      const itemsPayload = cart.map(i => ({
-        product_id: i.product_id,
-        price: i.variant ? (i.product.sale_price ?? i.product.base_price) + i.variant.price_modifier : (i.product.sale_price ?? i.product.base_price),
-        quantity: i.quantity,
-      }));
-
-      fetch('/api/coupons/validate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: effectiveCoupon, total: subtotal, items: itemsPayload }),
-      })
-        .then(r => r.json())
-        .then(res => {
-          if (res.valid) {
-            setDiscountAmount(res.discount);
-            setAppliedCoupon({ code: effectiveCoupon, discount: res.discount });
-            setCouponCode(effectiveCoupon);
-          }
-        })
-        .catch(() => {});
+    if (effectiveCoupon && activeSubtotal > 0 && activeItems.length > 0) {
+      validateCoupon(effectiveCoupon, activeItems, activeSubtotal);
     }
-  }, [initialCoupon, subtotal, cart]);
+  }, [initialCoupon, activeSubtotal, activeItems]);
 
   // Handle manual coupon application on checkout page
   const handleApplyCoupon = async (e?: React.FormEvent) => {
@@ -152,14 +239,14 @@ function CheckoutContent() {
     const cleanCode = couponInput.trim().toUpperCase();
     if (!cleanCode) return;
 
-    if (subtotal <= 0 || cart.length === 0) {
-      showToast('Your cart is empty', 'error');
+    if (activeSubtotal <= 0 || activeItems.length === 0) {
+      showToast('There are no items in checkout', 'error');
       return;
     }
 
     try {
       setIsValidatingCoupon(true);
-      const itemsPayload = cart.map(i => ({
+      const itemsPayload = activeItems.map(i => ({
         product_id: i.product_id,
         price: i.variant ? (i.product.sale_price ?? i.product.base_price) + i.variant.price_modifier : (i.product.sale_price ?? i.product.base_price),
         quantity: i.quantity,
@@ -170,7 +257,7 @@ function CheckoutContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           code: cleanCode,
-          total: subtotal,
+          total: activeSubtotal,
           items: itemsPayload,
         }),
       });
@@ -192,7 +279,6 @@ function CheckoutContent() {
     }
   };
 
-  // Handle removing applied coupon
   const handleRemoveCoupon = () => {
     setAppliedCoupon(null);
     setCouponCode('');
@@ -203,15 +289,65 @@ function CheckoutContent() {
     showToast('Coupon removed', 'info');
   };
 
-  const isFreeShipping = subtotal >= freeShippingAbove;
-  const shippingFee = isFreeShipping ? 0 : getShippingFee(district, shippingInsideDhaka, shippingOutsideDhaka);
-  const grandTotal = Math.max(0, subtotal + shippingFee - discountAmount);
+  // Interactive Item Handlers
+  const handleUpdateItemQty = (productId: string, variantId: string | null | undefined, newQty: number) => {
+    if (newQty <= 0) {
+      handleRemoveItem(productId, variantId);
+      return;
+    }
+
+    if (isDirectMode) {
+      const updated = activeItems.map(item => {
+        if (item.product_id === productId && (item.variant_id || null) === (variantId || null)) {
+          const itemUpdated = { ...item, quantity: newQty };
+          setDirectBuyItem(itemUpdated.product, itemUpdated.variant || null, itemUpdated.quantity);
+          setDirectItem(itemUpdated);
+          return itemUpdated;
+        }
+        return item;
+      });
+      setActiveItems(updated);
+    } else {
+      updateCartQuantity(productId, variantId || null, newQty);
+    }
+  };
+
+  const handleRemoveItem = (productId: string, variantId: string | null | undefined) => {
+    if (isDirectMode) {
+      clearDirectBuyItem();
+      setDirectItem(null);
+      if (cart.length > 0) {
+        setIsDirectMode(false);
+        setActiveItems(cart);
+        showToast('Direct item removed. Displaying regular cart items.', 'info');
+      } else {
+        setActiveItems([]);
+        showToast('Direct buy item removed.', 'info');
+      }
+    } else {
+      removeFromCart(productId, variantId || null);
+      showToast('Item removed from checkout', 'info');
+    }
+  };
+
+  const handleSwitchToDirectMode = () => {
+    if (!directItem) return;
+    setIsDirectMode(true);
+    setActiveItems([directItem]);
+    showToast(`Switched to Direct Buy mode: ${directItem.product.name_en}`, 'info');
+  };
+
+  const handleSwitchToCartMode = () => {
+    setIsDirectMode(false);
+    setActiveItems(cart);
+    showToast(`Switched to Full Cart mode (${cart.length} items)`, 'info');
+  };
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (cart.length === 0) {
-      showToast('Your cart is empty', 'error');
+    if (activeItems.length === 0) {
+      showToast('Your checkout is empty. Please add a product to order.', 'error');
       router.push('/');
       return;
     }
@@ -243,7 +379,7 @@ function CheckoutContent() {
       setIsSubmitting(true);
 
       const orderPayload = {
-        cart,
+        cart: activeItems,
         address: {
           full_name: fullName.trim(),
           phone: phone.trim(),
@@ -269,11 +405,18 @@ function CheckoutContent() {
         throw new Error(data.error || 'Order placement failed');
       }
 
-      showToast('Order placed successfully!', 'success');
+      showToast('Order placed successfully! 🎉', 'success');
       try {
         localStorage.removeItem('shopbd_claimed_coupon');
       } catch {}
-      clear(); // Empty the cart
+
+      if (isDirectMode) {
+        clearDirectBuyItem();
+      } else {
+        clear();
+        clearDirectBuyItem();
+      }
+
       router.push(`/orders/${data.order_id || data.order_number}`);
     } catch (err: any) {
       showToast(err.message || 'Something went wrong placing your order', 'error');
@@ -284,7 +427,7 @@ function CheckoutContent() {
 
   return (
     <div className="container checkout-page-container">
-      <h1 className="checkout-page-title">Checkout</h1>
+      <h1 className="checkout-page-title">Checkout / চেকআউট</h1>
 
       <form onSubmit={handlePlaceOrder} className="checkout-stream-layout">
         {/* 1. Shipping Address Section */}
@@ -469,37 +612,163 @@ function CheckoutContent() {
           )}
         </div>
 
-        {/* 3. Order Summary & Total Amount (Shown BEFORE Payment Method) */}
+        {/* 3. Order Summary & Amount (Interactive Items Preview) */}
         <div className="checkout-card">
-          <h2 className="checkout-card-title" style={{ marginBottom: '16px' }}>
-            3. Order Summary & Amount / অর্ডার ও টাকার হিসাব
-          </h2>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
+            <h2 className="checkout-card-title" style={{ margin: 0 }}>
+              3. Order Summary & Amount / অর্ডার ও টাকার হিসাব
+            </h2>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text-secondary)', background: 'var(--color-surface-2)', padding: '4px 10px', borderRadius: 'var(--radius-full)' }}>
+              {activeItems.length} {activeItems.length === 1 ? 'Item' : 'Items'}
+            </span>
+          </div>
 
-          {/* Items preview list */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '240px', overflowY: 'auto', marginBottom: '20px', paddingRight: '4px' }}>
-            {cart.map(item => {
-              const unitPrice = item.variant
-                ? (item.product.sale_price ?? item.product.base_price) + item.variant.price_modifier
-                : item.product.sale_price ?? item.product.base_price;
-              return (
-                <div key={`${item.product_id}_${item.variant_id || 'base'}`} className="checkout-order-item-row">
-                  <div className="checkout-order-item-info">
-                    <div className="checkout-order-item-name">{item.product.name_en}</div>
-                    <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
-                      Qty: {item.quantity} {item.variant ? `• ${[item.variant.size, item.variant.color].filter(Boolean).join(' / ')}` : ''}
+          {/* Mode Switcher if user has both Direct Buy and Saved Cart Items */}
+          {directItem && cart.length > 0 && (
+            <div className="checkout-mode-banner">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Zap size={18} color="var(--color-primary)" />
+                <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                  {isDirectMode ? (
+                    <span><strong>Direct Buy Mode:</strong> Buying only 1 item. Other items in cart remain safe.</span>
+                  ) : (
+                    <span><strong>Full Cart Mode:</strong> Checking out all {cart.length} items from your shopping bag.</span>
+                  )}
+                </div>
+              </div>
+
+              <div className="checkout-mode-pills">
+                <button
+                  type="button"
+                  onClick={handleSwitchToDirectMode}
+                  className={`checkout-mode-pill ${isDirectMode ? 'checkout-mode-pill--active' : ''}`}
+                >
+                  ⚡ Buy this item only
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSwitchToCartMode}
+                  className={`checkout-mode-pill ${!isDirectMode ? 'checkout-mode-pill--active' : ''}`}
+                >
+                  <ShoppingBag size={13} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'text-top' }} />
+                  Include Cart ({cart.length})
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Interactive Items List */}
+          {activeItems.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '30px 16px', background: 'var(--color-surface-2)', borderRadius: 'var(--radius-lg)', margin: '12px 0' }}>
+              <ShoppingBag size={36} color="var(--color-text-muted)" style={{ margin: '0 auto 8px' }} />
+              <div style={{ fontWeight: 700, fontSize: '14px', color: 'var(--color-text-primary)' }}>
+                No items in your checkout
+              </div>
+              <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '4px', marginBottom: '12px' }}>
+                Please browse products to place an order.
+              </div>
+              <button
+                type="button"
+                onClick={() => router.push('/')}
+                className="btn btn-primary"
+                style={{ fontSize: '12px', padding: '6px 16px', borderRadius: 'var(--radius-full)' }}
+              >
+                Continue Shopping
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '280px', overflowY: 'auto', marginBottom: '18px', paddingRight: '4px' }}>
+              {activeItems.map(item => {
+                const unitPrice = item.variant
+                  ? (item.product.sale_price ?? item.product.base_price) + item.variant.price_modifier
+                  : item.product.sale_price ?? item.product.base_price;
+                const itemImg = item.product.images?.[0] || '';
+                const variantLabel = item.variant ? [item.variant.size, item.variant.color].filter(Boolean).join(' / ') : '';
+
+                return (
+                  <div key={`${item.product_id}_${item.variant_id || 'base'}`} className="checkout-item-card">
+                    {/* Thumbnail */}
+                    <div className="checkout-item-media">
+                      {itemImg ? (
+                        <Image
+                          src={getOptimizedImageUrl(itemImg, 'thumb')}
+                          alt={item.product.name_en}
+                          fill
+                          sizes="52px"
+                          style={{ objectFit: 'cover' }}
+                        />
+                      ) : (
+                        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-surface-3)' }}>
+                          <ShoppingBag size={18} color="var(--color-text-muted)" />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Details */}
+                    <div className="checkout-item-details">
+                      <div className="checkout-item-title" title={item.product.name_en}>
+                        {item.product.name_en}
+                      </div>
+                      <div className="checkout-item-meta">
+                        <span>{formatCurrency(unitPrice)}</span>
+                        {variantLabel && (
+                          <>
+                            <span>•</span>
+                            <span style={{ fontWeight: 600, color: 'var(--color-text-secondary)' }}>{variantLabel}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Stepper, Price & Trash Action */}
+                    <div className="checkout-item-actions">
+                      <div className="checkout-qty-stepper">
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateItemQty(item.product_id, item.variant_id, item.quantity - 1)}
+                          className="checkout-qty-btn"
+                          aria-label="Decrease quantity"
+                        >
+                          <Minus size={12} />
+                        </button>
+                        <span className="checkout-qty-num">{item.quantity}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateItemQty(item.product_id, item.variant_id, item.quantity + 1)}
+                          className="checkout-qty-btn"
+                          aria-label="Increase quantity"
+                        >
+                          <Plus size={12} />
+                        </button>
+                      </div>
+
+                      <div className="checkout-item-price-wrap">
+                        <div className="checkout-item-price">
+                          {formatCurrency(unitPrice * item.quantity)}
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveItem(item.product_id, item.variant_id)}
+                        className="checkout-item-remove-btn"
+                        title="Remove item"
+                        aria-label="Remove item"
+                      >
+                        <Trash2 size={15} />
+                      </button>
                     </div>
                   </div>
-                  <div style={{ fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0 }}>{formatCurrency(unitPrice * item.quantity)}</div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
 
           {/* Totals Breakdown */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', borderTop: '1px solid var(--color-border)', paddingTop: '16px', fontSize: '14px', color: 'var(--color-text-secondary)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span>Subtotal (সাবটোটাল)</span>
-              <span style={{ fontWeight: 700, color: 'var(--color-text-primary)' }}>{formatCurrency(subtotal)}</span>
+              <span style={{ fontWeight: 700, color: 'var(--color-text-primary)' }}>{formatCurrency(activeSubtotal)}</span>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -507,9 +776,9 @@ function CheckoutContent() {
               <span>{shippingFee === 0 ? <strong style={{ color: 'var(--color-success)' }}>FREE</strong> : formatCurrency(shippingFee)}</span>
             </div>
 
-            {!isFreeShipping && (
+            {activeSubtotal > 0 && !isFreeShipping && (
               <div style={{ fontSize: '11px', color: 'var(--color-primary)', background: 'rgba(37, 99, 235, 0.08)', padding: '6px 10px', borderRadius: 'var(--radius-sm)', textAlign: 'center', fontWeight: 600 }}>
-                ⚡ Add {formatCurrency(freeShippingAbove - subtotal)} more for FREE Delivery!
+                ⚡ Add {formatCurrency(freeShippingAbove - activeSubtotal)} more for FREE Delivery!
               </div>
             )}
 
@@ -632,7 +901,6 @@ function CheckoutContent() {
                       className="checkout-verification-box"
                       style={{ borderColor: 'rgba(226, 19, 110, 0.25)' }}
                     >
-                      {/* Recipient Number Box with 1-click Copy */}
                       <div
                         className="checkout-number-banner"
                         style={{ background: 'rgba(226, 19, 110, 0.06)' }}
@@ -671,14 +939,12 @@ function CheckoutContent() {
                         </button>
                       </div>
 
-                      {/* Instructions bullet */}
                       <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginBottom: '14px', lineHeight: 1.5, background: 'var(--color-surface-2)', padding: '10px 12px', borderRadius: 'var(--radius-sm)' }}>
                         <div style={{ fontWeight: 700, color: 'var(--color-text)' }}>ধাপসমূহ / Steps to pay:</div>
                         <div>১. আপনার bKash অ্যাপ থেকে উপরের নম্বরে <strong>Send Money</strong> করুন।</div>
                         <div>২. আপনি যে নম্বর থেকে টাকা পাঠিয়েছেন এবং TrxID নিচের ঘরে বসান।</div>
                       </div>
 
-                      {/* Dual inputs: Sender Phone Number + Transaction ID */}
                       <div className="checkout-dual-inputs">
                         <div className="form-group" style={{ margin: 0 }}>
                           <label className="form-label" style={{ fontSize: '12px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }} htmlFor="bkash-sender-phone">
@@ -774,7 +1040,6 @@ function CheckoutContent() {
                       className="checkout-verification-box"
                       style={{ borderColor: 'rgba(249, 115, 22, 0.25)' }}
                     >
-                      {/* Recipient Number Box with 1-click Copy */}
                       <div
                         className="checkout-number-banner"
                         style={{ background: 'rgba(249, 115, 22, 0.06)' }}
@@ -813,14 +1078,12 @@ function CheckoutContent() {
                         </button>
                       </div>
 
-                      {/* Instructions bullet */}
                       <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginBottom: '14px', lineHeight: 1.5, background: 'var(--color-surface-2)', padding: '10px 12px', borderRadius: 'var(--radius-sm)' }}>
                         <div style={{ fontWeight: 700, color: 'var(--color-text)' }}>ধাপসমূহ / Steps to pay:</div>
                         <div>১. আপনার নগদ অ্যাপ থেকে উপরের নম্বরে <strong>Send Money</strong> করুন।</div>
                         <div>২. আপনি যে নম্বর থেকে টাকা পাঠিয়েছেন এবং TrxID নিচের ঘরে বসান।</div>
                       </div>
 
-                      {/* Dual inputs: Sender Phone Number + Transaction ID */}
                       <div className="checkout-dual-inputs">
                         <div className="form-group" style={{ margin: 0 }}>
                           <label className="form-label" style={{ fontSize: '12px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }} htmlFor="nagad-sender-phone">
@@ -875,7 +1138,7 @@ function CheckoutContent() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || activeItems.length === 0}
             className="btn btn-primary"
             style={{ width: '100%', padding: '16px', borderRadius: 'var(--radius-xl)', fontSize: '16px', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
             id="place-order-submit-btn"
@@ -891,8 +1154,8 @@ function CheckoutContent() {
         </div>
       </form>
     </div>
-    );
-  }
+  );
+}
 
 export default function CheckoutPage() {
   return (

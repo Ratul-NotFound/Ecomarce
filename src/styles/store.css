@@ -1369,8 +1369,7 @@
   cursor: pointer;
   border: none;
   color: #ffffff;
-  transition: background 0.2s ease;
-  min-height: 36px;
+  transition: all 0.2s ease;
 }
 
 @media (min-width: 480px) {
@@ -1388,8 +1387,190 @@
 @media (min-width: 640px) {
   .checkout-dual-inputs {
     grid-template-columns: 1fr 1fr;
-    gap: 14px;
   }
+}
+
+/* Direct Mode Switcher Banner */
+.checkout-mode-banner {
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.08) 0%, rgba(59, 130, 246, 0.04) 100%);
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  border-radius: var(--radius-lg);
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+@media (min-width: 640px) {
+  .checkout-mode-banner {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+  }
+}
+
+.checkout-mode-pills {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--color-surface);
+  padding: 4px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-border);
+}
+
+.checkout-mode-pill {
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 700;
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.checkout-mode-pill--active {
+  background: var(--color-primary);
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+}
+
+/* Interactive Checkout Order Item Row */
+.checkout-item-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  transition: border-color 0.2s ease;
+}
+
+.checkout-item-card:hover {
+  border-color: rgba(37, 99, 235, 0.3);
+}
+
+.checkout-item-media {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--color-surface-2);
+  flex-shrink: 0;
+  position: relative;
+  border: 1px solid var(--color-border);
+}
+
+.checkout-item-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.checkout-item-details {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.checkout-item-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.checkout-item-meta {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.checkout-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.checkout-qty-stepper {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+  overflow: hidden;
+}
+
+.checkout-qty-btn {
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-primary);
+  font-size: 12px;
+  transition: background 0.15s ease;
+}
+
+.checkout-qty-btn:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.checkout-qty-num {
+  padding: 0 8px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  min-width: 20px;
+  text-align: center;
+}
+
+.checkout-item-price-wrap {
+  text-align: right;
+  min-width: 68px;
+}
+
+.checkout-item-price {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--color-text-primary);
+}
+
+.checkout-item-remove-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.checkout-item-remove-btn:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--color-danger);
 }
 
 .checkout-order-item-row {

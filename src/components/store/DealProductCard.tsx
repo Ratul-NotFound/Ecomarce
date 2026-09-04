@@ -9,6 +9,7 @@ import type { Product } from '@/types';
 import { formatCurrency, calcDiscountPercent } from '@/lib/utils/format';
 import { getOptimizedImageUrl } from '@/lib/utils/images';
 import { useCart } from '@/hooks/useCart';
+import { setDirectBuyItem } from '@/lib/cart';
 import { useToast } from '@/components/shared/ToastProvider';
 
 interface DealProductCardProps {
@@ -83,8 +84,8 @@ export default function DealProductCard({ product }: DealProductCardProps) {
       router.push(`/products/${product.slug}`);
       return;
     }
-    add(product, null, 1);
-    router.push('/checkout');
+    setDirectBuyItem(product, null, 1);
+    router.push('/checkout?direct=1');
   };
 
   return (

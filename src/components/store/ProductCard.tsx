@@ -9,6 +9,7 @@ import type { Product } from '@/types';
 import { formatCurrency, calcDiscountPercent } from '@/lib/utils/format';
 import { getOptimizedImageUrl } from '@/lib/utils/images';
 import { useCart } from '@/hooks/useCart';
+import { setDirectBuyItem } from '@/lib/cart';
 import { useAuth } from '@/hooks/useAuth';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/components/shared/ToastProvider';
@@ -80,8 +81,8 @@ export default function ProductCard({ product }: ProductCardProps) {
       router.push(`/products/${product.slug}`);
       return;
     }
-    add(product, null, 1);
-    router.push('/checkout');
+    setDirectBuyItem(product, null, 1);
+    router.push('/checkout?direct=1');
   };
 
   const handleToggleWishlist = async (e: React.MouseEvent) => {

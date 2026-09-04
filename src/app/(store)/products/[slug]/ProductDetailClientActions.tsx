@@ -10,6 +10,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/shared/ToastProvider';
 import { createClient } from '@/lib/supabase/client';
 import VariantSelector from '@/components/store/VariantSelector';
+import { setDirectBuyItem } from '@/lib/cart';
 
 interface ProductDetailClientActionsProps {
   product: Product;
@@ -28,25 +29,22 @@ export default function ProductDetailClientActions({ product }: ProductDetailCli
 
   const baseEffectivePrice = product.sale_price ?? product.base_price;
   const currentPrice = selectedVariant?.selling_price != null
-    ? Number(selectedVariant.selling_price)
+    ? selectedVariant.selling_price
     : selectedVariant
-    ? baseEffectivePrice + Number(selectedVariant.price_modifier || 0)
-    : baseEffectivePrice;
+      ? (product.sale_price ?? product.base_price) + selectedVariant.price_modifier
+      : product.sale_price ?? product.base_price;
 
-  const currentRegularPrice = selectedVariant?.regular_price != null
-    ? Number(selectedVariant.regular_price)
-    : selectedVariant
-    ? product.base_price + Number(selectedVariant.price_modifier || 0)
-    : product.base_price;
+  const currentRegularPrice = selectedVariant?.regular_price ?? product.base_price;
+  const currentCompareAt = currentRegularPrice;
 
   const effectiveStock = selectedVariant ? selectedVariant.stock_quantity : product.stock_quantity;
+  const hasDiscount = currentPrice < currentCompareAt;
   const isOutOfStock = effectiveStock <= 0;
 
-  const hasDiscount = currentRegularPrice > currentPrice && currentPrice > 0;
   const discountPercent = hasDiscount
-    ? calcDiscountPercent(currentRegularPrice, currentPrice)
+    ? calcDiscountPercent(currentCompareAt, currentPrice)
     : 0;
-  const savingsAmount = hasDiscount ? currentRegularPrice - currentPrice : 0;
+  const savingsAmount = hasDiscount ? currentCompareAt - currentPrice : 0;
 
   const handleAddToCart = () => {
     if (product.has_variants && product.variants && product.variants.length > 0 && !selectedVariant) {
@@ -72,8 +70,8 @@ export default function ProductDetailClientActions({ product }: ProductDetailCli
       showToast(selectedVariant ? 'This option is currently out of stock' : 'Product is out of stock', 'error');
       return;
     }
-    add(product, selectedVariant, quantity);
-    router.push('/checkout');
+    setDirectBuyItem(product, selectedVariant, quantity);
+    router.push('/checkout?direct=1');
   };
 
   const handleToggleWishlist = async () => {
