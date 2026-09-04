@@ -7,134 +7,318 @@
 [![PWA Ready](https://img.shields.io/badge/PWA-Installable-7B1FA2?style=for-the-badge&logo=pwa&logoColor=white)](https://web.dev/progressive-web-apps/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)](LICENSE)
 
-A state-of-the-art, high-performance, and mobile-first e-commerce web platform engineered specifically for the Bangladeshi digital marketplace. Built on **Next.js 16 (App Router)**, **Supabase (PostgreSQL + Auth + Storage + Realtime)**, **Domain-Driven OOP Architecture**, and an ultra-lightweight **Vanilla CSS Design Token System** that achieves 60–120 FPS micro-animations with zero bulky CSS framework overhead.
+A state-of-the-art, enterprise-grade, mobile-first e-commerce web platform engineered for maximum speed, security, and sales conversion in digital marketplaces. Built from the ground up on **Next.js 16 (App Router)**, **Supabase (PostgreSQL 15 + Auth + Realtime + Storage CDN)**, **Domain-Driven OOP Clean Architecture**, and an ultra-lean **Vanilla CSS Design Token Engine** delivering 60–120 FPS micro-animations with **zero** CSS framework bloat.
 
-🌐 **Live Demo**: [https://ecomarce-delta.vercel.app](https://ecomarce-delta.vercel.app)
-
----
-
-## 📑 Table of Contents
-- [Project Philosophy & Approach](#-project-philosophy--approach)
-- [Technology Stack](#-technology-stack)
-- [Key Features](#-key-features)
-  - [Customer Storefront](#1-customer-storefront)
-  - [Executive Admin & Operations Portal](#2-executive-admin--operations-portal)
-- [Architecture & Design Patterns](#-architecture--design-patterns)
-- [Database Schema & Migrations](#-database-schema--migrations)
-- [Getting Started & Local Setup](#-getting-started--local-setup)
-- [Telegram Bot Automation](#-telegram-bot-automation)
-- [Production Deployment](#-production-deployment)
-- [Verification & Quality Assurance](#-verification--quality-assurance)
-- [License](#-license)
+🌐 **Live Production Demo**: [https://ecomarce-delta.vercel.app](https://ecomarce-delta.vercel.app)
 
 ---
 
-## 💡 Project Philosophy & Approach
-
-1. **Native Performance Over Bloat**:
-   - Instead of heavy CSS frameworks (e.g. Tailwind or component libraries with run-time JS overhead), ShopBD utilizes a dedicated **CSS Custom Properties Design Token System** (`tokens.css`). This yields sub-100ms first paint times, near-instant hydration, and buttery smooth 60–120 FPS performance even on budget smartphones.
-2. **2-Tier Intelligent Image Delivery**:
-   - High-resolution e-commerce images can degrade mobile performance. ShopBD incorporates automated CDN image transformations:
-     - **Thumbnails (`thumb`)**: Scaled down to `320×320` with `quality: 70` (~15–25 KB) for product grids, carousels, carts, search autocomplete, and admin listings.
-     - **High Definition (`full`)**: Served at `900×900` with `quality: 85` strictly on product detail large views and zoom modals.
-3. **Domain-Driven Clean Architecture (OOP)**:
-   - Eliminates bloated API routes and duplicate Supabase calls by abstracting database logic into a strongly typed `BaseRepository<T>` pattern and cohesive domain services (`InventoryService`, `OrderService`, `CouponService`, `TelegramService`, `InvoiceService`).
-4. **Tailored for Bangladesh E-Commerce**:
-   - Native support for all **64 Bangladesh districts** with automated regional shipping tiers (৳60 inside Dhaka / ৳120 outside Dhaka / Free over threshold).
-   - Native **bKash** and **Nagad** manual transaction verification (TrxID) alongside **Cash on Delivery (COD)**.
-   - Dual-language typography (English + Bangla) and localized currency formatting (`৳`).
-
----
-
-## 🛠️ Technology Stack
-
-| Layer | Technologies | Purpose |
-| :--- | :--- | :--- |
-| **Framework** | Next.js 16.3.4 (App Router, Webpack) | Hybrid Server & Client Rendering, React Server Components |
-| **Language** | TypeScript 5.0+ | Strict type safety, domain models, interface contracts |
-| **Frontend UI** | HTML5, Modern Vanilla CSS, Lucide React | Glassmorphism, CSS grid/flexbox, zero-overhead animations |
-| **Database** | Supabase (PostgreSQL 15) | Relational persistence, Trigram search, Row Level Security (RLS) |
-| **Authentication** | Supabase Auth | Google OAuth, Email/Password, Magic Link, session tokens |
-| **File Storage** | Supabase Storage (S3 CDN) | Optimized image hosting, dynamic CDN URL transforms |
-| **Realtime** | Supabase Realtime (WebSockets) | Live chat updates, instant order notifications |
-| **Chat & Alerts**| Telegram Bot API | Automated 2-way customer support chat & order notifications |
-| **PWA Engine** | `next-pwa`, Service Workers | Mobile installability, offline fallback, cache policies |
+## 📑 Comprehensive Table of Contents
+1. [🌟 System Highlights & Core Philosophy](#-system-highlights--core-philosophy)
+2. [🛍️ Customer Storefront Features](#%EF%B8%8F-customer-storefront-features)
+3. [👑 Executive Admin & Operations Portal](#-executive-admin--operations-portal)
+4. [⚡ Performance, Image & Frontend Optimizations](#-performance-image--frontend-optimizations)
+5. [🆓 Zero-Cost Infrastructure Architecture (100% Free-Tier Ready)](#-zero-cost-infrastructure-architecture-100-free-tier-ready)
+6. [🛡️ Fortress-Grade Security & Concurrency Defenses](#%EF%B8%8F-fortress-grade-security--concurrency-defenses)
+7. [🤖 Telegram Bot Automation & 2-Way Chat Sync](#-telegram-bot-automation--2-way-chat-sync)
+8. [🏛️ Architecture & Clean Domain Patterns](#%EF%B8%8F-architecture--clean-domain-patterns)
+9. [🗄️ Database Schema & Relational Models](#%EF%B8%8F-database-schema--relational-models)
+10. [🚀 Quickstart & Local Installation](#-quickstart--local-installation)
+11. [🚢 Production Deployment Guide](#-production-deployment-guide)
+12. [🧪 Automated Testing & Verification Suite](#-automated-testing--verification-suite)
+13. [📄 License](#-license)
 
 ---
 
-## ✨ Key Features
+## 🌟 System Highlights & Core Philosophy
 
-### 1. Customer Storefront
-- **Glassmorphic Hero Carousel**: Dynamic promotional banner carousel managed in real-time from the Admin Customizer.
-- **Flash Sale Engine**:
-  - Horizontal swipe snap-track on mobile with uniform card dimensions and zero layout shift.
-  - Live synchronized countdown timers with hours, minutes, and seconds digital pills.
+1. **⚡ Zero-Bloat Ultra-Fast Performance (60–120 FPS)**:
+   - Built without bulky UI kits or heavyweight CSS-in-JS runtimes. All styles are driven by an optimized **Vanilla CSS Token System** (`tokens.css`). Sub-100ms first contentful paint (FCP), near-zero layout shifts (CLS), and fluid touch ergonomics on budget mobile hardware.
+2. **🖼️ Automated 2-Tier CDN Image Optimization**:
+   - Integrated with Supabase S3 Storage transforms: automatic generation of ultra-lightweight thumbnails (`320×320` @ 70% quality, ~15–25 KB) for product grids, carousels, and search dropdowns, alongside high-definition views (`900×900` @ 85% quality) on product zoom modals.
+3. **🇧🇩 Deep Bangladesh Regional Localization**:
+   - Complete built-in support for all **64 administrative districts** of Bangladesh.
+   - Dynamic localized shipping rules (Inside Dhaka ৳60 / Outside Dhaka ৳120 / Free Delivery above custom thresholds).
+   - Manual transaction verification for **bKash** and **Nagad** (TrxID) alongside **Cash on Delivery (COD)**.
+   - Bilingual support (Bangla `৳` currency format, English + Bengali typography).
+4. **🏢 Domain-Driven OOP Architecture (DDD)**:
+   - Structured around strongly typed repositories (`BaseRepository<T>`) and cohesive domain services (`InventoryService`, `OrderService`, `CouponService`, `TelegramService`, `InvoiceService`). Business logic is completely decoupled from UI handlers.
+5. **🆓 Complete Free-Tier Production Viability**:
+   - The entire platform can be hosted, scaled, and managed with **$0 monthly infrastructure costs** utilizing Vercel, Supabase Free Tier, and Telegram Supergroup Bots.
+
+---
+
+## 🛍️ Customer Storefront Features
+
+### 1. Visual Discovery & Homepage
+- **Glassmorphic Hero Carousel**:
+  - Auto-advancing promotional banners managed directly from the Admin Customizer.
+  - Touch-swipe responsive gesture support, title overlays, badges, and direct call-to-action (CTA) route linking.
+- **Synchronized Flash Sale Engine**:
+  - Live synchronized digital countdown timer (Hours, Minutes, Seconds) matching administrative flash sale windows.
+  - Mobile-optimized horizontal snap-scroll track with zero layout shift (CLS).
+  - Stock scarcity progress bars showing units sold vs. remaining stock to drive urgency.
 - **Harmonious Product Cards**:
-  - **Balanced Aspect Ratio**: Compact ~1:1.7 mobile e-commerce ratio and ~1:1.5 on desktop to maximize vertical viewport efficiency.
-  - **Social Proof Layout**: Clean category placement on the left with dedicated rating badges on the right (`white-space: nowrap; flex-shrink: 0;`). Ratings never break into multi-story lines.
-  - **Single-Line Pricing**: Sale price and base price strikethrough with `{sold} sold` metrics.
-  - **Instant Dual Actions**: Direct "Add to Cart" and "Buy Now" with visual checkmark feedback.
-- **Product Details Page (PDP)**:
-  - Multi-image gallery with thumbnail selection and zoom modal.
-  - YouTube, Google Drive, or MP4 video streaming preview.
-  - Interactive multi-tier variant selector (e.g. Size, Color, Material) with live price adjustment and stock indicators.
-  - Customer review submission with verified purchase badge.
-- **Live Search Autocomplete**:
-  - PostgreSQL Trigram (`pg_trgm`) fuzzy matching with typo tolerance across English and Bangla names.
-  - Instant suggestion dropdown with product thumbnail, category, and direct price.
-- **Cart & Dynamic 64-District Checkout**:
-  - Real-time coupon validator with minimum order and usage checks.
-  - Dynamic delivery fee computation based on customer's selected district.
-  - Payment modes: bKash (Personal/Merchant), Nagad, and Cash on Delivery (COD).
+  - Standardized aspect ratios (~1:1.7 mobile, ~1:1.5 desktop) preventing irregular grid heights.
+  - Category tags paired with single-line star ratings (`white-space: nowrap`) that never break across lines.
+  - Clean single-line price display: current selling price, original strikethrough price, and discount percentage badge.
+  - Instant Dual-Action buttons: "Add to Cart" and "Buy Now" with animated checkmark feedback.
+
+### 2. High-Performance Search & Category Navigation
+- **Instant Search Autocomplete**:
+  - Powered by PostgreSQL Trigram (`pg_trgm`) fuzzy matching with typo tolerance across English and Bengali item names.
+  - Dropdown displays live product thumbnails, category badges, and instant pricing.
+  - Keyboard navigation (Arrow keys + Enter) and quick clear buttons.
+- **Dedicated Search & Category Pages**:
+  - Comprehensive filtering sidebar by Category, Price Range, and In-Stock availability.
+  - Multi-criteria sorting: *Featured, Price: Low to High, Price: High to Low, Newest Arrivals, Customer Rating*.
+
+### 3. Rich Product Detail Page (PDP)
+- **Multi-Angle Image Gallery**:
+  - Interactive thumbnail switcher with smooth transitions.
+  - High-definition image modal with click-to-zoom capabilities.
+- **Embedded Video Streaming**:
+  - Integrated video player supporting YouTube, Google Drive, and MP4 product demos.
+- **Interactive Multi-Tier Variant Matrix**:
+  - Support for multi-attribute variants (Size, Color, Material, Capacity).
+  - Real-time price and stock updates based on selected variant combinations.
+  - Automatic disabling of out-of-stock attribute combinations.
+- **Social Proof & Verified Reviews**:
+  - Star ratings breakdown (1 to 5 stars) with total review tallies.
+  - Authenticated customer review submission with verified purchase badge.
+  - Community "Helpful" vote reactions with authenticated duplicate prevention.
+- **Related Products Recommendation Carousel**:
+  - Context-aware recommendations matching current category and tag taxonomy.
+
+### 4. Seamless Cart & Regional Checkout
+- **Slide-Over Shopping Cart Drawer & Full Cart Page**:
+  - Live quantity increments, instant line-item deletion, and real-time subtotal updates.
+  - Interactive free shipping progress tracker showing amount remaining for free delivery.
+- **Dynamic 64-District Checkout**:
+  - Dropdown selector for all 64 districts in Bangladesh with instant regional delivery charge recalculation.
+  - **Payment Gateways**:
+    - **Cash on Delivery (COD)**: Frictionless one-click order placement.
+    - **bKash (Merchant & Personal)**: Step-by-step account instructions + Transaction ID (TrxID) input field.
+    - **Nagad**: Direct account transfer details + TrxID verification.
+- **Real-Time Coupon Engine**:
+  - Percentage-based or fixed-amount discount codes.
+  - Server-side validation of minimum order amounts, expiration dates, and total usage limits.
+- **Guest Checkout**:
+  - First-time visitors can place orders with just a phone number and shipping address—no mandatory registration required.
+
+### 5. Post-Purchase Tracking & Customer Account
 - **Visual Order Tracking Timeline**:
-  - Multi-step delivery progress indicator: *Pending → Confirmed → Packaging → In Transit → Delivered*.
-  - Step-by-step history log with exact timestamps.
-- **Live Support Chat Widget**:
-  - Synchronous customer chat connected to Supabase Realtime and the store's Telegram Supergroup.
-- **Installable PWA**:
-  - Installable directly to home screen on iOS and Android with offline fallback screen.
+  - 5-stage visual progress stepper: *Pending → Confirmed → Packaging → In Transit → Delivered*.
+  - Detailed milestone audit log displaying exact dates, times, and delivery notes.
+- **Customer Account Dashboard**:
+  - Profile manager: name, email, phone number, and default delivery addresses.
+  - Full past order history with downloadable, printable branded invoices.
+  - Customer Loyalty Points balance tracking.
+- **Customer Wishlist**:
+  - 1-click wishlist toggle on any product card or detail view with live badge counter in header.
+- **Live Support Widget**:
+  - Floating customer support chat widget connected via WebSockets.
+  - Synchronous bi-directional communication between customer and store admin.
+- **Installable Progressive Web App (PWA)**:
+  - Add to Home Screen on iOS and Android with customized app icons and splash themes.
+  - Built-in offline fallback page and cached asset delivery via service workers.
 
 ---
 
-### 2. Executive Admin & Operations Portal
+## 👑 Executive Admin & Operations Portal
 
-Accessible at `/admin` for users with the `admin` or `moderator` role:
+Accessible securely at `/admin` for users with administrative or moderator credentials:
 
-- **Executive Analytics Dashboard (`/admin/analytics`)**:
-  - Real-time revenue metrics, average order value (AOV), total order volume, and pending payment queue.
-  - District-wise revenue breakdown across Bangladesh.
-- **Catalog Management (`/admin/products`)**:
-  - Create, update, and toggle active products.
-  - Multi-image drag-and-drop upload to Supabase Storage with main cover selection.
-  - Embedded product video URL support (YouTube/Google Drive).
-  - Multi-tier variant builder with custom pricing and stock.
-- **Inventory & Profit Margin Center (`/admin/inventory`)**:
-  - Unit Cost Tracking (COGS) vs Selling Price.
-  - Live Gross Profit Margin (%) and estimated gross profit calculator.
-  - Quick-restock increment buttons (`+5`, `+20`, `+50`) and low-stock indicators.
-- **Order Fulfillment Center (`/admin/orders`)**:
-  - Filter orders by status (*Pending, Confirmed, Shipped, Delivered, Cancelled*).
-  - 1-Click bKash/Nagad TrxID verification and receipt approval.
-  - Order dispatch note manager with customer timeline sync.
-- **Live Support Hub (`/admin/messages`)**:
-  - Real-time customer support chat workspace.
-  - Bi-directional Telegram synchronization (reply from admin dashboard or directly from Telegram).
-- **Storefront Customizer (`/admin/customize`)**:
-  - Upload and publish promotional hero banner slides with call-to-action buttons.
-  - Reorder categories sequencing and showcase deals.
-- **Global Settings & Theme Engine (`/admin/settings`)**:
-  - Live Primary Color Theme Customizer.
-  - Delivery charge modifiers (Inside Dhaka / Outside Dhaka / Free threshold).
-  - Payment credentials (bKash & Nagad account numbers).
-  - Telegram bot token, chat ID, and topic configuration.
-- **Automated Invoice Generator (`/api/invoices/[orderId]`)**:
-  - Clean, printable, PDF-ready branded invoices with QR code and breakdown.
+### 1. Executive Analytics & Business Intelligence (`/admin/analytics`)
+- **Key Performance Indicators (KPIs)**:
+  - Total Gross Revenue, Net Profit margin, Average Order Value (AOV), Total Order Count.
+  - Unpaid vs. Paid payment queue tallies.
+- **Regional Sales Heatmap**:
+  - Breakdown of revenue and order volume across all 64 Bangladesh districts (identifies top performing zones like Dhaka, Chittagong, Sylhet).
+- **Time-Series Traffic & Conversion Trends**:
+  - Visual charts showing daily, weekly (ISO 8601 standard), and monthly traffic and order volume.
+
+### 2. Product Catalog Management (`/admin/products`)
+- **Complete Product Lifecycle CRUD**:
+  - Create, edit, draft, and delete catalog items with rich text descriptions.
+  - Base selling price, promotional sale price, and internal Unit Cost (COGS) tracking.
+- **Multi-Image Media Manager**:
+  - Drag-and-drop multi-image uploads directly to Supabase CDN Storage.
+  - Set primary cover image with 1-click badge indicators.
+- **Rich Media & Video Embedding**:
+  - Link YouTube, Google Drive, or MP4 product demonstration videos.
+- **Advanced Variant Builder**:
+  - Create complex product matrices (e.g. Size: S/M/L/XL × Color: Black/Navy/White).
+  - Assign specific SKUs, additional price modifiers, variant cost prices, and isolated stock quantities per SKU.
+- **Flash Sale & Promotional Tagging**:
+  - Toggle flash sale status, assign promotional badges (*Hot, New, Trending*), and link to category trees.
+
+### 3. Inventory & Profit Margin Operations (`/admin/inventory`)
+- **Cost of Goods Sold (COGS) Intelligence**:
+  - Track purchase cost vs. selling price per product.
+  - Automatic calculation of Gross Profit Margin percentage (`((Price - Cost) / Price) * 100`) and total projected profit.
+- **1-Click Quick Restock**:
+  - Instant increment buttons (`+5`, `+20`, `+50`) or custom restock quantities.
+- **Stock Health & Scarcity Alerts**:
+  - Visual color badges: *In Stock (Green)*, *Low Stock (Yellow, < 10 units)*, and *Out of Stock (Red)*.
+  - Filter inventory view by stock status to prioritize vendor purchase orders.
+
+### 4. Order Fulfillment & Dispatch Operations (`/admin/orders`)
+- **Order Pipeline Workflow**:
+  - Status management tabs: *All, Pending, Confirmed, Packaging, In Transit, Delivered, Cancelled*.
+- **1-Click bKash / Nagad Payment Verification**:
+  - Dedicated drawer displaying customer-provided bKash/Nagad Transaction IDs (TrxID).
+  - 1-click "Approve Payment" action that transitions payment status to `paid` and advances fulfillment state.
+- **Live Customer Tracking Updates**:
+  - Add dispatch notes (e.g., *Pathao Courier Tracking ID #123456*) that instantly update the customer's visual tracking page.
+- **Customer Contact Actions**:
+  - 1-click phone dialer link and address copying for courier waybills.
+
+### 5. Automated PDF & Printable Invoicing (`/api/invoices/[orderId]`)
+- **Branded Commercial Invoices**:
+  - Clean, professional, PDF-ready print layout with official store branding, contact details, and customer shipping address.
+  - Scannable verification QR code encoding the invoice URL.
+  - Complete financial breakdown: Itemized lines, unit prices, variant details, subtotal, shipping fee, applied coupon discounts, and total paid.
+
+### 6. Live Support Command Center (`/admin/messages`)
+- **Real-Time Customer Conversation Hub**:
+  - Multi-session inbox listing all active customer support chats.
+  - Real-time message streaming via Supabase WebSockets.
+- **Telegram 2-Way Sync**:
+  - Messages sent by customers on the storefront appear instantly in the store's Telegram Supergroup topic.
+  - Admin staff can reply either from the `/admin/messages` dashboard or directly from their phone in Telegram!
+
+### 7. Storefront Customizer (`/admin/customize`)
+- **Hero Banner Slide Manager**:
+  - Upload promotional slide images, configure title headers, subheaders, and target redirect URLs.
+  - Enable/disable slides and set display order.
+- **Category Display Sequencer**:
+  - Reorder category navigation order on the storefront homepage.
+
+### 8. Theme Engine & Global Settings (`/admin/settings`)
+- **Live Storefront Theme Customizer**:
+  - Change the primary accent brand color of the entire store on the fly without touching CSS code.
+- **Regional Shipping Rate Modifiers**:
+  - Configure Delivery Charge Inside Dhaka (default ৳60), Delivery Charge Outside Dhaka (default ৳120), and Free Delivery Threshold (default ৳2,000).
+- **Payment Method Credentials**:
+  - Configure bKash and Nagad account numbers, account types (Personal vs Merchant), and QR payment instructions.
+- **Telegram Bot Configuration**:
+  - Configure Bot Token, Supergroup Chat ID, and separate Topic IDs for Order Alerts and Customer Support Messages.
+- **Store Identity & Announcement Bar**:
+  - Store Name, Support Phone, Support Email, Physical Address, and a site-wide toggleable Announcement Bar text.
 
 ---
 
-## 🏛️ Architecture & Design Patterns
+## ⚡ Performance, Image & Frontend Optimizations
 
-The codebase adheres to **Object-Oriented Programming (OOP)** and **Domain-Driven Design (DDD)** principles:
+### 1. The Vanilla CSS Design Token System (`tokens.css`)
+- **Zero Framework Runtime Overhead**:
+  - Completely avoids the JavaScript hydration costs of heavy CSS-in-JS libraries and runtime style injection.
+- **Design Tokens**:
+  - Centralized palette (`--primary`, `--primary-hover`, `--bg-surface`, `--text-primary`, `--border-subtle`).
+  - Spacing scales, border radii, and elevated drop shadows for a consistent design system.
+- **Hardware-Accelerated Micro-Animations**:
+  - All transitions and hover states use GPU-composited CSS properties (`transform`, `opacity`) ensuring consistent 60–120 FPS performance even on budget smartphones.
+
+### 2. Intelligent 2-Tier Image Optimization (`images.ts`)
+Raw product photos uploaded by admins are often 2MB–5MB each. ShopBD solves this with dynamic Supabase CDN URL transformation:
+- **Tier 1: Thumbnails (`thumb`)**:
+  - Resized on-the-fly to `320×320` at `quality: 70` (~15–25 KB each).
+  - Used on product card grids, flash sale sliders, cart drawers, search dropdowns, and admin tables.
+- **Tier 2: High Definition (`full`)**:
+  - Scaled to `900×900` at `quality: 85` (~80–120 KB).
+  - Reserved strictly for the single active main image on product detail pages and zoom modals.
+- **Browser-Level Enhancements**:
+  - Every image tag applies native `loading="lazy"` and `decoding="async"` to prevent main-thread layout blocking.
+
+### 3. Hybrid Server/Client Rendering Architecture
+- **React Server Components (RSC)**: Initial catalog queries and page shells render on the server, streaming clean semantic HTML to the browser for near-instant first paint.
+- **Client Islands**: Interactivity (e.g. cart drawer, variant selector, search modal) is isolated to lightweight client components, minimizing the JavaScript bundle sent to mobile devices.
+- **Module Caching**: Frequently accessed public configurations and search catalogs utilize in-memory TTL caching, avoiding redundant database lookups.
+
+---
+
+## 🆓 Zero-Cost Infrastructure Architecture (100% Free-Tier Ready)
+
+ShopBD is architected to run in production with **$0 monthly infrastructure costs**:
+
+| Component | Platform | Free Tier Capability | Role in ShopBD |
+| :--- | :--- | :--- | :--- |
+| **Edge Web Hosting** | **Vercel** | Unlimited personal hobby deployments, Global Edge Network, Automatic SSL, Serverless API functions | Hosts Next.js frontend, SSR engine, and edge API proxies |
+| **Relational Database** | **Supabase** | 500MB PostgreSQL 15 database, 2 projects, pg_trgm extension, Row Level Security | Stores products, variants, orders, customer profiles, settings |
+| **Authentication** | **Supabase Auth** | Up to 50,000 Monthly Active Users (MAUs), Google OAuth, Email/Password, JWT sessions | Customer login, guest accounts, admin role enforcement |
+| **Asset CDN & Storage** | **Supabase Storage** | 1GB file storage, 2GB monthly bandwidth, image transformation CDN | Hosts and resizes product images, variant photos, hero banners |
+| **Realtime WebSockets**| **Supabase Realtime** | 200 concurrent connections, 2 million messages/month | Powers live customer-to-admin support chat |
+| **Alerts & Operations**| **Telegram Bot API** | 100% Free forever, unlimited messages and webhooks | Dispatches instant order alerts to admin phone; 2-way live chat |
+
+---
+
+## 🛡️ Fortress-Grade Security & Concurrency Defenses
+
+Every layer of ShopBD has been subjected to exhaustive penetration auditing and hardening:
+
+```
+┌────────────────────────────────────────────────────────┐
+│               1. Edge Security Proxy                   │
+│  - Scanner & Probe Blocking (sqlmap, nikto, .env)       │
+│  - Path Traversal Filter (../, %2e%2e, /etc/passwd)    │
+│  - Global Sliding-Window Rate Limiter (300 req/min)   │
+│  - API Route Rate Limiter (60 req/min)                 │
+│  - CSRF Origin / Referer Verification on Mutating APIs │
+│  - Request Payload Size Cap (max 10MB)                 │
+└──────────────────────────┬─────────────────────────────┘
+                           │
+┌──────────────────────────▼─────────────────────────────┐
+│               2. Service & API Hardening               │
+│  - Authoritative Pricing: Server re-fetches DB prices  │
+│  - Checkout Order Flooding Cap: 5 orders/hr/IP         │
+│  - Cart Bounds: Max 50 items, max 999 quantity per item│
+│  - Centralized Admin Auth Guard (requireAdminAuth)     │
+│  - IDOR Prevention: Invoices require ownership or phone│
+│  - Input Sanitization (sanitizeText, escapeHtml)       │
+└──────────────────────────┬─────────────────────────────┘
+                           │
+┌──────────────────────────▼─────────────────────────────┐
+│             3. Database-Level Concurrency              │
+│  - Atomic Coupon Usage: WHERE used_count < max_uses    │
+│  - Atomic Stock Deduction: WHERE stock >= quantity     │
+│  - Strict Identity Boundaries: Zero fallback linking   │
+└────────────────────────────────────────────────────────┘
+```
+
+1. **DDoS & Flooding Mitigation**: Multi-tiered sliding-window rate limiters prevent Layer-7 floods and bot scrapers.
+2. **Scanner & Probe Dropping**: Automated drop of requests targeting `.env`, `.git`, `wp-admin`, and `phpmyadmin` with an immediate `403 Forbidden`.
+3. **Atomic Concurrency Defense**: Coupon redemption and stock deductions are enforced at the database level with conditional SQL updates, preventing double-spend and overselling race conditions.
+4. **Server-Authoritative Pricing**: Client-submitted subtotals and discounts are ignored; the server re-queries canonical database prices.
+5. **IDOR & PII Protection**: Order invoices (`/api/invoices/[id]`) strictly require authenticated user ownership or secondary verification (matching customer phone number).
+6. **HTTP Security Headers**: Strict Content-Security-Policy (CSP), `X-Frame-Options: DENY` (anti-clickjacking), `X-Content-Type-Options: nosniff`, and HSTS preloading.
+
+---
+
+## 🤖 Telegram Bot Automation & 2-Way Chat Sync
+
+ShopBD leverages Telegram's native **Topics** inside Supergroups to provide a command center right on your smartphone:
+
+```
+Telegram Supergroup: "ShopBD Store HQ"
+├── 📦 Topic: Orders
+│   └── "🚨 New Order #EC-2026-1042! Customer: Rahim, Total: ৳2,450, Payment: bKash (TrxID: 9J3K8L2), District: Chittagong"
+└── 💬 Topic: Support
+    └── "💬 New message from customer Karim: 'Do you deliver to Sylhet Sadar?'"
+        └── (Admin replies directly in Telegram -> customer sees it live in web chat!)
+```
+
+1. **Instant Order Notifications**: Every time an order is placed, staff receive a rich Telegram notification with customer details, line items, delivery district, and bKash/Nagad TrxID.
+2. **Bi-Directional Customer Support**:
+   - Customer writes in the storefront chat widget.
+   - Message forwards immediately to the Telegram `#Support` topic.
+   - Store admins can reply **directly within the Telegram app**—the webhook routes the reply straight back to the customer's browser in real-time!
+
+---
+
+## 🏛️ Architecture & Clean Domain Patterns
+
+The repository is structured around **Domain-Driven Design (DDD)** and strict **Object-Oriented Programming (OOP)**:
 
 ```
 src/
@@ -155,7 +339,7 @@ src/
 │   │   ├── analytics/           # Regional sales metrics & conversion charts
 │   │   ├── customize/           # Hero banners & category sequencer
 │   │   └── settings/            # Branding, delivery fees & live theme picker
-│   ├── api/                     # Next.js API route handlers
+│   ├── api/                     # Hardened Next.js API route handlers
 │   └── auth/                    # OAuth & Email authentication
 ├── components/
 │   ├── store/                   # Storefront UI components (Header, ProductCard, FlashSale, etc.)
@@ -172,12 +356,18 @@ src/
 │   ├── supabase/
 │   │   ├── client.ts            # Browser Supabase client
 │   │   ├── server.ts            # Server-side Supabase client (cookies)
+│   │   ├── admin.ts             # Privileged Service Role Supabase client
 │   │   └── repositories/        # Generic BaseRepository<T> & concrete DAOs
+│   ├── auth/
+│   │   └── admin-guard.ts       # Centralized admin authorization guard
 │   ├── store-config.ts          # Central configuration & fallback settings
 │   └── utils/
+│       ├── rate-limiter.ts      # Multi-tier sliding-window rate limiter
+│       ├── sanitize.ts          # Input sanitizer for XSS & injection prevention
 │       ├── images.ts            # 2-Tier Supabase image transform optimizer
 │       ├── districts.ts         # All 64 Bangladesh districts & shipping zones
 │       └── formatters.ts        # Currency (৳), timestamps, and number formatters
+├── proxy.ts                     # Edge security proxy (rate limit, scanner block, CSRF)
 └── styles/
     ├── tokens.css               # Design tokens (colors, spacing, radii, typography)
     ├── globals.css              # Global resets, utility classes, animations
@@ -187,65 +377,51 @@ src/
 
 ---
 
-## 🗄️ Database Schema & Migrations
+## 🗄️ Database Schema & Relational Models
 
-ShopBD runs on **PostgreSQL 15** hosted on Supabase.
+ShopBD runs on **PostgreSQL 15** with Row Level Security (RLS) enabled:
 
-### Core Tables:
 - `profiles`: User accounts, contact details, loyalty points, and role (`customer`, `moderator`, `admin`).
-- `categories`: Hierarchical category tree with slugs, banner images, and display ordering.
-- `products`: Product catalog with buying price (`cost_price`), sale price, video embeds (`video_url`), stock, and flash sale metadata.
+- `categories`: Category tree with slugs, banner images, and display sequencing.
+- `products`: Catalog items with buying price (`cost_price`), selling price, video embeds (`video_url`), stock, and flash sale metadata.
 - `product_variants`: Size, color, SKU, price modifier, and variant cost price.
-- `orders` & `order_items`: Complete customer order transactions, pricing snapshot, and payment records.
+- `orders` & `order_items`: Full customer order records, canonical pricing snapshot, delivery district, and payment metadata.
 - `order_tracking`: Timestamped delivery milestones for customer visibility.
 - `coupons`: Percentage or flat discount codes with minimum order amount and usage caps.
-- `special_offers`: Hero banners and promotional slides for storefront customizer.
-- `inventory_logs`: Audit trail for stock adjustments and restocks.
+- `special_offers`: Hero banners and promotional slides managed from the storefront customizer.
+- `inventory_logs`: Full audit trail for stock adjustments and restocks.
 - `chat_messages`: Live customer-support conversation logs.
-- `store_settings`: Key-value store for site-wide configuration.
-
-### Running Migrations:
-All pending updates are consolidated into a single idempotent script:
-
-1. Open your **[Supabase SQL Editor](https://supabase.com/dashboard)**.
-2. Execute the script in [`supabase/migrations/sync_all_pending_migrations.sql`](supabase/migrations/sync_all_pending_migrations.sql).
-3. Verify your database health in the terminal:
-   ```bash
-   node scripts/verify-supabase-sync.js
-   ```
+- `store_settings`: Key-value store for site-wide configuration (shipping rates, theme colors, payment numbers).
 
 ---
 
-## 🚀 Getting Started & Local Setup
+## 🚀 Quickstart & Local Installation
 
 ### 1. Prerequisites
 - **Node.js**: v18.18.0 or higher
 - **npm** or **pnpm**
-- A **Supabase** account (Free tier works seamlessly)
+- A free **Supabase** account ([https://supabase.com](https://supabase.com))
 
-### 2. Installation
+### 2. Clone & Install
 ```bash
-# 1. Clone the repository
 git clone https://github.com/Ratul-NotFound/Ecomarce.git
 cd Ecomarce
-
-# 2. Install dependencies
 npm install
 ```
 
 ### 3. Environment Configuration
-Create a `.env.local` file in the root directory:
+Create a `.env.local` file in the project root:
 
 ```env
-# Supabase Configuration
+# Supabase Database & Auth
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 
-# App URL
+# Base Application URL
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 
-# Telegram Bot (Optional: for live order alerts & chat sync)
+# Telegram Bot (Optional: for instant notifications & chat sync)
 TELEGRAM_BOT_TOKEN=your-bot-token
 TELEGRAM_CHAT_ID=-100xxxxxxxxxx
 TELEGRAM_ORDERS_TOPIC_ID=2
@@ -253,72 +429,57 @@ TELEGRAM_MESSAGES_TOPIC_ID=3
 TELEGRAM_WEBHOOK_SECRET=your-random-secret-token
 ```
 
-### 4. Supabase Storage Setup
-1. In the Supabase Dashboard, navigate to **Storage**.
-2. Create a bucket named **`Products`**.
-3. Toggle **Public bucket** to **ON**.
+### 4. Database Setup & Storage Buckets
+1. Open your **[Supabase Dashboard](https://supabase.com/dashboard)** ➔ **SQL Editor**.
+2. Run the script in [`supabase/migrations/sync_all_pending_migrations.sql`](supabase/migrations/sync_all_pending_migrations.sql).
+3. Navigate to **Storage**, create a bucket named **`Products`**, and toggle **Public bucket** to **ON**.
 
-### 5. Launch the Application
+### 5. Launch Development Server
 ```bash
 npm run dev
 ```
-Open **[http://localhost:3000](http://localhost:3000)** in your browser!
+Open **[http://localhost:3000](http://localhost:3000)** in your browser.
 
-### 6. Create Your Admin User
+### 6. Create an Admin Account
 1. Register an account at **[http://localhost:3000/auth](http://localhost:3000/auth)**.
-2. Promote your account to `admin` via the Supabase SQL Editor:
+2. In the Supabase SQL Editor, promote the user to `admin`:
    ```sql
    UPDATE public.profiles
    SET role = 'admin'
    WHERE id = (SELECT id FROM auth.users WHERE email = 'your-email@example.com');
    ```
-3. Visit **[http://localhost:3000/admin](http://localhost:3000/admin)** to access the management portal.
+3. Visit **[http://localhost:3000/admin](http://localhost:3000/admin)** to access your executive operations portal!
 
 ---
 
-## 🤖 Telegram Bot Automation
-
-ShopBD integrates with Telegram Supergroups using Topics for hands-off store operations:
-
-1. Create a bot with **[@BotFather](https://t.me/BotFather)** to receive your `TELEGRAM_BOT_TOKEN`.
-2. Create a private Supergroup on Telegram, enable **Topics**, and add your bot as an **Administrator**.
-3. Create two topics:
-   - **`Orders`**: Receives instant notifications for new orders with customer details, delivery district, items, and bKash/Nagad TrxID.
-   - **`Messages`**: Synchronizes live customer support inquiries.
-4. Input your `TELEGRAM_CHAT_ID` (`-100...`) and Topic IDs into `.env.local` or the **Admin Settings (`/admin/settings`)**.
-5. *(Optional Bi-Directional Webhook)*: Set up your live Vercel webhook so staff can reply directly inside Telegram to message customers:
-   ```text
-   https://api.telegram.org/bot<TOKEN>/setWebhook?url=https://<YOUR_DOMAIN>/api/telegram/webhook&secret_token=<SECRET>
-   ```
-
----
-
-## 🚢 Production Deployment
+## 🚢 Production Deployment Guide
 
 ### Deploying to Vercel:
-1. Push your code to your GitHub repository.
+1. Push your repository to GitHub.
 2. Import the project into **[Vercel](https://vercel.com)**.
-3. In **Project Settings ➔ Environment Variables**, configure:
+3. In **Project Settings ➔ Environment Variables**, add:
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - `SUPABASE_SERVICE_ROLE_KEY`
-   - `NEXT_PUBLIC_APP_URL` (set to your production domain `https://your-domain.vercel.app`)
-4. In **Supabase Dashboard ➔ Authentication ➔ URL Configuration**, append your domain to the **Redirect URLs**:
+   - `NEXT_PUBLIC_APP_URL` (set to `https://your-domain.vercel.app`)
+   - Telegram credentials (if using notifications)
+4. In **Supabase Dashboard ➔ Authentication ➔ URL Configuration**, add your production domain to the **Redirect URLs**:
    - `https://your-domain.vercel.app/**`
    - `https://your-domain.vercel.app/auth/callback`
 5. Click **Deploy**!
 
 ---
 
-## 🧪 Verification & Quality Assurance
+## 🧪 Automated Testing & Verification Suite
 
-To ensure zero regressions across production routes, run the automated verification suite:
+Ensure zero regressions across all 39 production routes:
 
 ```bash
-# 1. Type-check & Production Route Build (39 Routes)
+# 1. Type-check & Production Route Compilation
+npx tsc --noEmit
 npm run build
 
-# 2. Verify Supabase Database Schema Synchronization
+# 2. Verify Supabase Database Schema Health
 node scripts/verify-supabase-sync.js
 ```
 
@@ -326,4 +487,4 @@ node scripts/verify-supabase-sync.js
 
 ## 📄 License
 
-This project is licensed under the **MIT License** — feel free to use and adapt it for personal or commercial projects.
+This project is licensed under the **MIT License** — free to use and customize for both commercial and personal projects.
