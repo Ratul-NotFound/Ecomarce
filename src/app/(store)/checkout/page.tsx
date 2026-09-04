@@ -9,7 +9,7 @@ import { DISTRICTS, getShippingFee } from '@/lib/utils/bangladesh-districts';
 import { STORE_CONFIG } from '@/lib/store-config';
 import { useToast } from '@/components/shared/ToastProvider';
 import { createClient } from '@/lib/supabase/client';
-import { CheckCircle2, ShieldCheck, Truck, CreditCard, ArrowRight, Copy, Check, Smartphone, Banknote, Hash, Phone, Sparkles } from 'lucide-react';
+import { CheckCircle2, ShieldCheck, Truck, CreditCard, ArrowRight, Copy, Check, Smartphone, Banknote, Hash, Phone, Sparkles, Tag, X } from 'lucide-react';
 import type { Address, PaymentMethod } from '@/types';
 import { DEFAULT_PAYMENT_SETTINGS, getMergedPaymentSettings, PaymentSettings } from '@/lib/utils/payment-config';
 import { NagadLogo, BkashLogo } from '@/components/shared/PaymentLogos';
@@ -36,8 +36,14 @@ function CheckoutContent() {
   const [transactionId, setTransactionId] = useState('');
   const [senderPhone, setSenderPhone] = useState('');
   const [copiedNumber, setCopiedNumber] = useState<string | null>(null);
+
+  // Coupon state
+  const [couponInput, setCouponInput] = useState('');
   const [couponCode, setCouponCode] = useState(initialCoupon);
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number } | null>(null);
   const [discountAmount, setDiscountAmount] = useState(0);
+  const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [savedAddresses, setSavedAddresses] = useState<Address[]>([]);
 
@@ -132,10 +138,70 @@ function CheckoutContent() {
         .then(res => {
           if (res.valid) {
             setDiscountAmount(res.discount);
+            setAppliedCoupon({ code: effectiveCoupon, discount: res.discount });
+            setCouponCode(effectiveCoupon);
           }
-        });
+        })
+        .catch(() => {});
     }
   }, [initialCoupon, subtotal, cart]);
+
+  // Handle manual coupon application on checkout page
+  const handleApplyCoupon = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const cleanCode = couponInput.trim().toUpperCase();
+    if (!cleanCode) return;
+
+    if (subtotal <= 0 || cart.length === 0) {
+      showToast('Your cart is empty', 'error');
+      return;
+    }
+
+    try {
+      setIsValidatingCoupon(true);
+      const itemsPayload = cart.map(i => ({
+        product_id: i.product_id,
+        price: i.variant ? (i.product.sale_price ?? i.product.base_price) + i.variant.price_modifier : (i.product.sale_price ?? i.product.base_price),
+        quantity: i.quantity,
+      }));
+
+      const res = await fetch('/api/coupons/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: cleanCode,
+          total: subtotal,
+          items: itemsPayload,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.valid) {
+        showToast(data.error || 'Invalid or expired coupon code', 'error');
+      } else {
+        setAppliedCoupon({ code: data.coupon.code, discount: data.discount });
+        setCouponCode(data.coupon.code);
+        setDiscountAmount(data.discount);
+        setCouponInput('');
+        showToast(`Coupon "${data.coupon.code}" applied! Saved ${formatCurrency(data.discount)}`, 'success');
+      }
+    } catch {
+      showToast('Failed to validate coupon code', 'error');
+    } finally {
+      setIsValidatingCoupon(false);
+    }
+  };
+
+  // Handle removing applied coupon
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponCode('');
+    setDiscountAmount(0);
+    try {
+      localStorage.removeItem('shopbd_claimed_coupon');
+    } catch {}
+    showToast('Coupon removed', 'info');
+  };
 
   const isFreeShipping = subtotal >= freeShippingAbove;
   const shippingFee = isFreeShipping ? 0 : getShippingFee(district, shippingInsideDhaka, shippingOutsideDhaka);
@@ -667,6 +733,84 @@ function CheckoutContent() {
                   </div>
                 );
               })}
+            </div>
+
+            {/* Promo / Coupon Box */}
+            <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '16px', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 700, marginBottom: '8px', color: 'var(--color-text-secondary)' }}>
+                <Tag size={13} color="var(--color-primary)" />
+                <span>Promo Code / Coupon (কুপন কোড)</span>
+              </div>
+
+              {appliedCoupon ? (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    background: 'rgba(34, 197, 94, 0.08)',
+                    border: '1px solid rgba(34, 197, 94, 0.25)',
+                    padding: '8px 12px',
+                    borderRadius: 'var(--radius-md)',
+                    fontSize: '12px',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <CheckCircle2 size={15} color="var(--color-success)" />
+                    <div>
+                      <span style={{ fontWeight: 800, color: 'var(--color-success)', letterSpacing: '0.5px' }}>
+                        {appliedCoupon.code}
+                      </span>
+                      <span style={{ color: 'var(--color-text-secondary)', marginLeft: '6px' }}>
+                        (Saved {formatCurrency(appliedCoupon.discount)})
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleRemoveCoupon}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--color-danger)',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      padding: '2px 6px',
+                    }}
+                    title="Remove coupon"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input
+                    type="text"
+                    placeholder="Enter coupon (e.g. SAVE10)"
+                    className="form-input"
+                    style={{ height: '38px', textTransform: 'uppercase', flex: 1, minWidth: 0, fontSize: '13px' }}
+                    value={couponInput}
+                    onChange={e => setCouponInput(e.target.value.toUpperCase())}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleApplyCoupon();
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleApplyCoupon()}
+                    disabled={isValidatingCoupon || !couponInput.trim()}
+                    className="btn btn-secondary btn-sm"
+                    style={{ flexShrink: 0, padding: '0 16px', height: '38px', fontSize: '12px', fontWeight: 700 }}
+                    id="checkout-apply-coupon-btn"
+                  >
+                    {isValidatingCoupon ? '...' : 'Apply'}
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Totals Breakdown */}
