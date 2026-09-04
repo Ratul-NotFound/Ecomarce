@@ -29,12 +29,23 @@ const ALLOWED_SETTING_KEYS = new Set([
   'telegram_bot_token', 'telegram_chat_id', 'telegram_orders_topic_id', 'telegram_messages_topic_id',
 ]);
 
+const SENSITIVE_SUPER_ADMIN_KEYS = new Set([
+  'payment_methods', 'bkash_number', 'nagad_number',
+  'telegram_bot_token', 'telegram_chat_id', 'telegram_orders_topic_id', 'telegram_messages_topic_id',
+]);
+
 export async function GET(request: NextRequest) {
   try {
     const auth = await requireAdminAuth(request);
     if (!auth.authorized) {
       return auth.response!;
     }
+
+    // Moderators cannot access settings
+    if (auth.effectiveRole === 'moderator') {
+      return NextResponse.json({ error: 'Forbidden: Moderators cannot access store settings' }, { status: 403 });
+    }
+
     const dbClient = auth.dbClient;
 
     const { data, error } = await dbClient.from('store_settings').select('*');
@@ -42,10 +53,17 @@ export async function GET(request: NextRequest) {
 
     const settingsMap: Record<string, any> = {};
     (data || []).forEach((row: any) => {
+      // Hide sensitive bot token from non-super admins
+      if (auth.effectiveRole !== 'super_admin' && SENSITIVE_SUPER_ADMIN_KEYS.has(row.key)) {
+        if (row.key === 'telegram_bot_token') {
+          settingsMap[row.key] = row.value ? '••••••••••••••••' : '';
+          return;
+        }
+      }
       settingsMap[row.key] = row.value;
     });
 
-    return NextResponse.json({ success: true, settings: settingsMap });
+    return NextResponse.json({ success: true, settings: settingsMap, role: auth.effectiveRole });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
@@ -57,6 +75,12 @@ export async function POST(request: NextRequest) {
     if (!auth.authorized) {
       return auth.response!;
     }
+
+    // Moderators cannot modify settings
+    if (auth.effectiveRole === 'moderator') {
+      return NextResponse.json({ error: 'Forbidden: Moderators cannot modify store settings' }, { status: 403 });
+    }
+
     const dbClient = auth.dbClient;
 
     const body = await request.json();
@@ -64,15 +88,29 @@ export async function POST(request: NextRequest) {
 
     // Security: Only allow known, whitelisted setting keys
     const rejectedKeys: string[] = [];
+    const sensitiveKeysAttempted: string[] = [];
+
     for (const [key] of entries) {
       if (!ALLOWED_SETTING_KEYS.has(key)) {
         rejectedKeys.push(key);
       }
+      if (SENSITIVE_SUPER_ADMIN_KEYS.has(key) && auth.effectiveRole !== 'super_admin') {
+        sensitiveKeysAttempted.push(key);
+      }
     }
+
     if (rejectedKeys.length > 0) {
       return NextResponse.json(
         { error: `Unrecognized setting key(s): ${rejectedKeys.join(', ')}. Only known settings can be modified.` },
         { status: 400 }
+      );
+    }
+
+    // Non-super-admins cannot touch payment gateway numbers or Telegram bot configurations
+    if (sensitiveKeysAttempted.length > 0) {
+      return NextResponse.json(
+        { error: `Forbidden: Modifying sensitive configurations (${sensitiveKeysAttempted.join(', ')}) requires Super Admin privileges` },
+        { status: 403 }
       );
     }
 

@@ -26,6 +26,8 @@ import {
   UserCheck,
   AlertTriangle,
   RefreshCw,
+  Crown,
+  Lock,
 } from 'lucide-react';
 import { formatCurrency, formatDate } from '@/lib/utils/format';
 import { useToast } from '@/components/shared/ToastProvider';
@@ -36,7 +38,7 @@ export interface CustomerRecord {
   email: string | null;
   phone: string | null;
   avatar_url: string | null;
-  role: 'admin' | 'moderator' | 'customer';
+  role: 'super_admin' | 'admin' | 'moderator' | 'customer';
   points: number;
   referral_code: string;
   created_at: string;
@@ -46,6 +48,8 @@ export interface CustomerRecord {
 
 interface AdminCustomersManagerProps {
   initialCustomers: CustomerRecord[];
+  currentAdminRole?: 'super_admin' | 'admin' | 'moderator';
+  currentAdminId?: string;
 }
 
 // Available export fields
@@ -62,11 +66,18 @@ const EXPORTABLE_COLUMNS: { key: keyof CustomerRecord; label: string; defaultSel
   { key: 'id', label: 'Customer ID (UUID)', defaultSelected: false },
 ];
 
-export default function AdminCustomersManager({ initialCustomers }: AdminCustomersManagerProps) {
+export default function AdminCustomersManager({
+  initialCustomers,
+  currentAdminRole = 'super_admin',
+  currentAdminId,
+}: AdminCustomersManagerProps) {
   const { showToast } = useToast();
+  const isSuperAdmin = currentAdminRole === 'super_admin';
+  const isModerator = currentAdminRole === 'moderator';
+
   const [customers, setCustomers] = useState<CustomerRecord[]>(initialCustomers);
   const [search, setSearch] = useState('');
-  const [roleFilter, setRoleFilter] = useState<'all' | 'customer' | 'moderator' | 'admin'>('all');
+  const [roleFilter, setRoleFilter] = useState<'all' | 'customer' | 'moderator' | 'admin' | 'super_admin'>('all');
   const [activityFilter, setActivityFilter] = useState<'all' | 'buyers' | 'non_buyers' | 'vip'>('all');
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'highest_spent' | 'most_orders' | 'most_points' | 'name'>('newest');
 
@@ -77,7 +88,7 @@ export default function AdminCustomersManager({ initialCustomers }: AdminCustome
   const [editingCustomer, setEditingCustomer] = useState<CustomerRecord | null>(null);
   const [editName, setEditName] = useState('');
   const [editPhone, setEditPhone] = useState('');
-  const [editRole, setEditRole] = useState<'admin' | 'moderator' | 'customer'>('customer');
+  const [editRole, setEditRole] = useState<'super_admin' | 'admin' | 'moderator' | 'customer'>('customer');
   const [editPoints, setEditPoints] = useState<number>(0);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -238,19 +249,73 @@ export default function AdminCustomersManager({ initialCustomers }: AdminCustome
   };
 
   // ────────────────────────────────────────────────────────────
-  // CUSTOMIZABLE DATA EXPORT ENGINE (CSV / JSON)
+  // ROBUST DATA EXPORT ENGINE (CSV / JSON)
   // ────────────────────────────────────────────────────────────
+  const triggerDownload = (content: string, filename: string, mimeType: string) => {
+    try {
+      const blob = new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', filename);
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      setTimeout(() => {
+        try {
+          if (document.body.contains(link)) document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+        } catch {}
+      }, 30000);
+    } catch (err: any) {
+      console.error('Download failed:', err);
+      showToast('Download failed: ' + (err.message || 'Unknown error'), 'error');
+    }
+  };
+
+  // Instant 1-click CSV export without modal
+  const handleQuickExportCSV = () => {
+    const dataset = selectedIds.size > 0 
+      ? customers.filter(c => selectedIds.has(c.id)) 
+      : (filteredCustomers.length > 0 ? filteredCustomers : customers);
+
+    if (dataset.length === 0) {
+      showToast('No customer records to export', 'error');
+      return;
+    }
+
+    const timestamp = new Date().toISOString().slice(0, 10);
+    const activeColumns = EXPORTABLE_COLUMNS.filter(col => col.defaultSelected);
+    const headers = activeColumns.map(c => `"${c.label.replace(/"/g, '""')}"`).join(',');
+    const rows = dataset.map(item => {
+      return activeColumns
+        .map(c => {
+          let val = (item as any)[c.key];
+          if (val === null || val === undefined) val = '';
+          if (c.key === 'created_at' && val) val = formatDate(val);
+          if (c.key === 'role' && val) val = String(val).toUpperCase();
+          return `"${String(val).replace(/"/g, '""')}"`;
+        })
+        .join(',');
+    });
+
+    const csvContent = '\uFEFF' + [headers, ...rows].join('\r\n');
+    triggerDownload(csvContent, `shopbd_customers_${timestamp}.csv`, 'text/csv;charset=utf-8;');
+    showToast(`Quick exported ${dataset.length} customer records to CSV!`, 'success');
+  };
+
+  // Customizable export with user-selected columns and format
   const handleExecuteExport = () => {
     // 1. Determine target dataset
     let dataset: CustomerRecord[] = [];
     if (exportScope === 'selected') {
       dataset = customers.filter(c => selectedIds.has(c.id));
       if (dataset.length === 0) {
-        showToast('No customers selected to export. Exporting currently filtered list instead.', 'info');
-        dataset = filteredCustomers;
+        showToast('No customers selected. Exporting currently visible list instead.', 'info');
+        dataset = filteredCustomers.length > 0 ? filteredCustomers : customers;
       }
     } else if (exportScope === 'filtered') {
-      dataset = filteredCustomers;
+      dataset = filteredCustomers.length > 0 ? filteredCustomers : customers;
     } else {
       dataset = customers;
     }
@@ -270,7 +335,7 @@ export default function AdminCustomersManager({ initialCustomers }: AdminCustome
     const timestamp = new Date().toISOString().slice(0, 10);
 
     if (exportFormat === 'csv') {
-      // Build CSV with UTF-8 BOM for full Bengali & character compatibility in Microsoft Excel
+      // Build CSV with UTF-8 BOM for full Excel / Bangla compatibility
       const headers = activeColumns.map(c => `"${c.label.replace(/"/g, '""')}"`).join(',');
       const rows = dataset.map(item => {
         return activeColumns
@@ -285,16 +350,7 @@ export default function AdminCustomersManager({ initialCustomers }: AdminCustome
       });
 
       const csvContent = '\uFEFF' + [headers, ...rows].join('\r\n');
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `shopbd_customers_${timestamp}.csv`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-
+      triggerDownload(csvContent, `shopbd_customers_${timestamp}.csv`, 'text/csv;charset=utf-8;');
       showToast(`Exported ${dataset.length} customer records to CSV!`, 'success');
     } else {
       // Build JSON
@@ -308,16 +364,7 @@ export default function AdminCustomersManager({ initialCustomers }: AdminCustome
         return obj;
       });
 
-      const blob = new Blob([JSON.stringify(jsonContent, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `shopbd_customers_${timestamp}.json`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-
+      triggerDownload(JSON.stringify(jsonContent, null, 2), `shopbd_customers_${timestamp}.json`, 'application/json');
       showToast(`Exported ${dataset.length} customer records to JSON!`, 'success');
     }
 
@@ -338,26 +385,68 @@ export default function AdminCustomersManager({ initialCustomers }: AdminCustome
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <button
-            type="button"
-            onClick={() => {
-              if (selectedIds.size > 0) setExportScope('selected');
-              else setExportScope('filtered');
-              setIsExportModalOpen(true);
-            }}
-            className="btn btn-secondary btn-sm"
-            style={{
-              background: '#ffffff',
-              borderColor: 'var(--color-admin-border)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontWeight: 700,
-            }}
-          >
-            <Download size={15} color="var(--color-primary)" />
-            <span>Export Data {selectedIds.size > 0 ? `(${selectedIds.size})` : ''}</span>
-          </button>
+          {isModerator ? (
+            <span
+              style={{
+                fontSize: '12px',
+                color: 'var(--color-admin-muted)',
+                background: 'rgba(147, 51, 234, 0.08)',
+                padding: '6px 12px',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontWeight: 600,
+              }}
+            >
+              <Lock size={13} color="#7e22ce" />
+              <span>Bulk data export restricted to Admins</span>
+            </span>
+          ) : (
+            <>
+              {/* Instant 1-Click Quick CSV Download */}
+              <button
+                type="button"
+                onClick={handleQuickExportCSV}
+                className="btn btn-secondary btn-sm"
+                title="Instant 1-Click CSV Download"
+                style={{
+                  background: '#ffffff',
+                  borderColor: 'var(--color-admin-border)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                <Download size={15} color="#16a34a" />
+                <span>Quick Export CSV</span>
+              </button>
+
+              {/* Full Customizer Modal */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (selectedIds.size > 0) setExportScope('selected');
+                  else setExportScope('filtered');
+                  setIsExportModalOpen(true);
+                }}
+                className="btn btn-primary btn-sm"
+                title="Choose format, columns, and scope"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                <FileSpreadsheet size={15} />
+                <span>Custom Export {selectedIds.size > 0 ? `(${selectedIds.size})` : ''}</span>
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -450,9 +539,10 @@ export default function AdminCustomersManager({ initialCustomers }: AdminCustome
               style={{ height: '38px', fontSize: '13px', padding: '0 10px', minWidth: '120px' }}
             >
               <option value="all">All Roles</option>
-              <option value="customer">Customers</option>
-              <option value="moderator">Moderators</option>
+              <option value="super_admin">Super Admins</option>
               <option value="admin">Admins</option>
+              <option value="moderator">Moderators</option>
+              <option value="customer">Customers</option>
             </select>
           </div>
 
@@ -658,18 +748,51 @@ export default function AdminCustomersManager({ initialCustomers }: AdminCustome
 
                       {/* Role Badge */}
                       <td>
-                        <span
-                          className={`badge ${
-                            user.role === 'admin'
-                              ? 'badge-danger'
-                              : user.role === 'moderator'
-                              ? 'badge-warning'
-                              : 'badge-primary'
-                          }`}
-                          style={{ textTransform: 'uppercase', fontWeight: 800, fontSize: '11px' }}
-                        >
-                          {user.role}
-                        </span>
+                        {user.role === 'super_admin' ? (
+                          <span
+                            style={{
+                              background: 'linear-gradient(135deg, #fef3c7, #fde68a)',
+                              color: '#92400e',
+                              border: '1px solid #f59e0b',
+                              padding: '3px 9px',
+                              borderRadius: '9999px',
+                              fontSize: '10.5px',
+                              fontWeight: 800,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.4px',
+                              boxShadow: '0 1px 2px rgba(245, 158, 11, 0.2)',
+                            }}
+                          >
+                            <Crown size={12} color="#d97706" />
+                            SUPER ADMIN
+                          </span>
+                        ) : user.role === 'admin' ? (
+                          <span className="badge badge-primary" style={{ fontWeight: 800, fontSize: '11px' }}>
+                            ADMIN
+                          </span>
+                        ) : user.role === 'moderator' ? (
+                          <span
+                            style={{
+                              background: 'rgba(147, 51, 234, 0.1)',
+                              color: '#7e22ce',
+                              border: '1px solid rgba(147, 51, 234, 0.25)',
+                              padding: '3px 8px',
+                              borderRadius: '9999px',
+                              fontSize: '10.5px',
+                              fontWeight: 800,
+                              textTransform: 'uppercase',
+                            }}
+                          >
+                            MODERATOR
+                          </span>
+                        ) : (
+                          <span className="badge badge-secondary" style={{ fontWeight: 700, fontSize: '11px' }}>
+                            CUSTOMER
+                          </span>
+                        )}
                       </td>
 
                       {/* Orders & Spend */}
@@ -711,10 +834,10 @@ export default function AdminCustomersManager({ initialCustomers }: AdminCustome
                             onClick={() => openEditModal(user)}
                             className="btn btn-secondary btn-sm"
                             style={{ padding: '5px 9px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}
-                            title="Edit customer role and loyalty points"
+                            title={isModerator ? 'View customer details' : 'Manage customer & role'}
                           >
                             <Edit2 size={13} />
-                            <span>Edit</span>
+                            <span>{isModerator ? 'View' : 'Manage'}</span>
                           </button>
 
                           {user.orderCount > 0 && (
@@ -728,23 +851,26 @@ export default function AdminCustomersManager({ initialCustomers }: AdminCustome
                             </Link>
                           )}
 
-                          <button
-                            type="button"
-                            onClick={() => setDeletingCustomer(user)}
-                            style={{
-                              background: 'none',
-                              border: 'none',
-                              color: 'var(--color-danger, #ef4444)',
-                              cursor: 'pointer',
-                              padding: '5px',
-                              borderRadius: '6px',
-                              display: 'flex',
-                              alignItems: 'center',
-                            }}
-                            title="Delete customer account"
-                          >
-                            <Trash2 size={15} />
-                          </button>
+                          {/* Account Deletion: Only Super Admin can delete customer or staff accounts */}
+                          {isSuperAdmin && user.role !== 'super_admin' && (
+                            <button
+                              type="button"
+                              onClick={() => setDeletingCustomer(user)}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                color: 'var(--color-danger, #ef4444)',
+                                cursor: 'pointer',
+                                padding: '5px',
+                                borderRadius: '6px',
+                                display: 'flex',
+                                alignItems: 'center',
+                              }}
+                              title="Delete customer account"
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -760,10 +886,37 @@ export default function AdminCustomersManager({ initialCustomers }: AdminCustome
           EDIT / USER CONTROL MODAL
       ──────────────────────────────────────────────────────────── */}
       {editingCustomer && (
-        <div className="modal-backdrop" onClick={() => setEditingCustomer(null)}>
+        <div
+          className="modal-backdrop"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.68)',
+            backdropFilter: 'blur(4px)',
+            WebkitBackdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 999999,
+            padding: '16px',
+          }}
+          onClick={() => setEditingCustomer(null)}
+        >
           <div
             className="modal-card"
-            style={{ maxWidth: '520px', padding: '24px' }}
+            style={{
+              background: '#ffffff',
+              borderRadius: '16px',
+              border: '1px solid var(--color-admin-border, #cbd5e1)',
+              boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.25)',
+              width: '100%',
+              maxWidth: '520px',
+              maxHeight: 'calc(100vh - 40px)',
+              overflowY: 'auto',
+              padding: '24px',
+              position: 'relative',
+              zIndex: 1000000,
+            }}
             onClick={e => e.stopPropagation()}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
@@ -809,19 +962,46 @@ export default function AdminCustomersManager({ initialCustomers }: AdminCustome
               </div>
 
               <div className="form-group">
-                <label className="form-label">Account Role & Privileges</label>
-                <select
-                  value={editRole}
-                  onChange={e => setEditRole(e.target.value as any)}
-                  className="form-input"
-                >
-                  <option value="customer">Customer (Default Shopper)</option>
-                  <option value="moderator">Moderator (Orders & Inventory access)</option>
-                  <option value="admin">Administrator (Full System Access)</option>
-                </select>
-                <span style={{ fontSize: '11px', color: 'var(--color-admin-muted)', marginTop: '4px' }}>
-                  Admins have unrestricted control across product catalog, orders, and store settings.
-                </span>
+                <label className="form-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span>Account Role & Privileges</span>
+                  {!isSuperAdmin && (
+                    <span style={{ fontSize: '11px', color: '#b45309', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <Lock size={12} /> Super Admin Only
+                    </span>
+                  )}
+                </label>
+                {isSuperAdmin ? (
+                  <>
+                    <select
+                      value={editRole}
+                      disabled={editingCustomer.role === 'super_admin'}
+                      onChange={e => setEditRole(e.target.value as any)}
+                      className="form-input"
+                    >
+                      <option value="customer">Customer (Default Shopper)</option>
+                      <option value="moderator">Moderator (Orders fulfillment & reviews)</option>
+                      <option value="admin">Administrator (Catalog & Operations manager)</option>
+                    </select>
+                    <span style={{ fontSize: '11px', color: 'var(--color-admin-muted)', marginTop: '4px' }}>
+                      {editingCustomer.role === 'super_admin'
+                        ? 'Root Super Admin account cannot be demoted.'
+                        : 'Promote or demote user authority across the store management pipeline.'}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <input
+                      type="text"
+                      disabled
+                      value={editingCustomer.role.toUpperCase()}
+                      className="form-input"
+                      style={{ background: '#f8fafc', color: 'var(--color-admin-muted)', cursor: 'not-allowed' }}
+                    />
+                    <span style={{ fontSize: '11.5px', color: 'var(--color-admin-muted)', marginTop: '4px' }}>
+                      Role changes require Super Admin authority.
+                    </span>
+                  </>
+                )}
               </div>
 
               <div className="form-group">
@@ -829,49 +1009,67 @@ export default function AdminCustomersManager({ initialCustomers }: AdminCustome
                   <label className="form-label" style={{ margin: 0 }}>Loyalty Points</label>
                   <span style={{ fontSize: '12px', fontWeight: 700, color: '#ca8a04' }}>Current: {editingCustomer.points} pts</span>
                 </div>
-                <input
-                  type="number"
-                  min="0"
-                  value={editPoints}
-                  onChange={e => setEditPoints(Math.max(0, parseInt(e.target.value, 10) || 0))}
-                  className="form-input"
-                />
-                <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
-                  {[10, 50, 100, 200].map(pt => (
-                    <button
-                      key={pt}
-                      type="button"
-                      onClick={() => setEditPoints(prev => prev + pt)}
-                      style={{
-                        padding: '3px 8px',
-                        borderRadius: '4px',
-                        border: '1px solid var(--color-admin-border)',
-                        background: '#fff',
-                        fontSize: '11px',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      +{pt}
-                    </button>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={() => setEditPoints(0)}
-                    style={{
-                      padding: '3px 8px',
-                      borderRadius: '4px',
-                      border: '1px solid var(--color-admin-border)',
-                      background: '#fff',
-                      fontSize: '11px',
-                      color: 'var(--color-danger, #ef4444)',
-                      cursor: 'pointer',
-                      marginLeft: 'auto',
-                    }}
-                  >
-                    Reset
-                  </button>
-                </div>
+                {isModerator ? (
+                  <>
+                    <input
+                      type="number"
+                      disabled
+                      value={editPoints}
+                      className="form-input"
+                      style={{ background: '#f8fafc', cursor: 'not-allowed' }}
+                    />
+                    <span style={{ fontSize: '11.5px', color: 'var(--color-admin-muted)', marginTop: '4px' }}>
+                      Moderators have read-only access to customer points.
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <input
+                      type="number"
+                      min="0"
+                      value={editPoints}
+                      onChange={e => setEditPoints(Math.max(0, parseInt(e.target.value, 10) || 0))}
+                      className="form-input"
+                    />
+                    <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
+                      {[10, 50, 100, 200].map(pt => (
+                        <button
+                          key={pt}
+                          type="button"
+                          onClick={() => setEditPoints(prev => prev + pt)}
+                          style={{
+                            padding: '3px 8px',
+                            borderRadius: '4px',
+                            border: '1px solid var(--color-admin-border)',
+                            background: '#fff',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          +{pt}
+                        </button>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => setEditPoints(0)}
+                        style={{
+                          padding: '3px 8px',
+                          borderRadius: '4px',
+                          border: '1px solid var(--color-admin-border)',
+                          background: '#fff',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          color: 'var(--color-danger, #ef4444)',
+                          marginLeft: 'auto',
+                        }}
+                      >
+                        Reset (0)
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
 
               <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
@@ -901,10 +1099,36 @@ export default function AdminCustomersManager({ initialCustomers }: AdminCustome
           DELETE CONFIRMATION MODAL
       ──────────────────────────────────────────────────────────── */}
       {deletingCustomer && (
-        <div className="modal-backdrop" onClick={() => setDeletingCustomer(null)}>
+        <div
+          className="modal-backdrop"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.68)',
+            backdropFilter: 'blur(4px)',
+            WebkitBackdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 999999,
+            padding: '16px',
+          }}
+          onClick={() => setDeletingCustomer(null)}
+        >
           <div
             className="modal-card"
-            style={{ maxWidth: '420px', padding: '24px', textAlign: 'center' }}
+            style={{
+              background: '#ffffff',
+              borderRadius: '16px',
+              border: '1px solid var(--color-admin-border, #cbd5e1)',
+              boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.25)',
+              width: '100%',
+              maxWidth: '420px',
+              padding: '24px',
+              textAlign: 'center',
+              position: 'relative',
+              zIndex: 1000000,
+            }}
             onClick={e => e.stopPropagation()}
           >
             <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'rgba(239, 68, 68, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
@@ -941,10 +1165,37 @@ export default function AdminCustomersManager({ initialCustomers }: AdminCustome
           CUSTOMIZABLE EXPORT MODAL
       ──────────────────────────────────────────────────────────── */}
       {isExportModalOpen && (
-        <div className="modal-backdrop" onClick={() => setIsExportModalOpen(false)}>
+        <div
+          className="modal-backdrop"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.68)',
+            backdropFilter: 'blur(4px)',
+            WebkitBackdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 999999,
+            padding: '16px',
+          }}
+          onClick={() => setIsExportModalOpen(false)}
+        >
           <div
             className="modal-card"
-            style={{ maxWidth: '580px', padding: '26px' }}
+            style={{
+              background: '#ffffff',
+              borderRadius: '16px',
+              border: '1px solid var(--color-admin-border, #cbd5e1)',
+              boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.25)',
+              width: '100%',
+              maxWidth: '580px',
+              maxHeight: 'calc(100vh - 40px)',
+              overflowY: 'auto',
+              padding: '26px',
+              position: 'relative',
+              zIndex: 1000000,
+            }}
             onClick={e => e.stopPropagation()}
           >
             {/* Modal Header */}

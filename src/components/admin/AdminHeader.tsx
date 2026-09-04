@@ -13,7 +13,7 @@ interface AdminHeaderProps {
 
 export default function AdminHeader({ onToggleSidebar }: AdminHeaderProps) {
   const router = useRouter();
-  const { profile, user, signOut } = useAuth();
+  const { profile, user, signOut, isSuperAdmin, effectiveRole } = useAuth();
   const userAvatar = profile?.avatar_url || extractAvatarUrl(user);
 
   const handleSignOut = async () => {
@@ -89,9 +89,36 @@ export default function AdminHeader({ onToggleSidebar }: AdminHeaderProps) {
               {profile?.full_name?.charAt(0) || user?.email?.charAt(0)?.toUpperCase() || 'A'}
             </div>
           )}
-          <span className="hide-mobile" style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-admin-text)' }}>
-            {profile?.full_name || user?.email || 'Admin'}
-          </span>
+          <div style={{ display: 'flex', flexDirection: 'column' }} className="hide-mobile">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-admin-text)' }}>
+                {profile?.full_name || user?.email || 'Admin'}
+              </span>
+              <span
+                style={{
+                  fontSize: '10px',
+                  fontWeight: 800,
+                  padding: '1px 6px',
+                  borderRadius: '4px',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.4px',
+                  background: isSuperAdmin
+                    ? 'rgba(234, 179, 8, 0.15)'
+                    : effectiveRole === 'moderator'
+                    ? 'rgba(147, 51, 234, 0.15)'
+                    : 'rgba(37, 99, 235, 0.1)',
+                  color: isSuperAdmin
+                    ? '#b45309'
+                    : effectiveRole === 'moderator'
+                    ? '#7e22ce'
+                    : '#1d4ed8',
+                  border: isSuperAdmin ? '1px solid rgba(234, 179, 8, 0.3)' : undefined,
+                }}
+              >
+                {isSuperAdmin ? 'Super Admin' : effectiveRole === 'moderator' ? 'Moderator' : 'Admin'}
+              </span>
+            </div>
+          </div>
         </div>
 
         <button

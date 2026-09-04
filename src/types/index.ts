@@ -8,7 +8,7 @@
 // ENUMS / UNION TYPES
 // ────────────────────────────────────────────────────────────
 
-export type UserRole = 'customer' | 'moderator' | 'admin';
+export type UserRole = 'customer' | 'moderator' | 'admin' | 'super_admin';
 
 export type OrderStatus =
   | 'pending'

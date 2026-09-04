@@ -213,12 +213,26 @@ export function useAuth() {
     return current.user ? fetchProfileSingleton(current.user.id, current.user) : Promise.resolve();
   }, [current.user]);
 
+  const isSuperAdmin = Boolean(
+    current.user?.id === '17267732-4774-45f6-8cfc-40ef0cdd602d' ||
+    current.user?.user_metadata?.is_super_admin === true ||
+    (current.user?.email && current.user.email.toLowerCase().trim() === 'm.h.ratul18@gmail.com')
+  );
+
+  const effectiveRole: 'super_admin' | 'admin' | 'moderator' | 'customer' =
+    isSuperAdmin ? 'super_admin' :
+    current.profile?.role === 'admin' ? 'admin' :
+    current.profile?.role === 'moderator' ? 'moderator' :
+    'customer';
+
   return {
     user: current.user,
     profile: current.profile,
     loading: current.loading,
-    isAdmin: current.profile?.role === 'admin',
-    isModerator: current.profile?.role === 'admin' || current.profile?.role === 'moderator',
+    isAdmin: current.profile?.role === 'admin' || isSuperAdmin,
+    isModerator: current.profile?.role === 'admin' || current.profile?.role === 'moderator' || isSuperAdmin,
+    isSuperAdmin,
+    effectiveRole,
     signOut,
     signInWithGoogle,
     refreshProfile,

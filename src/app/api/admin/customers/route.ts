@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdminAuth } from '@/lib/auth/admin-guard';
+import { requireAdminAuth, isSuperAdmin } from '@/lib/auth/admin-guard';
 import { createAdminClient } from '@/lib/supabase/admin';
 
 // ============================================================
-// ADMIN CUSTOMER MANAGEMENT API
+// ADMIN CUSTOMER MANAGEMENT API (MULTI-TIER RBAC)
 // PATCH: Update user profile (role, points, name, phone)
 // DELETE: Delete customer account
 // ============================================================
@@ -20,34 +20,71 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Missing or invalid userId' }, { status: 400 });
     }
 
-    // Role updates can only be performed by full admins
-    if (role && auth.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden: Only full admins can modify user roles' }, { status: 403 });
+    const adminClient = createAdminClient();
+
+    // Check target user to prevent tampering with Super Admin
+    const { data: targetProfile } = await adminClient
+      .from('profiles')
+      .select('id, role, full_name')
+      .eq('id', userId)
+      .maybeSingle();
+
+    const targetIsSuperAdmin = userId === '17267732-4774-45f6-8cfc-40ef0cdd602d' || (targetProfile && targetProfile.role === 'admin' && isSuperAdmin({ id: userId }));
+
+    // 1. Role Change Authorization: ONLY Super Admin can change roles
+    if (role !== undefined) {
+      if (auth.effectiveRole !== 'super_admin') {
+        return NextResponse.json(
+          { error: 'Forbidden: Only the Super Admin can promote, demote, or change staff roles' },
+          { status: 403 }
+        );
+      }
+
+      if (targetIsSuperAdmin && role !== 'admin') {
+        return NextResponse.json(
+          { error: 'Cannot demote the root Super Admin account' },
+          { status: 400 }
+        );
+      }
+
+      const validRoles = ['customer', 'moderator', 'admin'];
+      if (!validRoles.includes(role)) {
+        return NextResponse.json({ error: 'Invalid role specified' }, { status: 400 });
+      }
+    }
+
+    // 2. Loyalty Points Authorization: Moderators cannot edit points
+    if (points !== undefined) {
+      if (auth.effectiveRole === 'moderator') {
+        return NextResponse.json(
+          { error: 'Forbidden: Moderators cannot modify loyalty points' },
+          { status: 403 }
+        );
+      }
+      const parsedPoints = parseInt(points, 10);
+      if (isNaN(parsedPoints) || parsedPoints < 0) {
+        return NextResponse.json({ error: 'Points must be a non-negative integer' }, { status: 400 });
+      }
+    }
+
+    // 3. Contact Info (Name / Phone): Moderators cannot edit other admin profiles
+    if (auth.effectiveRole === 'moderator' && targetProfile?.role !== 'customer') {
+      return NextResponse.json(
+        { error: 'Forbidden: Moderators cannot edit staff profiles' },
+        { status: 403 }
+      );
     }
 
     const updates: Record<string, any> = {};
     if (full_name !== undefined) updates.full_name = String(full_name).trim();
     if (phone !== undefined) updates.phone = phone ? String(phone).trim() : null;
-    if (role !== undefined) {
-      const validRoles = ['customer', 'moderator', 'admin'];
-      if (!validRoles.includes(role)) {
-        return NextResponse.json({ error: 'Invalid role specified' }, { status: 400 });
-      }
-      updates.role = role;
-    }
-    if (points !== undefined) {
-      const parsedPoints = parseInt(points, 10);
-      if (isNaN(parsedPoints) || parsedPoints < 0) {
-        return NextResponse.json({ error: 'Points must be a non-negative integer' }, { status: 400 });
-      }
-      updates.points = parsedPoints;
-    }
+    if (role !== undefined) updates.role = role;
+    if (points !== undefined) updates.points = parseInt(points, 10);
 
     if (Object.keys(updates).length === 0) {
       return NextResponse.json({ error: 'No update fields provided' }, { status: 400 });
     }
 
-    const adminClient = createAdminClient();
     const { data: updatedProfile, error: updateErr } = await adminClient
       .from('profiles')
       .update(updates)
@@ -76,8 +113,12 @@ export async function DELETE(request: NextRequest) {
     const auth = await requireAdminAuth(request);
     if (!auth.authorized) return auth.response!;
 
-    if (auth.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden: Only full admins can delete customer accounts' }, { status: 403 });
+    // Deleting accounts requires Super Admin privileges
+    if (auth.effectiveRole !== 'super_admin') {
+      return NextResponse.json(
+        { error: 'Forbidden: Only the Super Admin can delete customer or staff accounts' },
+        { status: 403 }
+      );
     }
 
     const { searchParams } = new URL(request.url);
@@ -87,9 +128,9 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Missing userId parameter' }, { status: 400 });
     }
 
-    // Safety: Prevent admin from deleting themselves
-    if (auth.user?.id === userId) {
-      return NextResponse.json({ error: 'Cannot delete your own account from customer directory' }, { status: 400 });
+    // Safety: Prevent Super Admin from deleting themselves
+    if (auth.user?.id === userId || userId === '17267732-4774-45f6-8cfc-40ef0cdd602d') {
+      return NextResponse.json({ error: 'Cannot delete the Super Admin account' }, { status: 400 });
     }
 
     const adminClient = createAdminClient();

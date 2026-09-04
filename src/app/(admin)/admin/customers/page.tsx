@@ -79,6 +79,17 @@ export default async function AdminCustomersPage() {
     }
   }
 
+  // Get current user to determine viewer's admin privileges
+  const { data: { user: currentUser } } = await supabase.auth.getUser();
+  const currentAdminRole: 'super_admin' | 'admin' | 'moderator' =
+    currentUser?.id === '17267732-4774-45f6-8cfc-40ef0cdd602d' ||
+    currentUser?.user_metadata?.is_super_admin === true ||
+    currentUser?.email?.toLowerCase().trim() === 'm.h.ratul18@gmail.com'
+      ? 'super_admin'
+      : profiles.find((p: any) => p.id === currentUser?.id)?.role === 'admin'
+      ? 'admin'
+      : 'moderator';
+
   // Combine into unified CustomerRecord
   const customerRecords: CustomerRecord[] = profiles.map((p: any) => {
     const authInfo = authMap.get(p.id);
@@ -91,13 +102,25 @@ export default async function AdminCustomersPage() {
       stats = orderStatsByEmail.get(email.toLowerCase());
     }
 
+    const isSuper =
+      p.id === '17267732-4774-45f6-8cfc-40ef0cdd602d' ||
+      email?.toLowerCase().trim() === 'm.h.ratul18@gmail.com';
+
+    const role: 'super_admin' | 'admin' | 'moderator' | 'customer' = isSuper
+      ? 'super_admin'
+      : p.role === 'admin'
+      ? 'admin'
+      : p.role === 'moderator'
+      ? 'moderator'
+      : 'customer';
+
     return {
       id: p.id,
       full_name: p.full_name || null,
       email,
       phone: p.phone || null,
       avatar_url: avatarUrl,
-      role: (p.role === 'admin' || p.role === 'moderator' ? p.role : 'customer'),
+      role,
       points: Number(p.points) || 0,
       referral_code: p.referral_code || '—',
       created_at: p.created_at || new Date().toISOString(),
@@ -108,7 +131,11 @@ export default async function AdminCustomersPage() {
 
   return (
     <div>
-      <AdminCustomersManager initialCustomers={customerRecords} />
+      <AdminCustomersManager
+        initialCustomers={customerRecords}
+        currentAdminRole={currentAdminRole}
+        currentAdminId={currentUser?.id}
+      />
     </div>
   );
 }

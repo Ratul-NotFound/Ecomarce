@@ -265,11 +265,18 @@ export async function proxy(request: NextRequest) {
       );
     }
     if (!role) {
-      role = await getUserRole(user.id, supabaseUrl, null);
+      role = await getUserRole(user.id, supabaseUrl, null, user);
     }
-    if (role !== 'admin' && role !== 'moderator') {
+    if (role !== 'super_admin' && role !== 'admin' && role !== 'moderator') {
       return applySecurityHeaders(
         NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 })
+      );
+    }
+
+    // Moderators cannot access admin settings endpoints
+    if (role === 'moderator' && pathname.startsWith('/api/admin/settings')) {
+      return applySecurityHeaders(
+        NextResponse.json({ error: 'Forbidden: Moderators cannot access system settings' }, { status: 403 })
       );
     }
   }
@@ -282,10 +289,15 @@ export async function proxy(request: NextRequest) {
       return applySecurityHeaders(NextResponse.redirect(url));
     }
     if (!role) {
-      role = await getUserRole(user.id, supabaseUrl, null);
+      role = await getUserRole(user.id, supabaseUrl, null, user);
     }
-    if (role !== 'admin' && role !== 'moderator') {
+    if (role !== 'super_admin' && role !== 'admin' && role !== 'moderator') {
       return applySecurityHeaders(NextResponse.redirect(new URL('/', request.url)));
+    }
+
+    // Moderators are strictly barred from /admin/settings
+    if (role === 'moderator' && pathname.startsWith('/admin/settings')) {
+      return applySecurityHeaders(NextResponse.redirect(new URL('/admin', request.url)));
     }
   }
 
@@ -306,11 +318,23 @@ export async function proxy(request: NextRequest) {
 const verifiedSessionCache = new Map<string, { user: any; role: string; expiry: number }>();
 const roleCache = new Map<string, { role: string; expiry: number }>();
 
-async function getUserRole(userId: string, supabaseUrl: string, supabase: any): Promise<string> {
+async function getUserRole(userId: string, supabaseUrl: string, supabase: any, userObj?: any): Promise<string> {
   const now = Date.now();
   const cached = roleCache.get(userId);
   if (cached && now < cached.expiry) {
     return cached.role;
+  }
+
+  // Check Super Admin conditions
+  const superAdminEmail = (process.env.SUPER_ADMIN_EMAIL || 'm.h.ratul18@gmail.com').toLowerCase().trim();
+  const isSuper =
+    userId === '17267732-4774-45f6-8cfc-40ef0cdd602d' ||
+    userObj?.user_metadata?.is_super_admin === true ||
+    (userObj?.email && userObj.email.toLowerCase().trim() === superAdminEmail);
+
+  if (isSuper) {
+    roleCache.set(userId, { role: 'super_admin', expiry: now + 60_000 });
+    return 'super_admin';
   }
 
   let role = 'customer';
@@ -324,7 +348,7 @@ async function getUserRole(userId: string, supabaseUrl: string, supabase: any): 
       const { data: p } = await adminClient.from('profiles').select('role').eq('id', userId).maybeSingle();
       if (p?.role) role = p.role;
     } catch {}
-  } else {
+  } else if (supabase) {
     const { data: p } = await supabase.from('profiles').select('role').eq('id', userId).maybeSingle();
     if (p?.role) role = p.role;
   }

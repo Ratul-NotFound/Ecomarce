@@ -323,3 +323,46 @@
   background: #f8fafc;
   border-color: #94a3b8;
 }
+
+/* ────────────────────────────────────────────────────────────
+   ADMIN MODALS & DIALOG OVERLAYS
+   ──────────────────────────────────────────────────────────── */
+.modal-backdrop {
+  position: fixed !important;
+  inset: 0 !important;
+  background: rgba(15, 23, 42, 0.68) !important;
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 999999 !important;
+  padding: 16px !important;
+  overflow-y: auto !important;
+  animation: adminModalFadeIn 0.15s ease-out !important;
+}
+
+.modal-card {
+  background: #ffffff !important;
+  border: 1px solid var(--color-admin-border, #cbd5e1) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25) !important;
+  width: 100% !important;
+  max-width: 580px !important;
+  max-height: calc(100vh - 40px) !important;
+  overflow-y: auto !important;
+  position: relative !important;
+  color: var(--color-admin-text, #0f172a) !important;
+  animation: adminModalScaleUp 0.15s ease-out !important;
+}
+
+@keyframes adminModalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes adminModalScaleUp {
+  from { opacity: 0; transform: scale(0.96) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
