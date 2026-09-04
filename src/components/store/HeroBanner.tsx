@@ -119,17 +119,6 @@ export default function HeroBanner({ banners = [] }: HeroBannerProps) {
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
-      style={{
-        position: 'relative',
-        borderRadius: '24px',
-        overflow: 'hidden',
-        margin: '20px 0 28px 0',
-        minHeight: '340px',
-        display: 'flex',
-        alignItems: 'center',
-        background: '#0f172a',
-        boxShadow: '0 20px 45px -10px rgba(0,0,0,0.22)',
-      }}
       suppressHydrationWarning
     >
       {/* Background Image with Dark Left-to-Right Readable Gradient Overlay */}
@@ -169,210 +158,69 @@ export default function HeroBanner({ banners = [] }: HeroBannerProps) {
       <div
         className="hero-slide fade-in"
         key={current.id || currentIndex}
-        style={{
-          position: 'relative',
-          zIndex: 2,
-          padding: '40px 32px',
-          maxWidth: '680px',
-          color: '#ffffff',
-        }}
         suppressHydrationWarning
       >
         {current.subtitle && (
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontSize: '11.5px',
-              fontWeight: 800,
-              letterSpacing: '1px',
-              textTransform: 'uppercase',
-              background: 'rgba(255, 255, 255, 0.15)',
-              backdropFilter: 'blur(8px)',
-              WebkitBackdropFilter: 'blur(8px)',
-              border: '1px solid rgba(255, 255, 255, 0.25)',
-              padding: '6px 14px',
-              borderRadius: '9999px',
-              marginBottom: '16px',
-              color: '#ffffff',
-            }}
-          >
-            <Sparkles size={13} color="#f59e0b" />
+          <div className="hero-badge">
+            <Sparkles size={12} color="#f59e0b" />
             <span>{current.subtitle}</span>
           </div>
         )}
 
-        <h1
-          style={{
-            fontSize: 'clamp(26px, 4vw, 46px)',
-            fontWeight: 800,
-            lineHeight: 1.15,
-            marginBottom: '12px',
-            color: '#ffffff',
-            letterSpacing: '-0.5px',
-            textShadow: '0 2px 10px rgba(0,0,0,0.3)',
-          }}
-        >
+        <h1 className="hero-title">
           {current.title_en}
         </h1>
 
         {current.title_bn && (
-          <p
-            style={{
-              fontSize: 'clamp(15px, 2vw, 19px)',
-              fontWeight: 600,
-              color: '#cbd5e1',
-              marginBottom: '14px',
-            }}
-          >
+          <p className="hero-subtitle-bn">
             {current.title_bn}
           </p>
         )}
 
-        <p
-          style={{
-            fontSize: '13.5px',
-            color: 'rgba(255, 255, 255, 0.82)',
-            marginBottom: '26px',
-            lineHeight: 1.6,
-            maxWidth: '520px',
-          }}
-        >
+        <p className="hero-desc">
           Fast home delivery with Cash on Delivery or bKash across 64 districts in Bangladesh.
         </p>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+        <div className="hero-cta-group">
           <Link
             href={current.link_url || '/search'}
             id="hero-cta-btn"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              background: '#ffffff',
-              color: '#0f172a',
-              fontSize: '14px',
-              fontWeight: 800,
-              padding: '12px 24px',
-              borderRadius: '9999px',
-              textDecoration: 'none',
-              boxShadow: '0 6px 20px rgba(0, 0, 0, 0.25)',
-              transition: 'all 0.2s ease',
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = '0 10px 25px rgba(0, 0, 0, 0.35)';
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 6px 20px rgba(0, 0, 0, 0.25)';
-            }}
+            className="hero-cta-primary"
           >
             <span>Explore Collection</span>
-            <ArrowRight size={16} />
+            <ArrowRight size={15} />
           </Link>
 
           <Link
             href="/deals"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              fontSize: '13.5px',
-              fontWeight: 700,
-              color: '#ffffff',
-              textDecoration: 'none',
-              padding: '10px 18px',
-              borderRadius: '9999px',
-              border: '1px solid rgba(255,255,255,0.3)',
-              backdropFilter: 'blur(6px)',
-              transition: 'all 0.2s ease',
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.background = 'rgba(255,255,255,0.15)';
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.background = 'transparent';
-            }}
+            className="hero-cta-secondary"
           >
             Flash Deals ⚡
           </Link>
         </div>
       </div>
 
-      {/* Navigation Arrows (Desktop & Tablet) */}
+      {/* Navigation Arrows (Desktop & Tablet only - hidden on mobile to eliminate text clutter) */}
       {activeBanners.length > 1 && (
         <>
           <button
             type="button"
             onClick={handlePrev}
             aria-label="Previous Slide"
-            style={{
-              position: 'absolute',
-              left: '14px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              width: '38px',
-              height: '38px',
-              borderRadius: '50%',
-              background: 'rgba(15, 23, 42, 0.55)',
-              backdropFilter: 'blur(8px)',
-              WebkitBackdropFilter: 'blur(8px)',
-              border: '1px solid rgba(255,255,255,0.2)',
-              color: '#ffffff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              zIndex: 3,
-              transition: 'all 0.2s ease',
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.background = 'rgba(15, 23, 42, 0.85)';
-              e.currentTarget.style.transform = 'translateY(-50%) scale(1.08)';
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.background = 'rgba(15, 23, 42, 0.55)';
-              e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
-            }}
+            className="hero-nav-btn"
+            style={{ left: '16px' }}
           >
-            <ChevronLeft size={20} />
+            <ChevronLeft size={22} />
           </button>
 
           <button
             type="button"
             onClick={handleNext}
             aria-label="Next Slide"
-            style={{
-              position: 'absolute',
-              right: '14px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              width: '38px',
-              height: '38px',
-              borderRadius: '50%',
-              background: 'rgba(15, 23, 42, 0.55)',
-              backdropFilter: 'blur(8px)',
-              WebkitBackdropFilter: 'blur(8px)',
-              border: '1px solid rgba(255,255,255,0.2)',
-              color: '#ffffff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              zIndex: 3,
-              transition: 'all 0.2s ease',
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.background = 'rgba(15, 23, 42, 0.85)';
-              e.currentTarget.style.transform = 'translateY(-50%) scale(1.08)';
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.background = 'rgba(15, 23, 42, 0.55)';
-              e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
-            }}
+            className="hero-nav-btn"
+            style={{ right: '16px' }}
           >
-            <ChevronRight size={20} />
+            <ChevronRight size={22} />
           </button>
         </>
       )}
@@ -382,14 +230,14 @@ export default function HeroBanner({ banners = [] }: HeroBannerProps) {
         <div
           style={{
             position: 'absolute',
-            bottom: '16px',
+            bottom: '12px',
             left: '50%',
             transform: 'translateX(-50%)',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
+            gap: '6px',
             zIndex: 3,
-            padding: '6px 12px',
+            padding: '4px 10px',
             borderRadius: '9999px',
             background: 'rgba(0, 0, 0, 0.35)',
             backdropFilter: 'blur(6px)',
@@ -401,10 +249,10 @@ export default function HeroBanner({ banners = [] }: HeroBannerProps) {
               type="button"
               onClick={() => setCurrentIndex(idx)}
               style={{
-                width: idx === currentIndex ? '26px' : '8px',
-                height: '7px',
+                width: idx === currentIndex ? '22px' : '6px',
+                height: '6px',
                 borderRadius: '9999px',
-                background: idx === currentIndex ? '#ffffff' : 'rgba(255,255,255,0.4)',
+                background: idx === currentIndex ? '#ffffff' : 'rgba(255,255,255,0.45)',
                 border: 'none',
                 transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                 cursor: 'pointer',
