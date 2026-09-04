@@ -371,12 +371,112 @@ function CheckoutContent() {
             </div>
           </div>
 
-          {/* 2. Payment Method Section */}
+          {/* 2. Promo Code / Coupon Section (Applied before Payment calculation) */}
+          <div className="checkout-card" id="checkout-coupon-section">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
+              <div className="checkout-card-header" style={{ marginBottom: 0 }}>
+                <Tag size={20} color="var(--color-primary)" />
+                <h2 className="checkout-card-title">2. Promo Code / ডিসকাউন্ট কুপন</h2>
+              </div>
+              {appliedCoupon ? (
+                <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--color-success)', background: 'rgba(34, 197, 94, 0.12)', padding: '3px 10px', borderRadius: 'var(--radius-full)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <CheckCircle2 size={13} />
+                  APPLIED
+                </span>
+              ) : (
+                <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                  Optional / ঐচ্ছিক
+                </span>
+              )}
+            </div>
+
+            {appliedCoupon ? (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  background: 'rgba(34, 197, 94, 0.08)',
+                  border: '1px solid rgba(34, 197, 94, 0.25)',
+                  padding: '12px 16px',
+                  borderRadius: 'var(--radius-lg)',
+                  fontSize: '13px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(34, 197, 94, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Sparkles size={18} color="var(--color-success)" />
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 800, color: 'var(--color-success)', letterSpacing: '0.5px' }}>
+                      Coupon &ldquo;{appliedCoupon.code}&rdquo; Applied!
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginTop: '2px' }}>
+                      You saved <strong>{formatCurrency(appliedCoupon.discount)}</strong> on this order.
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleRemoveCoupon}
+                  style={{
+                    background: '#ffffff',
+                    border: '1px solid var(--color-danger)',
+                    color: 'var(--color-danger)',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    padding: '6px 12px',
+                    borderRadius: 'var(--radius-md)',
+                    transition: 'all 0.2s ease',
+                  }}
+                  title="Remove coupon"
+                >
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <div>
+                <div style={{ display: 'flex', gap: '8px', maxWidth: '460px' }}>
+                  <input
+                    id="checkout-coupon-input-field"
+                    type="text"
+                    placeholder="Enter coupon code (e.g. SAVE10)"
+                    className="form-input"
+                    style={{ height: '42px', textTransform: 'uppercase', flex: 1, minWidth: 0, fontSize: '13px', fontWeight: 600 }}
+                    value={couponInput}
+                    onChange={e => setCouponInput(e.target.value.toUpperCase())}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleApplyCoupon();
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleApplyCoupon()}
+                    disabled={isValidatingCoupon || !couponInput.trim()}
+                    className="btn btn-primary"
+                    style={{ flexShrink: 0, padding: '0 20px', height: '42px', fontSize: '13px', fontWeight: 700, borderRadius: 'var(--radius-lg)' }}
+                    id="checkout-apply-coupon-btn"
+                  >
+                    {isValidatingCoupon ? 'Checking...' : 'Apply'}
+                  </button>
+                </div>
+                <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '8px' }}>
+                  💡 Apply discount voucher before proceeding to payment.
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* 3. Payment Method Section */}
           <div className="checkout-card">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
               <div className="checkout-card-header" style={{ marginBottom: 0 }}>
                 <CreditCard size={20} color="var(--color-primary)" />
-                <h2 className="checkout-card-title">2. Payment Method / পেমেন্ট পদ্ধতি</h2>
+                <h2 className="checkout-card-title">3. Payment Method / পেমেন্ট পদ্ধতি</h2>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--color-success)', fontWeight: 600 }}>
                 <ShieldCheck size={16} />
@@ -735,13 +835,8 @@ function CheckoutContent() {
               })}
             </div>
 
-            {/* Promo / Coupon Box */}
-            <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '16px', marginBottom: '16px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 700, marginBottom: '8px', color: 'var(--color-text-secondary)' }}>
-                <Tag size={13} color="var(--color-primary)" />
-                <span>Promo Code / Coupon (কুপন কোড)</span>
-              </div>
-
+            {/* Promo / Coupon Status in Order Summary */}
+            <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '14px', marginBottom: '14px' }}>
               {appliedCoupon ? (
                 <div
                   style={{
@@ -762,7 +857,7 @@ function CheckoutContent() {
                         {appliedCoupon.code}
                       </span>
                       <span style={{ color: 'var(--color-text-secondary)', marginLeft: '6px' }}>
-                        (Saved {formatCurrency(appliedCoupon.discount)})
+                        (-{formatCurrency(appliedCoupon.discount)})
                       </span>
                     </div>
                   </div>
@@ -773,10 +868,10 @@ function CheckoutContent() {
                       background: 'none',
                       border: 'none',
                       color: 'var(--color-danger)',
-                      fontSize: '12px',
+                      fontSize: '11px',
                       fontWeight: 700,
                       cursor: 'pointer',
-                      padding: '2px 6px',
+                      padding: '2px 4px',
                     }}
                     title="Remove coupon"
                   >
@@ -784,32 +879,31 @@ function CheckoutContent() {
                   </button>
                 </div>
               ) : (
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <input
-                    type="text"
-                    placeholder="Enter coupon (e.g. SAVE10)"
-                    className="form-input"
-                    style={{ height: '38px', textTransform: 'uppercase', flex: 1, minWidth: 0, fontSize: '13px' }}
-                    value={couponInput}
-                    onChange={e => setCouponInput(e.target.value.toUpperCase())}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleApplyCoupon();
-                      }
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => handleApplyCoupon()}
-                    disabled={isValidatingCoupon || !couponInput.trim()}
-                    className="btn btn-secondary btn-sm"
-                    style={{ flexShrink: 0, padding: '0 16px', height: '38px', fontSize: '12px', fontWeight: 700 }}
-                    id="checkout-apply-coupon-btn"
-                  >
-                    {isValidatingCoupon ? '...' : 'Apply'}
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const el = document.getElementById('checkout-coupon-input-field');
+                    if (el) {
+                      el.focus();
+                      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    padding: 0,
+                    fontSize: '12px',
+                    color: 'var(--color-primary)',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                >
+                  <Tag size={13} />
+                  <span>Have a promo code? Apply in Step 2 ➔</span>
+                </button>
               )}
             </div>
 
