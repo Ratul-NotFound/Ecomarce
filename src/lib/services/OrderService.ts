@@ -177,12 +177,19 @@ export class OrderService {
       created_at: new Date().toISOString(),
     };
 
+    const updatePayload: Record<string, any> = {
+      status,
+      tracking_info: [...currentTracking, newTrackingEvent],
+    };
+
+    // Auto-confirm payment upon successful delivery (crucial for COD order reconciliation)
+    if (status === 'delivered') {
+      updatePayload.payment_status = 'confirmed';
+    }
+
     await this.supabase
       .from('orders')
-      .update({
-        status,
-        tracking_info: [...currentTracking, newTrackingEvent],
-      })
+      .update(updatePayload)
       .eq('id', orderId);
 
     await this.supabase.from('order_tracking').insert({
@@ -193,7 +200,7 @@ export class OrderService {
       updated_by: adminId,
     });
 
-    // Automatically restore inventory when order is cancelled or returned
+    // Automatically restore inventory when order is cancelled or returned (idempotency guarded)
     if (
       (status === 'cancelled' || status === 'returned') &&
       previousStatus &&
@@ -201,15 +208,26 @@ export class OrderService {
       previousStatus !== 'returned'
     ) {
       try {
-        const { InventoryService } = await import('@/lib/services/InventoryService');
-        const inventoryService = new InventoryService(this.supabase);
-        const itemsToRestore = (currentOrder?.items_snapshot || []).map((item: any) => ({
-          productId: item.product_id,
-          variantId: item.variant_id || undefined,
-          quantity: item.quantity,
-        }));
-        if (itemsToRestore.length > 0) {
-          await inventoryService.restoreForOrder(orderId, itemsToRestore, adminId);
+        // Check if stock has already been restored for this order
+        const { data: existingRestoral } = await this.supabase
+          .from('inventory_logs')
+          .select('id')
+          .eq('reference_id', orderId)
+          .eq('change_type', 'return')
+          .limit(1)
+          .maybeSingle();
+
+        if (!existingRestoral) {
+          const { InventoryService } = await import('@/lib/services/InventoryService');
+          const inventoryService = new InventoryService(this.supabase);
+          const itemsToRestore = (currentOrder?.items_snapshot || []).map((item: any) => ({
+            productId: item.product_id,
+            variantId: item.variant_id || undefined,
+            quantity: item.quantity,
+          }));
+          if (itemsToRestore.length > 0) {
+            await inventoryService.restoreForOrder(orderId, itemsToRestore, adminId);
+          }
         }
       } catch (err) {
         console.error('Failed to restore inventory for cancelled order:', err);

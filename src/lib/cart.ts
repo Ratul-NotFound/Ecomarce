@@ -29,8 +29,9 @@ export function addToCart(
   quantity = 1
 ): CartItem[] {
   const current = getStoredCart();
+  const targetVarId = variant?.id || null;
   const existingIndex = current.findIndex(
-    item => item.product_id === product.id && item.variant_id === (variant?.id || null)
+    item => item.product_id === product.id && (item.variant_id || null) === targetVarId
   );
 
   if (existingIndex > -1) {
@@ -38,7 +39,7 @@ export function addToCart(
   } else {
     current.push({
       product_id: product.id,
-      variant_id: variant?.id || null,
+      variant_id: targetVarId,
       quantity,
       product,
       variant: variant || undefined,
@@ -50,8 +51,9 @@ export function addToCart(
 }
 
 export function removeFromCart(productId: string, variantId: string | null = null): CartItem[] {
+  const targetVarId = variantId || null;
   const current = getStoredCart().filter(
-    item => !(item.product_id === productId && item.variant_id === variantId)
+    item => !(item.product_id === productId && (item.variant_id || null) === targetVarId)
   );
   saveStoredCart(current);
   return current;
@@ -62,9 +64,10 @@ export function updateCartQuantity(
   variantId: string | null = null,
   quantity: number
 ): CartItem[] {
+  const targetVarId = variantId || null;
   const current = getStoredCart();
   const index = current.findIndex(
-    item => item.product_id === productId && item.variant_id === variantId
+    item => item.product_id === productId && (item.variant_id || null) === targetVarId
   );
 
   if (index > -1) {

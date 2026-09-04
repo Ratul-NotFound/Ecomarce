@@ -72,7 +72,7 @@ export async function GET(
 
       if (cleanPhone && orderPhone && cleanPhone === orderPhone) {
         isAuthorized = true;
-      } else if (tokenParam && (tokenParam === order.id.slice(0, 8) || tokenParam === order.id)) {
+      } else if (tokenParam && tokenParam === order.id) {
         isAuthorized = true;
       }
     }

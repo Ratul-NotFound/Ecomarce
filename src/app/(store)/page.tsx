@@ -2,7 +2,7 @@ import React from 'react';
 import { createClient } from '@/lib/supabase/server';
 import { ProductRepository } from '@/lib/supabase/repositories/ProductRepository';
 import { CategoryRepository } from '@/lib/supabase/repositories/CategoryRepository';
-import { getStoreSettings } from '@/lib/store-settings';
+import { getStoreSettings, type StorefrontCustomSettings, DEFAULT_STOREFRONT_SETTINGS } from '@/lib/store-settings';
 import HeroBanner from '@/components/store/HeroBanner';
 import CategoryGrid from '@/components/store/CategoryGrid';
 import FlashSale from '@/components/store/FlashSale';
@@ -23,10 +23,10 @@ export default async function HomePage() {
   let flashSaleProducts: Product[] = [];
   let featuredProducts: Product[] = [];
   let newArrivals: Product[] = [];
-  let settings = await getStoreSettings();
+  let settings: StorefrontCustomSettings = DEFAULT_STOREFRONT_SETTINGS;
 
   try {
-    const [bannersRes, cats, flash, feat, newest] = await Promise.all([
+    const [bannersRes, cats, flash, feat, newest, storeSettings] = await Promise.all([
       supabase
         .from('special_offers')
         .select('*')
@@ -37,6 +37,7 @@ export default async function HomePage() {
       productRepo.findFlashSale(),
       productRepo.findFeatured(8),
       productRepo.findAll({ sort: 'newest', page_size: 8 }),
+      getStoreSettings(),
     ]);
 
     banners = (bannersRes.data as SpecialOffer[]) || [];
@@ -44,6 +45,7 @@ export default async function HomePage() {
     flashSaleProducts = flash;
     featuredProducts = feat;
     newArrivals = newest.data;
+    settings = storeSettings;
   } catch (err) {
     console.error('Error fetching homepage data:', err);
   }

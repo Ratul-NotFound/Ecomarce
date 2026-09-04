@@ -194,7 +194,7 @@ export async function proxy(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  let response = NextResponse.next({ request: { headers: request.headers } });
+  let response = NextResponse.next();
 
   if (!supabaseUrl || !supabaseAnonKey) {
     return applySecurityHeaders(response);
