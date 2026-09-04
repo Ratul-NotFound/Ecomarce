@@ -25,9 +25,18 @@ export default async function StoreLayout({ children }: { children: React.ReactN
 
   return (
     <ToastProvider>
-      <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100dvh' }} suppressHydrationWarning>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: '100dvh',
+          ...(settings.primary_color ? { ['--color-primary' as any]: settings.primary_color } : {}),
+        }}
+        suppressHydrationWarning
+      >
         <Header
           categories={categories}
+          storeName={settings.store_name}
           announcement={{
             enabled: settings.announcement_bar_enabled,
             text: settings.announcement_bar_text,
@@ -35,7 +44,7 @@ export default async function StoreLayout({ children }: { children: React.ReactN
           }}
         />
         <main style={{ flex: 1 }}>{children}</main>
-        <Footer />
+        <Footer settings={settings} />
         <MobileNav />
         <TelegramChatWidget />
       </div>

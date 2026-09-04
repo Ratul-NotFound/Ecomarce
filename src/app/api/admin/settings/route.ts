@@ -1,21 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
-import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { requireAdminAuth } from '@/lib/auth/admin-guard';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    let dbClient = supabase;
-    if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      dbClient = createAdminClient();
+    const auth = await requireAdminAuth(request);
+    if (!auth.authorized) {
+      return auth.response!;
     }
+    const dbClient = auth.dbClient;
 
     const { data, error } = await dbClient.from('store_settings').select('*');
     if (error) throw error;
 
     const settingsMap: Record<string, any> = {};
-    (data || []).forEach(row => {
+    (data || []).forEach((row: any) => {
       settingsMap[row.key] = row.value;
     });
 
@@ -27,11 +26,11 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    let dbClient = supabase;
-    if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      dbClient = createAdminClient();
+    const auth = await requireAdminAuth(request);
+    if (!auth.authorized) {
+      return auth.response!;
     }
+    const dbClient = auth.dbClient;
 
     const body = await request.json();
     const entries = Object.entries(body);

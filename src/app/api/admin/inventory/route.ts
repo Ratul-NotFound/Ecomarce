@@ -1,19 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { requireAdminAuth } from '@/lib/auth/admin-guard';
 import { InventoryService } from '@/lib/services/InventoryService';
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    let dbClient = supabase;
-    if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      dbClient = createAdminClient();
+    const auth = await requireAdminAuth(request);
+    if (!auth.authorized) {
+      return auth.response!;
     }
+    const { user, dbClient } = auth;
 
     const body = await request.json();
     const { productId, variantId, delta, changeType, notes } = body;
@@ -25,7 +20,7 @@ export async function POST(request: NextRequest) {
       delta: Number(delta),
       changeType: changeType || 'adjustment',
       notes,
-      adminId: user?.id,
+      adminId: user.id,
     });
 
     return NextResponse.json({ success: true, message: 'Stock updated successfully' });

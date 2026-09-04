@@ -13,6 +13,7 @@ import SearchBar from '@/components/store/SearchBar';
 
 interface HeaderProps {
   categories?: Array<{ id: string; name_en: string; name_bn?: string | null; slug: string }>;
+  storeName?: string;
   announcement?: {
     enabled: boolean;
     text: string;
@@ -20,7 +21,7 @@ interface HeaderProps {
   };
 }
 
-export default function Header({ categories = [], announcement }: HeaderProps) {
+export default function Header({ categories = [], storeName, announcement }: HeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
   const isCleanPage = pathname === '/cart' || pathname === '/checkout' || pathname.startsWith('/account');
@@ -48,7 +49,7 @@ export default function Header({ categories = [], announcement }: HeaderProps) {
         <div className="store-header__inner">
           {/* Logo */}
           <Link href="/" className="store-header__logo" id="header-logo-link">
-            <span>{STORE_CONFIG.name}</span>
+            <span>{storeName || STORE_CONFIG.name}</span>
           </Link>
 
           {/* Desktop Search Bar with Live Recommendations */}

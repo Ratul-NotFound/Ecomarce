@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Trash2, ShoppingBag, ArrowRight, Minus, Plus, Tag, ShieldCheck } from 'lucide-react';
+import { Trash2, ShoppingBag, ArrowRight, Minus, Plus, Tag, ShieldCheck, Truck } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
 import { formatCurrency } from '@/lib/utils/format';
 import { getOptimizedImageUrl } from '@/lib/utils/images';
@@ -14,13 +14,34 @@ export default function CartPage() {
   const { cart, itemCount, subtotal, updateQuantity, remove, clear } = useCart();
   const { showToast } = useToast();
 
+  const [freeShippingAbove, setFreeShippingAbove] = useState<number>(STORE_CONFIG.shipping.freeAbove);
+  const [shippingInsideDhaka, setShippingInsideDhaka] = useState<number>(STORE_CONFIG.shipping.insideDhaka);
+
   const [couponInput, setCouponInput] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number } | null>(null);
   const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
 
+  useEffect(() => {
+    fetch('/api/settings')
+      .then(r => r.json())
+      .then(res => {
+        if (res.settings) {
+          if (res.settings.free_shipping_above !== undefined) {
+            setFreeShippingAbove(Number(res.settings.free_shipping_above));
+          }
+          if (res.settings.shipping_inside_dhaka !== undefined) {
+            setShippingInsideDhaka(Number(res.settings.shipping_inside_dhaka));
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const discountAmount = appliedCoupon ? appliedCoupon.discount : 0;
-  const estimatedShipping = subtotal >= STORE_CONFIG.shipping.freeAbove ? 0 : STORE_CONFIG.shipping.insideDhaka;
+  const isFreeShipping = subtotal >= freeShippingAbove;
+  const estimatedShipping = isFreeShipping ? 0 : shippingInsideDhaka;
   const finalTotal = Math.max(0, subtotal + estimatedShipping - discountAmount);
+  const freeShippingProgress = Math.min(100, Math.round((subtotal / freeShippingAbove) * 100));
 
   const handleApplyCoupon = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -176,7 +197,41 @@ export default function CartPage() {
           {/* Order Summary & Checkout Card */}
           <div style={{ height: 'fit-content' }}>
             <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-2xl)', padding: '24px', boxShadow: 'var(--shadow-sm)' }}>
-              <h2 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '20px' }}>Order Summary</h2>
+              <h2 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '16px' }}>Order Summary</h2>
+
+              {/* Dynamic Free Delivery Progress Bar */}
+              <div
+                style={{
+                  background: isFreeShipping ? 'rgba(34, 197, 94, 0.08)' : 'rgba(37, 99, 235, 0.06)',
+                  border: `1px solid ${isFreeShipping ? 'rgba(34, 197, 94, 0.25)' : 'rgba(37, 99, 235, 0.15)'}`,
+                  borderRadius: 'var(--radius-lg)',
+                  padding: '12px 14px',
+                  marginBottom: '20px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', fontSize: '12px', fontWeight: 700 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: isFreeShipping ? 'var(--color-success)' : 'var(--color-primary)' }}>
+                    <Truck size={15} />
+                    <span>
+                      {isFreeShipping
+                        ? '🎉 Congratulations! Free Delivery unlocked!'
+                        : `Add ${formatCurrency(freeShippingAbove - subtotal)} more for FREE Delivery`}
+                    </span>
+                  </div>
+                  <span style={{ color: 'var(--color-text-muted)', fontSize: '11px' }}>{freeShippingProgress}%</span>
+                </div>
+                <div style={{ width: '100%', height: '6px', background: 'var(--color-border)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
+                  <div
+                    style={{
+                      width: `${freeShippingProgress}%`,
+                      height: '100%',
+                      background: isFreeShipping ? 'var(--color-success)' : 'var(--color-primary)',
+                      borderRadius: 'var(--radius-full)',
+                      transition: 'width 0.4s ease',
+                    }}
+                  />
+                </div>
+              </div>
 
               {/* Coupon Form */}
               <form onSubmit={handleApplyCoupon} style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>

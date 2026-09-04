@@ -127,6 +127,43 @@ export class InventoryService {
     }
   }
 
+  /**
+   * Restores inventory and decrements total_sold when an order is cancelled or returned.
+   */
+  async restoreForOrder(
+    orderId: string,
+    items: Array<{ productId: string; variantId?: string; quantity: number }>,
+    adminId?: string
+  ): Promise<void> {
+    for (const item of items) {
+      await this.adjustStock({
+        productId: item.productId,
+        variantId: item.variantId,
+        delta: item.quantity,
+        changeType: 'return',
+        referenceId: orderId,
+        notes: `Restored for Cancelled/Returned Order #${orderId}`,
+        adminId,
+      });
+
+      // Decrement product total_sold accurately
+      try {
+        const { data: p } = await this.supabase
+          .from('products')
+          .select('total_sold')
+          .eq('id', item.productId)
+          .single();
+        const currentSold = Number(p?.total_sold) || 0;
+        await this.supabase
+          .from('products')
+          .update({ total_sold: Math.max(0, currentSold - item.quantity) })
+          .eq('id', item.productId);
+      } catch (err) {
+        console.warn('Failed to decrement total_sold for product on return:', item.productId, err);
+      }
+    }
+  }
+
   async createVariant(params: {
     productId: string;
     sku: string;

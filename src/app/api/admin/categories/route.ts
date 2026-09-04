@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { requireAdminAuth } from '@/lib/auth/admin-guard';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    let dbClient = supabase;
-    if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      dbClient = createAdminClient();
+    const auth = await requireAdminAuth(request);
+    if (!auth.authorized) {
+      return auth.response!;
     }
+    const dbClient = auth.dbClient;
 
     const { data, error } = await dbClient
       .from('categories')
@@ -24,11 +23,11 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    let dbClient = supabase;
-    if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      dbClient = createAdminClient();
+    const auth = await requireAdminAuth(request);
+    if (!auth.authorized) {
+      return auth.response!;
     }
+    const dbClient = auth.dbClient;
 
     const body = await request.json();
     const { name_en, name_bn, slug, image_url, display_order, is_active } = body;
@@ -64,11 +63,11 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    let dbClient = supabase;
-    if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      dbClient = createAdminClient();
+    const auth = await requireAdminAuth(request);
+    if (!auth.authorized) {
+      return auth.response!;
     }
+    const dbClient = auth.dbClient;
 
     const body = await request.json();
     const { id, name_en, name_bn, slug, image_url, display_order, is_active } = body;
@@ -101,11 +100,11 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    let dbClient = supabase;
-    if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      dbClient = createAdminClient();
+    const auth = await requireAdminAuth(request);
+    if (!auth.authorized) {
+      return auth.response!;
     }
+    const dbClient = auth.dbClient;
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');

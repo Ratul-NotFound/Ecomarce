@@ -33,19 +33,23 @@ export class OrderService {
       paymentScreenshotUrl,
     } = params;
 
-    const subtotal = cart.reduce((sum, item) => {
-      const unitPrice = item.variant
-        ? (item.product.sale_price ?? item.product.base_price) + item.variant.price_modifier
-        : item.product.sale_price ?? item.product.base_price;
+    const subtotal = cart.reduce((sum, item: any) => {
+      const unitPrice = item._verifiedUnitPrice !== undefined
+        ? Number(item._verifiedUnitPrice)
+        : (item.variant
+          ? (Number(item.product.sale_price ?? item.product.base_price) + Number(item.variant.price_modifier || 0))
+          : Number(item.product.sale_price ?? item.product.base_price));
       return sum + unitPrice * item.quantity;
     }, 0);
 
     const total = Math.max(0, subtotal + shippingFee - discountAmount);
 
-    const itemsSnapshot = cart.map(item => {
-      const unitPrice = item.variant
-        ? (item.product.sale_price ?? item.product.base_price) + item.variant.price_modifier
-        : item.product.sale_price ?? item.product.base_price;
+    const itemsSnapshot = cart.map((item: any) => {
+      const unitPrice = item._verifiedUnitPrice !== undefined
+        ? Number(item._verifiedUnitPrice)
+        : (item.variant
+          ? (Number(item.product.sale_price ?? item.product.base_price) + Number(item.variant.price_modifier || 0))
+          : Number(item.product.sale_price ?? item.product.base_price));
       return {
         product_id: item.product_id,
         variant_id: item.variant_id ?? null,
@@ -138,10 +142,11 @@ export class OrderService {
   ): Promise<void> {
     const { data: currentOrder } = await this.supabase
       .from('orders')
-      .select('tracking_info')
+      .select('status, items_snapshot, tracking_info')
       .eq('id', orderId)
       .single();
 
+    const previousStatus = currentOrder?.status;
     const currentTracking = (currentOrder?.tracking_info as any[]) || [];
     const newTrackingEvent = {
       id: crypto.randomUUID(),
@@ -168,6 +173,29 @@ export class OrderService {
       location: location || null,
       updated_by: adminId,
     });
+
+    // Automatically restore inventory when order is cancelled or returned
+    if (
+      (status === 'cancelled' || status === 'returned') &&
+      previousStatus &&
+      previousStatus !== 'cancelled' &&
+      previousStatus !== 'returned'
+    ) {
+      try {
+        const { InventoryService } = await import('@/lib/services/InventoryService');
+        const inventoryService = new InventoryService(this.supabase);
+        const itemsToRestore = (currentOrder?.items_snapshot || []).map((item: any) => ({
+          productId: item.product_id,
+          variantId: item.variant_id || undefined,
+          quantity: item.quantity,
+        }));
+        if (itemsToRestore.length > 0) {
+          await inventoryService.restoreForOrder(orderId, itemsToRestore, adminId);
+        }
+      } catch (err) {
+        console.error('Failed to restore inventory for cancelled order:', err);
+      }
+    }
   }
 
   async confirmPayment(orderId: string, adminId: string): Promise<void> {

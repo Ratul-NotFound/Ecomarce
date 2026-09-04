@@ -1,20 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { requireAdminAuth } from '@/lib/auth/admin-guard';
 
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params;
-    const supabase = await createClient();
-
-    let dbClient = supabase;
-    if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      dbClient = createAdminClient();
+    const auth = await requireAdminAuth(request);
+    if (!auth.authorized) {
+      return auth.response!;
     }
+    const dbClient = auth.dbClient;
 
+    const { id } = await params;
     const body = await request.json();
     const { variants, ...productData } = body;
 
@@ -79,14 +77,13 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params;
-    const supabase = await createClient();
-
-    let dbClient = supabase;
-    if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      dbClient = createAdminClient();
+    const auth = await requireAdminAuth(request);
+    if (!auth.authorized) {
+      return auth.response!;
     }
+    const dbClient = auth.dbClient;
 
+    const { id } = await params;
     const { error } = await dbClient.from('products').delete().eq('id', id);
     if (error) throw error;
 

@@ -39,7 +39,50 @@ export async function proxy(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
 
-  // Protect /admin routes
+  // Helper to fetch user role securely
+  async function getUserRole(): Promise<string> {
+    if (!user) return 'guest';
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (serviceRoleKey) {
+      try {
+        const { createClient: createAdmin } = await import('@supabase/supabase-js');
+        const adminClient = createAdmin(supabaseUrl!, serviceRoleKey, {
+          auth: { autoRefreshToken: false, persistSession: false },
+        });
+        const { data: adminProfile } = await adminClient
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .maybeSingle();
+        return adminProfile?.role || 'customer';
+      } catch {}
+    }
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle();
+    return profile?.role || 'customer';
+  }
+
+  // 1. Protect /api/admin routes at the Edge proxy level
+  if (pathname.startsWith('/api/admin')) {
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Unauthorized: Authentication required' },
+        { status: 401 }
+      );
+    }
+    const role = await getUserRole();
+    if (role !== 'admin' && role !== 'moderator') {
+      return NextResponse.json(
+        { error: 'Forbidden: Admin access required' },
+        { status: 403 }
+      );
+    }
+  }
+
+  // 2. Protect /admin UI pages
   if (pathname.startsWith('/admin')) {
     if (!user) {
       const url = new URL('/auth', request.url);
@@ -47,35 +90,13 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(url);
     }
 
-    // Verify role using service role if available for maximum reliability and security
-    let role = 'customer';
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (serviceRoleKey) {
-      const { createClient: createAdmin } = await import('@supabase/supabase-js');
-      const adminClient = createAdmin(supabaseUrl, serviceRoleKey, {
-        auth: { autoRefreshToken: false, persistSession: false },
-      });
-      const { data: adminProfile } = await adminClient
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-      role = adminProfile?.role || 'customer';
-    } else {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-      role = profile?.role || 'customer';
-    }
-
+    const role = await getUserRole();
     if (role !== 'admin' && role !== 'moderator') {
       return NextResponse.redirect(new URL('/', request.url));
     }
   }
 
-  // Protect /account, /orders, /checkout customer routes
+  // 3. Protect /account, /orders, /wishlist customer routes
   const protectedUserRoutes = ['/account', '/orders', '/wishlist'];
   if (protectedUserRoutes.some(route => pathname.startsWith(route))) {
     if (!user) {

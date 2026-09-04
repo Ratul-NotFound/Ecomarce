@@ -4,11 +4,12 @@ import React, { useState, useEffect } from 'react';
 import { formatCurrency, formatDate } from '@/lib/utils/format';
 import { useToast } from '@/components/shared/ToastProvider';
 import { createClient } from '@/lib/supabase/client';
-import { Ticket, Plus, Trash2, Edit3, CheckCircle2, XCircle, Package, Search, X } from 'lucide-react';
+import { Ticket, Plus, Trash2, Edit3, CheckCircle2, XCircle, Package, Search, X, Eye, EyeOff, Tag } from 'lucide-react';
 import type { Coupon, Product } from '@/types';
 
 interface ExtendedCoupon extends Coupon {
   applicable_product_ids?: string[];
+  show_on_deals_page?: boolean;
 }
 
 export default function AdminCouponsPage() {
@@ -23,6 +24,7 @@ export default function AdminCouponsPage() {
   const [value, setValue] = useState<number | string>(10);
   const [minOrder, setMinOrder] = useState<number | string>(1000);
   const [maxUses, setMaxUses] = useState<number | string>(100);
+  const [showOnDealsPage, setShowOnDealsPage] = useState(true);
   const [applyScope, setApplyScope] = useState<'all' | 'specific'>('all');
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   const [productSearch, setProductSearch] = useState('');
@@ -36,6 +38,7 @@ export default function AdminCouponsPage() {
   const [editMinOrder, setEditMinOrder] = useState<number | string>(0);
   const [editMaxUses, setEditMaxUses] = useState<number | string>('');
   const [editIsActive, setEditIsActive] = useState(true);
+  const [editShowOnDealsPage, setEditShowOnDealsPage] = useState(true);
   const [editApplyScope, setEditApplyScope] = useState<'all' | 'specific'>('all');
   const [editSelectedProductIds, setEditSelectedProductIds] = useState<string[]>([]);
   const [editProductSearch, setEditProductSearch] = useState('');
@@ -78,6 +81,7 @@ export default function AdminCouponsPage() {
           min_order_amount: minOrder,
           max_uses: maxUses || null,
           is_active: true,
+          show_on_deals_page: showOnDealsPage,
           applicable_product_ids: applyScope === 'specific' ? selectedProductIds : [],
         }),
       });
@@ -88,6 +92,7 @@ export default function AdminCouponsPage() {
       setCode('');
       setSelectedProductIds([]);
       setApplyScope('all');
+      setShowOnDealsPage(true);
       loadData();
     } catch (err: any) {
       showToast(err.message || 'Error creating coupon', 'error');
@@ -117,6 +122,28 @@ export default function AdminCouponsPage() {
     }
   };
 
+  const handleToggleDealsVisibility = async (coupon: ExtendedCoupon) => {
+    try {
+      const nextVis = coupon.show_on_deals_page === false ? true : false;
+      const res = await fetch('/api/admin/coupons', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: coupon.id,
+          code: coupon.code,
+          show_on_deals_page: nextVis,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      setCoupons(coupons.map(c => (c.id === coupon.id ? { ...c, show_on_deals_page: nextVis } : c)));
+      showToast(`Coupon "${coupon.code}" ${nextVis ? 'is now visible on Deals shelf (ON)' : 'is now hidden from Deals shelf (OFF)'}`, 'info');
+    } catch (err: any) {
+      showToast(err.message || 'Failed to update visibility', 'error');
+    }
+  };
+
   const handleDeleteCoupon = async (coupon: ExtendedCoupon) => {
     if (!confirm(`Are you sure you want to delete coupon "${coupon.code}"?`)) return;
     try {
@@ -141,6 +168,7 @@ export default function AdminCouponsPage() {
     setEditMinOrder(coupon.min_order_amount || 0);
     setEditMaxUses(coupon.max_uses || '');
     setEditIsActive(coupon.is_active);
+    setEditShowOnDealsPage(coupon.show_on_deals_page !== false);
     const hasSpecific = Boolean(coupon.applicable_product_ids && coupon.applicable_product_ids.length > 0);
     setEditApplyScope(hasSpecific ? 'specific' : 'all');
     setEditSelectedProductIds(coupon.applicable_product_ids || []);
@@ -163,6 +191,7 @@ export default function AdminCouponsPage() {
           min_order_amount: editMinOrder,
           max_uses: editMaxUses || null,
           is_active: editIsActive,
+          show_on_deals_page: editShowOnDealsPage,
           applicable_product_ids: editApplyScope === 'specific' ? editSelectedProductIds : [],
         }),
       });
@@ -269,6 +298,29 @@ export default function AdminCouponsPage() {
                   min={1}
                 />
               </div>
+            </div>
+
+            {/* Deals Page Voucher Shelf Toggle */}
+            <div style={{ background: 'var(--color-admin-surface-2)', border: '1px solid var(--color-admin-border)', borderRadius: 'var(--radius-lg)', padding: '14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <strong style={{ fontSize: '13px', color: 'var(--color-admin-text)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Tag size={15} color="#f59e0b" />
+                  <span>Show on Deals Page Shelf</span>
+                </strong>
+                <p style={{ fontSize: '11px', color: 'var(--color-admin-muted)', marginTop: '2px' }}>
+                  If ON, customers can tap to claim this code directly on the /deals page voucher shelf. If OFF, it remains private.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowOnDealsPage(!showOnDealsPage)}
+                className={`btn btn-sm ${showOnDealsPage ? 'btn-primary' : 'btn-secondary'}`}
+                style={{ fontSize: '11px', padding: '4px 10px', display: 'flex', alignItems: 'center', gap: '4px' }}
+              >
+                {showOnDealsPage ? <Eye size={13} /> : <EyeOff size={13} />}
+                <span>{showOnDealsPage ? 'Visible on Deals' : 'Hidden (Private)'}</span>
+              </button>
             </div>
 
             {/* Product Applicability Scope */}
@@ -440,6 +492,21 @@ export default function AdminCouponsPage() {
                         >
                           {c.type === 'percent' ? `${c.value}% OFF` : `৳${c.value} FLAT`}
                         </span>
+
+                        {/* Deals Shelf Status Badge */}
+                        <span
+                          style={{
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            padding: '2px 8px',
+                            borderRadius: 'var(--radius-full)',
+                            background: c.show_on_deals_page !== false ? 'rgba(245, 158, 11, 0.15)' : 'var(--color-admin-surface)',
+                            color: c.show_on_deals_page !== false ? '#f59e0b' : 'var(--color-admin-muted)',
+                            border: c.show_on_deals_page !== false ? 'none' : '1px solid var(--color-admin-border)',
+                          }}
+                        >
+                          {c.show_on_deals_page !== false ? '🎟️ Live on /deals' : '🔒 Private Code'}
+                        </span>
                       </div>
 
                       <div style={{ fontSize: '12px', color: 'var(--color-admin-muted)', marginTop: '4px' }}>
@@ -461,6 +528,18 @@ export default function AdminCouponsPage() {
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {/* Deals Shelf 1-click toggle button */}
+                      <button
+                        type="button"
+                        onClick={() => handleToggleDealsVisibility(c)}
+                        className="btn btn-sm btn-secondary"
+                        style={{ fontSize: '11px', padding: '4px 8px', height: '30px', display: 'flex', alignItems: 'center', gap: '4px' }}
+                        title={c.show_on_deals_page !== false ? 'Click to hide from /deals shelf' : 'Click to show on /deals shelf'}
+                      >
+                        {c.show_on_deals_page !== false ? <Eye size={13} color="#f59e0b" /> : <EyeOff size={13} />}
+                        <span>{c.show_on_deals_page !== false ? 'On Deals: YES' : 'On Deals: NO'}</span>
+                      </button>
+
                       {/* ON / OFF Toggle Button */}
                       <button
                         type="button"
@@ -625,6 +704,29 @@ export default function AdminCouponsPage() {
                   />
                   <span>{editIsActive ? 'Active (ON)' : 'Inactive (OFF)'}</span>
                 </label>
+              </div>
+
+              {/* Deals Page Voucher Shelf Visibility */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: 'var(--color-admin-surface-2)', borderRadius: 'var(--radius-md)' }}>
+                <div>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-admin-text)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Tag size={14} color="#f59e0b" />
+                    <span>Show on Deals Page Shelf</span>
+                  </div>
+                  <div style={{ fontSize: '11px', color: 'var(--color-admin-muted)' }}>
+                    Display as a 1-tap claimable voucher ticket on /deals
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setEditShowOnDealsPage(!editShowOnDealsPage)}
+                  className={`btn btn-sm ${editShowOnDealsPage ? 'btn-primary' : 'btn-secondary'}`}
+                  style={{ fontSize: '11px', padding: '3px 8px', display: 'flex', alignItems: 'center', gap: '4px' }}
+                >
+                  {editShowOnDealsPage ? <Eye size={12} /> : <EyeOff size={12} />}
+                  <span>{editShowOnDealsPage ? 'Visible' : 'Hidden'}</span>
+                </button>
               </div>
 
               {/* Specific Product Restriction */}

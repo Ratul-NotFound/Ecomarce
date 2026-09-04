@@ -3,12 +3,13 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { ProductRepository } from '@/lib/supabase/repositories/ProductRepository';
 import { getStoreSettings } from '@/lib/store-settings';
-import DealCountdownTimer from '@/components/store/DealCountdownTimer';
 import DealCouponClaim from '@/components/store/DealCouponClaim';
 import DealProductCard from '@/components/store/DealProductCard';
+import DealsHeroBanner from '@/components/store/DealsHeroBanner';
 import { Zap, Flame, Sparkles } from 'lucide-react';
 import { STORE_CONFIG } from '@/lib/store-config';
 import { resolveFlashSaleEndTime } from '@/lib/flash-sale-utils';
+import type { SpecialOffer } from '@/types';
 import type { Metadata } from 'next';
 
 interface DealsPageProps {
@@ -27,20 +28,64 @@ export default async function DealsPage({ searchParams }: DealsPageProps) {
   const supabase = await createClient();
   const productRepo = new ProductRepository(supabase);
 
-  // Fetch settings, live coupons from database, and products in parallel
+  // Fetch settings and live coupons from database in parallel
   const [settings, couponsRes] = await Promise.all([
     getStoreSettings(),
-    supabase.from('coupons').select('*').eq('is_active', true).order('created_at', { ascending: false }),
+    supabase
+      .from('coupons')
+      .select('*')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false }),
   ]);
 
-  const claimedVouchers = couponsRes.data && couponsRes.data.length > 0
-    ? couponsRes.data.map(c => ({
-        code: c.code,
-        discount: c.type === 'percentage' ? `${c.value}% OFF` : `৳${c.value} FLAT`,
-        description: c.description || (c.type === 'percentage' ? `${c.value}% discount on orders` : `Flat ৳${c.value} discount`),
-        minOrder: c.min_order_amount ? `Min order ৳${c.min_order_amount}` : undefined,
-      }))
-    : undefined;
+  const dealsIds = settings.deals_banner_ids
+    ? (typeof settings.deals_banner_ids === 'string' ? JSON.parse(settings.deals_banner_ids) : settings.deals_banner_ids)
+    : [];
+
+  let bannersQuery = supabase
+    .from('special_offers')
+    .select('*')
+    .eq('is_active', true)
+    .order('display_order', { ascending: true });
+
+  if (Array.isArray(dealsIds) && dealsIds.length > 0) {
+    bannersQuery = bannersQuery.or(`type.eq.deals_banner,id.in.(${dealsIds.join(',')})`);
+  } else {
+    bannersQuery = bannersQuery.eq('type', 'deals_banner');
+  }
+
+  const { data: rawBanners } = await bannersQuery;
+  const dealsBanners = (rawBanners as SpecialOffer[]) || [];
+
+  // Parse coupon deals visibility fallback from store_settings
+  let dealsVisMap: Record<string, boolean> = {};
+  if (settings.coupon_deals_visibility) {
+    try {
+      dealsVisMap = typeof settings.coupon_deals_visibility === 'string'
+        ? JSON.parse(settings.coupon_deals_visibility)
+        : settings.coupon_deals_visibility;
+    } catch {}
+  }
+
+  // Filter coupons visible on deals page
+  const visibleCoupons = (couponsRes.data || []).filter(c => {
+    if (dealsVisMap[c.code] !== undefined) return dealsVisMap[c.code] !== false;
+    if (dealsVisMap[c.id] !== undefined) return dealsVisMap[c.id] !== false;
+    if (c.show_on_deals_page !== undefined) return c.show_on_deals_page !== false;
+    return true;
+  });
+
+  const claimedVouchers = visibleCoupons.length > 0
+    ? visibleCoupons.map(c => {
+        const isPercent = c.type === 'percent' || c.type === 'percentage';
+        return {
+          code: c.code,
+          discount: isPercent ? `${c.value}% OFF` : `৳${c.value} FLAT`,
+          description: c.description || (isPercent ? `${c.value}% discount on orders` : `Flat ৳${c.value} discount`),
+          minOrder: c.min_order_amount ? `Min order ৳${c.min_order_amount}` : undefined,
+        };
+      })
+    : [];
 
   // Fetch all flash sale or discounted items
   let maxPrice: number | undefined = undefined;
@@ -60,21 +105,31 @@ export default async function DealsPage({ searchParams }: DealsPageProps) {
     page_size: 40,
   });
 
-  // Fallback: if fewer than 4 flash sale products are marked in DB, fetch general products with sale_price
-  let products = allProducts;
-  if (!products || products.length < 4) {
+  // Fallback: if fewer than 4 flash sale products exist, include products with real discounts
+  let products = allProducts || [];
+  if (products.length < 8) {
     const { data: fallback } = await productRepo.findAll({
-      page_size: 24,
+      page_size: 30,
       max_price: maxPrice,
       sort,
     });
-    products = fallback || [];
+    const discountedFallback = (fallback || []).filter(
+      p => p.is_flash_sale || (p.sale_price && p.sale_price < p.base_price) || (p.has_price_range && (p.max_discount_percent ?? 0) > 0)
+    );
+    // Merge without duplicates
+    const existingIds = new Set(products.map(p => p.id));
+    discountedFallback.forEach(p => {
+      if (!existingIds.has(p.id)) {
+        products.push(p);
+        existingIds.add(p.id);
+      }
+    });
   }
 
   // Filter for big discounts if tier selected
   if (tier === 'big_discount') {
     products = products.filter(
-      p => (p.discount_percent && p.discount_percent >= 25) || (p.sale_price && (p.base_price - p.sale_price) / p.base_price >= 0.25)
+      p => (p.discount_percent && p.discount_percent >= 25) || (p.sale_price && (p.base_price - p.sale_price) / p.base_price >= 0.25) || ((p.max_discount_percent ?? 0) >= 25)
     );
   }
 
@@ -82,26 +137,12 @@ export default async function DealsPage({ searchParams }: DealsPageProps) {
 
   return (
     <div className="deals-page-container">
-      {/* 1. Hero Flash Deals Banner with Countdown */}
-      <div className="deals-hero-banner">
-        <div className="deals-hero-content">
-          <div className="deals-hero-badge">
-            <Zap size={15} fill="#facc15" color="#facc15" />
-            <span>{settings.deals_badge_text}</span>
-          </div>
-
-          <h1 className="deals-hero-title">
-            {settings.deals_hero_title}
-          </h1>
-
-          <p className="deals-hero-subtitle">
-            {settings.deals_hero_subtitle}
-          </p>
-        </div>
-
-        {/* Live Countdown Timer */}
-        <DealCountdownTimer targetDate={flashSaleEndTime} targetHours={settings.deals_timer_hours} />
-      </div>
+      {/* 1. Deals Hero Banner with Promotional Carousel and Synchronized Countdown */}
+      <DealsHeroBanner
+        banners={dealsBanners}
+        settings={settings}
+        flashSaleEndTime={flashSaleEndTime}
+      />
 
       <div className="container" style={{ padding: '0 16px 60px' }}>
         {/* 2. Collectible Discount Coupons Section */}

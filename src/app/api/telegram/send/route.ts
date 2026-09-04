@@ -2,14 +2,38 @@ import { NextRequest, NextResponse } from 'next/server';
 import { TelegramService } from '@/lib/services/TelegramService';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { checkRateLimit } from '@/lib/utils/rate-limiter';
 
 export async function POST(request: NextRequest) {
   try {
-    const { message, user_name, user_id } = await request.json();
+    // 1. Rate limiting by client IP
+    const clientIp =
+      request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
+      request.headers.get('x-real-ip') ||
+      '127.0.0.1';
 
-    if (!message || !message.trim()) {
+    const rate = checkRateLimit(`tele_send:${clientIp}`, 6, 60 * 1000); // 6 messages per minute
+    if (!rate.allowed) {
+      return NextResponse.json(
+        { error: 'Too many messages sent. Please wait a minute before sending another message.' },
+        { status: 429 }
+      );
+    }
+
+    const body = await request.json().catch(() => ({}));
+    const { message, user_name, user_id } = body;
+
+    if (!message || typeof message !== 'string' || !message.trim()) {
       return NextResponse.json({ error: 'Message cannot be empty' }, { status: 400 });
     }
+
+    if (message.length > 1000) {
+      return NextResponse.json({ error: 'Message is too long (maximum 1000 characters)' }, { status: 400 });
+    }
+
+    const cleanMessage = message.trim();
+    const cleanUserName = typeof user_name === 'string' ? user_name.slice(0, 100) : 'Visitor';
+    const cleanUserId = typeof user_id === 'string' ? user_id.slice(0, 100) : null;
 
     const supabase = await createClient();
     let dbClient = supabase;
@@ -19,9 +43,9 @@ export async function POST(request: NextRequest) {
 
     // Save message to chat_messages table
     await dbClient.from('chat_messages').insert({
-      user_id: user_id || null,
-      user_name: user_name || 'Visitor',
-      message: message.trim(),
+      user_id: cleanUserId || null,
+      user_name: cleanUserName,
+      message: cleanMessage,
       direction: 'in',
     });
 
@@ -49,7 +73,7 @@ export async function POST(request: NextRequest) {
 
       if (token && chatId) {
         const telegram = new TelegramService(token, chatId, undefined, messagesTopicId);
-        await telegram.forwardUserMessage(user_name || 'Visitor', message.trim(), user_id);
+        await telegram.forwardUserMessage(cleanUserName, cleanMessage, cleanUserId || undefined);
       }
     } catch (telegramErr) {
       console.warn('Telegram forward notice:', telegramErr);

@@ -13,35 +13,23 @@ interface DealCouponClaimProps {
   }>;
 }
 
-const DEFAULT_COUPONS = [
-  {
-    code: 'FLASH15',
-    discount: '15% OFF',
-    description: 'On all flash sale deals today',
-    minOrder: 'Min order ৳1,000',
-  },
-  {
-    code: 'SAVE200',
-    discount: '৳200 FLAT',
-    description: 'Instant discount on checkout',
-    minOrder: 'Min order ৳1,500',
-  },
-  {
-    code: 'FREEBD',
-    discount: 'FREE DELIVERY',
-    description: 'Zero delivery charge anywhere in BD',
-    minOrder: 'Min order ৳2,000',
-  },
-];
-
-export default function DealCouponClaim({ coupons = DEFAULT_COUPONS }: DealCouponClaimProps) {
+export default function DealCouponClaim({ coupons = [] }: DealCouponClaimProps) {
   const { showToast } = useToast();
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
+  if (!coupons || coupons.length === 0) {
+    return null;
+  }
+
   const handleCopy = (code: string) => {
-    navigator.clipboard.writeText(code);
+    try {
+      navigator.clipboard.writeText(code);
+    } catch {}
+    try {
+      localStorage.setItem('shopbd_claimed_coupon', code);
+    } catch {}
     setCopiedCode(code);
-    showToast(`Coupon "${code}" copied to clipboard! Paste it at checkout.`, 'success');
+    showToast(`Coupon "${code}" claimed! It will automatically apply at checkout.`, 'success');
     setTimeout(() => {
       setCopiedCode(null);
     }, 3000);

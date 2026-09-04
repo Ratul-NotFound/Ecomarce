@@ -102,7 +102,13 @@ CREATE INDEX IF NOT EXISTS idx_analytics_date         ON public.analytics_events
 
 CREATE INDEX IF NOT EXISTS idx_offers_type_active     ON public.special_offers (type, is_active, display_order);
 CREATE INDEX IF NOT EXISTS idx_chat_user              ON public.chat_messages (user_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_chat_direction         ON public.chat_messages (direction, created_at DESC);
+-- 6b. Coupons Deals Page Visibility
+ALTER TABLE public.coupons ADD COLUMN IF NOT EXISTS show_on_deals_page BOOLEAN DEFAULT true;
+
+-- 6c. Special Offers Types (Allow deals_banner)
+ALTER TABLE public.special_offers DROP CONSTRAINT IF EXISTS special_offers_type_check;
+ALTER TABLE public.special_offers ADD CONSTRAINT special_offers_type_check CHECK (type IN ('hero_banner', 'promo_card', 'special_offer', 'deals_banner'));
 
 -- 7. Reload PostgREST API Schema Cache (Makes new columns immediately accessible)
 NOTIFY pgrst, 'reload schema';
+

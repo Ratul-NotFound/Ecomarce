@@ -26,11 +26,15 @@ const DHAKA_ZONE: string[] = [
 
 /**
  * Returns shipping fee in BDT based on district.
- * Inside Dhaka zone: 60 BDT
- * Outside Dhaka zone: 120 BDT
+ * Defaults to 60 BDT for Dhaka zone, 120 BDT outside Dhaka zone,
+ * or dynamically provided rates configured by the store administrator.
  */
-export function getShippingFee(district: string): number {
-  return DHAKA_ZONE.includes(district) ? 60 : 120;
+export function getShippingFee(
+  district: string,
+  insideFee: number = 60,
+  outsideFee: number = 120
+): number {
+  return DHAKA_ZONE.includes(district) ? insideFee : outsideFee;
 }
 
 /**

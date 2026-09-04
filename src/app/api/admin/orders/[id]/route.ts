@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { requireAdminAuth } from '@/lib/auth/admin-guard';
 import { OrderService } from '@/lib/services/OrderService';
 import type { OrderStatus } from '@/types';
 
@@ -9,22 +8,18 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params;
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    let dbClient = supabase;
-    if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      dbClient = createAdminClient();
+    const auth = await requireAdminAuth(request);
+    if (!auth.authorized) {
+      return auth.response!;
     }
+    const { user, dbClient } = auth;
 
+    const { id } = await params;
     const body = await request.json();
     const { action, status, message, location } = body;
     const orderService = new OrderService(dbClient);
 
-    const adminId = user?.id || 'admin';
+    const adminId = user.id;
 
     if (action === 'confirm_payment') {
       await orderService.confirmPayment(id, adminId);

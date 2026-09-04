@@ -13,6 +13,7 @@ export default function AdminSettingsPage() {
   const [tagline, setTagline] = useState<string>(STORE_CONFIG.tagline);
   const [email, setEmail] = useState<string>(STORE_CONFIG.contact.email);
   const [phone, setPhone] = useState<string>(STORE_CONFIG.contact.phone);
+  const [address, setAddress] = useState<string>(STORE_CONFIG.contact.address);
   const [insideDhakaFee, setInsideDhakaFee] = useState<number | string>(STORE_CONFIG.shipping.insideDhaka);
   const [outsideDhakaFee, setOutsideDhakaFee] = useState<number | string>(STORE_CONFIG.shipping.outsideDhaka);
   const [freeAbove, setFreeAbove] = useState<number | string>(STORE_CONFIG.shipping.freeAbove);
@@ -43,6 +44,7 @@ export default function AdminSettingsPage() {
           if (s.store_tagline) setTagline(s.store_tagline);
           if (s.contact_email) setEmail(s.contact_email);
           if (s.contact_phone) setPhone(s.contact_phone);
+          if (s.contact_address) setAddress(s.contact_address);
           if (s.shipping_inside_dhaka) setInsideDhakaFee(s.shipping_inside_dhaka);
           if (s.shipping_outside_dhaka) setOutsideDhakaFee(s.shipping_outside_dhaka);
           if (s.free_shipping_above) setFreeAbove(s.free_shipping_above);
@@ -102,6 +104,7 @@ export default function AdminSettingsPage() {
         store_tagline: tagline,
         contact_email: email,
         contact_phone: phone,
+        contact_address: address,
         shipping_inside_dhaka: Number(insideDhakaFee),
         shipping_outside_dhaka: Number(outsideDhakaFee),
         free_shipping_above: Number(freeAbove),
@@ -727,6 +730,17 @@ export default function AdminSettingsPage() {
                     onChange={e => setEmail(e.target.value)}
                   />
                 </div>
+              </div>
+
+              <div className="form-group">
+                <label className="admin-label">Store Physical Address</label>
+                <input
+                  type="text"
+                  className="admin-input"
+                  value={address}
+                  onChange={e => setAddress(e.target.value)}
+                  placeholder="e.g. House 12, Road 5, Dhanmondi, Dhaka"
+                />
               </div>
             </div>
           </div>

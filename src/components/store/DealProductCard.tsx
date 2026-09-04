@@ -23,13 +23,13 @@ export default function DealProductCard({ product }: DealProductCardProps) {
 
   const effectivePrice = product.sale_price ?? product.base_price;
   const hasDiscount = Boolean(product.sale_price && product.sale_price < product.base_price);
-  const discountPercent = product.sale_price
-    ? calcDiscountPercent(product.base_price, product.sale_price)
-    : 15;
+  const discountPercent = hasDiscount
+    ? calcDiscountPercent(product.base_price, product.sale_price!)
+    : 0;
 
-  const savingsAmount = product.sale_price
+  const savingsAmount = hasDiscount
     ? product.base_price - product.sale_price!
-    : Math.round(product.base_price * (discountPercent / 100));
+    : 0;
 
   const hasVariants = Boolean(product.has_variants || (product.variants && product.variants.length > 0));
   const hasPriceRange = Boolean(product.has_price_range);
@@ -100,15 +100,19 @@ export default function DealProductCard({ product }: DealProductCardProps) {
           />
 
           {/* Deal Discount Flame Badge */}
-          <div className="deal-card__badge">
-            <Flame size={12} fill="#ffffff" color="#ffffff" />
-            <span>{hasPriceRange ? `Up to ${maxDisc}% OFF` : `-${discountPercent}% OFF`}</span>
-          </div>
+          {(hasPriceRange ? maxDisc > 0 : hasDiscount) && (
+            <div className="deal-card__badge">
+              <Flame size={12} fill="#ffffff" color="#ffffff" />
+              <span>{hasPriceRange ? `Up to ${maxDisc}% OFF` : `-${discountPercent}% OFF`}</span>
+            </div>
+          )}
 
           {/* Savings Pill */}
-          <div className="deal-card__savings-pill">
-            Save {formatCurrency(savingsAmount)}
-          </div>
+          {savingsAmount > 0 && (
+            <div className="deal-card__savings-pill">
+              Save {formatCurrency(savingsAmount)}
+            </div>
+          )}
         </div>
       </Link>
 

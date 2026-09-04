@@ -1,7 +1,24 @@
 // src/lib/store-settings-shared.ts
 // Shared types and defaults for storefront customizations (safe for Client & Server components)
 
+import { STORE_CONFIG } from '@/lib/store-config';
+
 export interface StorefrontCustomSettings {
+  // Brand & Identity
+  store_name: string;
+  store_tagline: string;
+  contact_email: string;
+  contact_phone: string;
+  contact_address: string;
+
+  // Delivery & Shipping Rates (BDT)
+  shipping_inside_dhaka: number;
+  shipping_outside_dhaka: number;
+  free_shipping_above: number;
+
+  // Theme & Styling
+  primary_color?: string;
+
   // Global Header Announcement Bar
   announcement_bar_enabled: boolean;
   announcement_bar_text: string;
@@ -35,6 +52,8 @@ export interface StorefrontCustomSettings {
   deals_hero_subtitle: string;
   deals_badge_text: string;
   deals_timer_hours: number;
+  coupon_deals_visibility?: string | Record<string, boolean>;
+  deals_banner_ids?: string[];
 
   // Explore Hub
   explore_title: string;
@@ -52,12 +71,24 @@ export const DEFAULT_HOMEPAGE_SECTIONS = [
 ];
 
 export const DEFAULT_STOREFRONT_SETTINGS: StorefrontCustomSettings = {
+  store_name: STORE_CONFIG.name,
+  store_tagline: STORE_CONFIG.tagline,
+  contact_email: STORE_CONFIG.contact.email,
+  contact_phone: STORE_CONFIG.contact.phone,
+  contact_address: STORE_CONFIG.contact.address,
+
+  shipping_inside_dhaka: STORE_CONFIG.shipping.insideDhaka,
+  shipping_outside_dhaka: STORE_CONFIG.shipping.outsideDhaka,
+  free_shipping_above: STORE_CONFIG.shipping.freeAbove,
+
+  primary_color: '#2563eb',
+
   announcement_bar_enabled: true,
-  announcement_bar_text: '⚡ Super Flash Offers: Cash on Delivery Nationwide & Free Delivery Over ৳1,500!',
+  announcement_bar_text: `⚡ Super Flash Offers: Cash on Delivery Nationwide & Free Delivery Over ৳${STORE_CONFIG.shipping.freeAbove}!`,
   announcement_bar_link: '/deals',
 
-  store_phone: '+880 1700-000000',
-  store_whatsapp: '+880 1700-000000',
+  store_phone: STORE_CONFIG.contact.phone,
+  store_whatsapp: STORE_CONFIG.contact.whatsapp,
 
   homepage_flash_sale_enabled: true,
   homepage_flash_sale_title: '⚡ Flash Deals & Steals',

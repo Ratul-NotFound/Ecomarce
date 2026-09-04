@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { requireAdminAuth } from '@/lib/auth/admin-guard';
 import { InventoryService } from '@/lib/services/InventoryService';
 
 /**
@@ -10,15 +9,11 @@ import { InventoryService } from '@/lib/services/InventoryService';
 // POST: Create a new variant for a product
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    let dbClient = supabase;
-    if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      dbClient = createAdminClient();
+    const auth = await requireAdminAuth(request);
+    if (!auth.authorized) {
+      return auth.response!;
     }
+    const { user, dbClient } = auth;
 
     const body = await request.json();
     const {
@@ -48,7 +43,7 @@ export async function POST(request: NextRequest) {
       costPrice: costPrice != null ? Number(costPrice) : null,
       regularPrice: regularPrice != null ? Number(regularPrice) : null,
       sellingPrice: sellingPrice != null ? Number(sellingPrice) : null,
-      adminId: user?.id,
+      adminId: user.id,
     });
 
     return NextResponse.json({ success: true, variant: newVariant });
@@ -61,15 +56,11 @@ export async function POST(request: NextRequest) {
 // PUT: Update an existing variant's stock, SKU, attributes, or pricing
 export async function PUT(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    let dbClient = supabase;
-    if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      dbClient = createAdminClient();
+    const auth = await requireAdminAuth(request);
+    if (!auth.authorized) {
+      return auth.response!;
     }
+    const { user, dbClient } = auth;
 
     const body = await request.json();
     const {
@@ -101,7 +92,7 @@ export async function PUT(request: NextRequest) {
       costPrice: costPrice !== undefined ? (costPrice != null ? Number(costPrice) : null) : undefined,
       regularPrice: regularPrice !== undefined ? (regularPrice != null ? Number(regularPrice) : null) : undefined,
       sellingPrice: sellingPrice !== undefined ? (sellingPrice != null ? Number(sellingPrice) : null) : undefined,
-      adminId: user?.id,
+      adminId: user.id,
     });
 
     return NextResponse.json({ success: true, message: 'Variant updated successfully' });
@@ -114,15 +105,11 @@ export async function PUT(request: NextRequest) {
 // DELETE: Delete a variant
 export async function DELETE(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    let dbClient = supabase;
-    if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      dbClient = createAdminClient();
+    const auth = await requireAdminAuth(request);
+    if (!auth.authorized) {
+      return auth.response!;
     }
+    const { user, dbClient } = auth;
 
     const { searchParams } = new URL(request.url);
     const variantId = searchParams.get('id');
@@ -136,7 +123,7 @@ export async function DELETE(request: NextRequest) {
     await inventoryService.deleteVariant({
       variantId,
       productId,
-      adminId: user?.id,
+      adminId: user.id,
     });
 
     return NextResponse.json({ success: true, message: 'Variant deleted successfully' });

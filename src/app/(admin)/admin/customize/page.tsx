@@ -33,12 +33,17 @@ import {
   Phone,
   MessageSquare,
 } from 'lucide-react';
-import type { SpecialOffer, Category, Product } from '@/types';
+import type { SpecialOffer, Category, Product, Coupon } from '@/types';
 import {
   DEFAULT_STOREFRONT_SETTINGS,
   DEFAULT_HOMEPAGE_SECTIONS,
   type StorefrontCustomSettings,
 } from '@/lib/store-settings-shared';
+
+interface ExtendedCoupon extends Coupon {
+  applicable_product_ids?: string[];
+  show_on_deals_page?: boolean;
+}
 
 const SECTION_METADATA: Record<string, { name: string; desc: string; icon: string }> = {
   hero: { name: 'Hero Carousel Banner', desc: 'Promotional slides, headlines, and call-to-actions', icon: '🎠' },
@@ -60,15 +65,23 @@ export default function AdminCustomizePage() {
   const [banners, setBanners] = useState<SpecialOffer[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [coupons, setCoupons] = useState<ExtendedCoupon[]>([]);
   const [loading, setLoading] = useState(true);
   const [couponCount, setCouponCount] = useState(0);
 
-  // New Slide Form State
+  // New Slide Form State (Homepage Hero)
   const [bannerTitleEn, setBannerTitleEn] = useState('');
   const [bannerSubtitle, setBannerSubtitle] = useState('🔥 SPECIAL OFFER');
   const [bannerLink, setBannerLink] = useState('/search');
   const [bannerImages, setBannerImages] = useState<string[]>([]);
   const [isCreatingBanner, setIsCreatingBanner] = useState(false);
+
+  // Deals Page Hero Promotional Banners State
+  const [dealsBannerTitleEn, setDealsBannerTitleEn] = useState('');
+  const [dealsBannerSubtitle, setDealsBannerSubtitle] = useState('🔥 EXCLUSIVE FLASH DEAL');
+  const [dealsBannerLink, setDealsBannerLink] = useState('/deals');
+  const [dealsBannerImages, setDealsBannerImages] = useState<string[]>([]);
+  const [isCreatingDealsBanner, setIsCreatingDealsBanner] = useState(false);
 
   // Edit Slide Modal State
   const [editingBanner, setEditingBanner] = useState<SpecialOffer | null>(null);
@@ -105,14 +118,17 @@ export default function AdminCustomizePage() {
         supabase.from('special_offers').select('*').order('display_order', { ascending: true }),
         supabase.from('categories').select('*').order('display_order', { ascending: true }),
         supabase.from('products').select('*').order('display_order', { ascending: true }).limit(50),
-        supabase.from('coupons').select('*', { count: 'exact', head: true }).eq('is_active', true),
+        fetch('/api/admin/coupons').then(r => r.json()),
         fetch('/api/admin/settings').then(r => r.json()),
       ]);
 
       if (bannersRes.data) setBanners(bannersRes.data as SpecialOffer[]);
       if (catsRes.data) setCategories(catsRes.data as Category[]);
       if (prodsRes.data) setProducts(prodsRes.data as Product[]);
-      if (couponsRes.count !== null) setCouponCount(couponsRes.count);
+      if (couponsRes?.coupons) {
+        setCoupons(couponsRes.coupons);
+        setCouponCount(couponsRes.coupons.filter((c: any) => c.is_active).length);
+      }
 
       if (settingsRes?.settings) {
         const s = settingsRes.settings;
@@ -296,6 +312,137 @@ export default function AdminCustomizePage() {
       showToast(`Slide ${updatedStatus ? 'activated' : 'deactivated'}`, 'info');
     } catch (err: any) {
       showToast(err.message || 'Failed to update slide', 'error');
+    }
+  };
+
+  // Create Deals Banner
+  const handleCreateDealsBanner = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!dealsBannerTitleEn.trim()) {
+      showToast('Banner headline is required', 'error');
+      return;
+    }
+
+    try {
+      setIsCreatingDealsBanner(true);
+      const res = await fetch('/api/admin/banners', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title_en: dealsBannerTitleEn.trim(),
+          subtitle: dealsBannerSubtitle.trim() || null,
+          link_url: dealsBannerLink.trim() || '/deals',
+          image_url: dealsBannerImages[0] || 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=1200&q=80',
+          type: 'deals_banner',
+          display_order: banners.filter(b => b.type === 'deals_banner').length + 1,
+          is_active: true,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      showToast('Deals banner published!', 'success');
+      setBanners(prev => [...prev, data.banner]);
+      setDealsBannerTitleEn('');
+      setDealsBannerImages([]);
+    } catch (err: any) {
+      showToast(err.message || 'Error creating deals banner', 'error');
+    } finally {
+      setIsCreatingDealsBanner(false);
+    }
+  };
+
+  // Reorder Deals Banners
+  const handleMoveDealsBanner = async (bannerId: string, direction: 'up' | 'down') => {
+    const dealsList = banners.filter(b => b.type === 'deals_banner');
+    const idx = dealsList.findIndex(b => b.id === bannerId);
+    if (idx < 0) return;
+    const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (targetIdx < 0 || targetIdx >= dealsList.length) return;
+
+    const reordered = [...dealsList];
+    const temp = reordered[idx];
+    reordered[idx] = reordered[targetIdx];
+    reordered[targetIdx] = temp;
+
+    const otherBanners = banners.filter(b => b.type !== 'deals_banner');
+    const updatedBanners = [...otherBanners, ...reordered.map((b, i) => ({ ...b, display_order: i + 1 }))];
+    setBanners(updatedBanners);
+
+    try {
+      const supabase = createClient();
+      for (let i = 0; i < reordered.length; i++) {
+        await supabase.from('special_offers').update({ display_order: i + 1 }).eq('id', reordered[i].id);
+      }
+      showToast('Deals banner sequence updated!', 'success');
+    } catch {
+      showToast('Failed to reorder deals banners', 'error');
+    }
+  };
+
+  // Toggle Deals Banner Active
+  const handleToggleDealsBannerActive = async (banner: SpecialOffer) => {
+    try {
+      const updatedStatus = !banner.is_active;
+      const res = await fetch('/api/admin/banners', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: banner.id, is_active: updatedStatus }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      setBanners(prev => prev.map(b => (b.id === banner.id ? { ...b, is_active: updatedStatus } : b)));
+      showToast(`Deals banner ${updatedStatus ? 'activated (ON)' : 'deactivated (OFF)'}`, 'info');
+    } catch (err: any) {
+      showToast(err.message || 'Failed to update banner', 'error');
+    }
+  };
+
+  // Toggle Coupon Deals Shelf Visibility
+  const handleToggleCouponDealsVisibility = async (coupon: ExtendedCoupon) => {
+    try {
+      const nextVis = coupon.show_on_deals_page === false ? true : false;
+      const res = await fetch('/api/admin/coupons', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: coupon.id,
+          code: coupon.code,
+          show_on_deals_page: nextVis,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      setCoupons(prev => prev.map(c => (c.id === coupon.id ? { ...c, show_on_deals_page: nextVis } : c)));
+      showToast(`Coupon "${coupon.code}" ${nextVis ? 'is now visible on Deals page (ON)' : 'is now hidden from Deals page (OFF)'}`, 'info');
+    } catch (err: any) {
+      showToast(err.message || 'Failed to update visibility', 'error');
+    }
+  };
+
+  // Toggle Coupon Active Status
+  const handleToggleCouponActive = async (coupon: ExtendedCoupon) => {
+    try {
+      const nextStatus = !coupon.is_active;
+      const res = await fetch('/api/admin/coupons', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: coupon.id,
+          code: coupon.code,
+          is_active: nextStatus,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      setCoupons(prev => prev.map(c => (c.id === coupon.id ? { ...c, is_active: nextStatus } : c)));
+      setCouponCount(prev => (nextStatus ? prev + 1 : Math.max(0, prev - 1)));
+      showToast(`Coupon "${coupon.code}" ${nextStatus ? 'activated (ON)' : 'deactivated (OFF)'}`, 'info');
+    } catch (err: any) {
+      showToast(err.message || 'Failed to update coupon status', 'error');
     }
   };
 
@@ -787,13 +934,13 @@ export default function AdminCustomizePage() {
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <h3 style={{ fontSize: '14px', fontWeight: 800, color: 'var(--color-admin-text)' }}>
-                            Carousel Slides ({banners.length})
+                            Carousel Slides ({banners.filter(b => b.type === 'hero_banner' || !b.type).length})
                           </h3>
                         </div>
 
                         {/* Existing Slides */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                          {banners.map(b => (
+                          {banners.filter(b => b.type === 'hero_banner' || !b.type).map(b => (
                             <div
                               key={b.id}
                               style={{
@@ -1260,78 +1407,509 @@ export default function AdminCustomizePage() {
          TAB 3: DEALS HUB (/deals)
          ──────────────────────────────────────────────────────────── */}
       {activeTab === 'deals' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '24px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', maxWidth: '1000px' }}>
+          {/* Top Notice Banner */}
+          <div
+            style={{
+              background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(245, 158, 11, 0.08) 100%)',
+              border: '1px solid rgba(239, 68, 68, 0.25)',
+              borderRadius: 'var(--radius-xl)',
+              padding: '16px 20px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '12px',
+            }}
+          >
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Zap size={20} color="#ef4444" />
+                <h2 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--color-admin-text)' }}>
+                  Deals Hub Customizer & Live Controls
+                </h2>
+              </div>
+              <p style={{ fontSize: '13px', color: 'var(--color-admin-muted)', marginTop: '4px' }}>
+                Customize promotional banner slides, countdown duration, and live coupon vouchers displayed on the /deals page.
+              </p>
+            </div>
+
+            <Link
+              href="/deals"
+              target="_blank"
+              className="btn btn-secondary btn-sm"
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}
+            >
+              <ExternalLink size={14} />
+              <span>Preview /deals Page</span>
+            </Link>
+          </div>
+
+          {/* 1. DEALS HERO PROMOTIONAL BANNERS CAROUSEL CRUD */}
           <div className="admin-card">
-            <h2 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--color-admin-text)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Zap size={18} color="#ef4444" />
-              <span>Deals Hub Page Configuration</span>
-            </h2>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div className="form-group">
-                <label className="admin-label">Hero Badge Text</label>
-                <input
-                  type="text"
-                  className="admin-input"
-                  value={settings.deals_badge_text}
-                  onChange={e => updateSetting({ deals_badge_text: e.target.value })}
-                  placeholder="e.g. EXCLUSIVE FLASH PROMOTIONS"
-                />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+              <div>
+                <h2 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--color-admin-text)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <ImageIcon size={18} color="var(--color-primary)" />
+                  <span>Deals Hero Banner Slides ({banners.filter(b => b.type === 'deals_banner').length})</span>
+                </h2>
+                <p style={{ fontSize: '12px', color: 'var(--color-admin-muted)', marginTop: '3px' }}>
+                  Promotional banners showcased at the top of /deals. If none are added, the default hero card is rendered.
+                </p>
               </div>
+            </div>
 
-              <div className="form-group">
-                <label className="admin-label">Hero Headline</label>
-                <input
-                  type="text"
-                  className="admin-input"
-                  value={settings.deals_hero_title}
-                  onChange={e => updateSetting({ deals_hero_title: e.target.value })}
-                  placeholder="e.g. 🔥 Super Flash Deals & Discounts"
-                />
-              </div>
+            {/* List Existing Deals Banners */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
+              {banners.filter(b => b.type === 'deals_banner').length === 0 ? (
+                <div
+                  style={{
+                    padding: '24px',
+                    textAlign: 'center',
+                    background: 'var(--color-admin-surface-2)',
+                    borderRadius: 'var(--radius-lg)',
+                    border: '1px dashed var(--color-admin-border)',
+                  }}
+                >
+                  <ImageIcon size={32} style={{ margin: '0 auto 8px', color: 'var(--color-admin-muted)', opacity: 0.6 }} />
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-admin-text)' }}>
+                    No custom deals banners published yet
+                  </div>
+                  <div style={{ fontSize: '12px', color: 'var(--color-admin-muted)', marginTop: '4px' }}>
+                    The /deals page is currently rendering the default title card. Add a banner below to activate the promotional carousel!
+                  </div>
+                </div>
+              ) : (
+                banners
+                  .filter(b => b.type === 'deals_banner')
+                  .map((b, idx, arr) => (
+                    <div
+                      key={b.id}
+                      style={{
+                        background: 'var(--color-admin-surface-2)',
+                        border: '1px solid var(--color-admin-border)',
+                        borderRadius: 'var(--radius-lg)',
+                        padding: '12px 16px',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        flexWrap: 'wrap',
+                        gap: '12px',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                        <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--color-primary-light)', minWidth: '24px' }}>
+                          #{idx + 1}
+                        </span>
 
-              <div className="form-group">
-                <label className="admin-label">Hero Subtitle</label>
-                <textarea
-                  className="admin-input"
-                  rows={2}
-                  value={settings.deals_hero_subtitle}
-                  onChange={e => updateSetting({ deals_hero_subtitle: e.target.value })}
-                />
-              </div>
+                        {b.image_url && (
+                          <div
+                            style={{
+                              position: 'relative',
+                              width: '72px',
+                              height: '46px',
+                              borderRadius: 'var(--radius-md)',
+                              overflow: 'hidden',
+                              flexShrink: 0,
+                              background: '#0f172a',
+                            }}
+                          >
+                            <Image src={b.image_url} alt={b.title_en} fill style={{ objectFit: 'cover' }} />
+                          </div>
+                        )}
 
-              <div className="form-group">
-                <label className="admin-label">Live Daily Countdown Duration (Hours)</label>
-                <input
-                  type="number"
-                  min={1}
-                  max={72}
-                  className="admin-input"
-                  value={settings.deals_timer_hours}
-                  onChange={e => updateSetting({ deals_timer_hours: Number(e.target.value) || 6 })}
-                />
-              </div>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <strong style={{ fontSize: '14px', color: 'var(--color-admin-text)' }}>{b.title_en}</strong>
+                            <span
+                              style={{
+                                fontSize: '10px',
+                                fontWeight: 800,
+                                padding: '1px 6px',
+                                borderRadius: 'var(--radius-full)',
+                                background: b.is_active ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                                color: b.is_active ? 'var(--color-success)' : 'var(--color-danger)',
+                              }}
+                            >
+                              {b.is_active ? 'ACTIVE' : 'OFF'}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: '11px', color: 'var(--color-admin-muted)', marginTop: '2px' }}>
+                            {b.subtitle || 'No Subtitle'} • Link: <span style={{ color: 'var(--color-primary-light)' }}>{b.link_url || '/deals'}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {/* ON / OFF Switch */}
+                        <button
+                          type="button"
+                          onClick={() => handleToggleDealsBannerActive(b)}
+                          className={`btn btn-sm ${b.is_active ? 'btn-secondary' : 'btn-primary'}`}
+                          style={{ padding: '4px 10px', height: '30px', fontSize: '11px', fontWeight: 700 }}
+                        >
+                          {b.is_active ? 'Turn OFF' : 'Turn ON'}
+                        </button>
+
+                        {/* Move Up */}
+                        <button
+                          type="button"
+                          disabled={idx === 0}
+                          onClick={() => handleMoveDealsBanner(b.id, 'up')}
+                          style={{
+                            background: idx === 0 ? 'var(--color-admin-surface-2)' : '#ffffff',
+                            border: '1px solid var(--color-admin-border)',
+                            color: idx === 0 ? '#cbd5e1' : 'var(--color-admin-text)',
+                            padding: '4px 8px',
+                            borderRadius: 'var(--radius-md)',
+                            cursor: idx === 0 ? 'not-allowed' : 'pointer',
+                            height: '30px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                          title="Move Up"
+                        >
+                          <ArrowUp size={14} />
+                        </button>
+
+                        {/* Move Down */}
+                        <button
+                          type="button"
+                          disabled={idx === arr.length - 1}
+                          onClick={() => handleMoveDealsBanner(b.id, 'down')}
+                          style={{
+                            background: idx === arr.length - 1 ? 'var(--color-admin-surface-2)' : '#ffffff',
+                            border: '1px solid var(--color-admin-border)',
+                            color: idx === arr.length - 1 ? '#cbd5e1' : 'var(--color-admin-text)',
+                            padding: '4px 8px',
+                            borderRadius: 'var(--radius-md)',
+                            cursor: idx === arr.length - 1 ? 'not-allowed' : 'pointer',
+                            height: '30px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                          title="Move Down"
+                        >
+                          <ArrowDown size={14} />
+                        </button>
+
+                        {/* Edit Button */}
+                        <button
+                          type="button"
+                          onClick={() => openEditSlideModal(b)}
+                          style={{
+                            background: '#ffffff',
+                            border: '1px solid var(--color-admin-border)',
+                            color: 'var(--color-admin-text)',
+                            padding: '4px 8px',
+                            borderRadius: 'var(--radius-md)',
+                            cursor: 'pointer',
+                            height: '30px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                          title="Edit Banner"
+                        >
+                          <Edit3 size={13} />
+                        </button>
+
+                        {/* Delete Button */}
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteBanner(b.id)}
+                          style={{
+                            background: 'rgba(239, 68, 68, 0.1)',
+                            border: '1px solid rgba(239, 68, 68, 0.2)',
+                            color: 'var(--color-danger)',
+                            padding: '4px 8px',
+                            borderRadius: 'var(--radius-md)',
+                            cursor: 'pointer',
+                            height: '30px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                          title="Delete Banner"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+              )}
+            </div>
+
+            {/* + Add New Deals Banner Form */}
+            <div style={{ background: 'var(--color-admin-surface-2)', padding: '18px', borderRadius: 'var(--radius-xl)', border: '1px dashed var(--color-admin-border)' }}>
+              <h3 style={{ fontSize: '14px', fontWeight: 800, color: 'var(--color-admin-text)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Plus size={16} color="var(--color-primary)" />
+                <span>+ Add New Promotional Slide to Deals Hub</span>
+              </h3>
+
+              <form onSubmit={handleCreateDealsBanner} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '12px' }}>
+                  <div className="form-group">
+                    <label className="admin-label">Headline *</label>
+                    <input
+                      type="text"
+                      className="admin-input"
+                      placeholder="e.g. Flash Mega Deals 2026"
+                      value={dealsBannerTitleEn}
+                      onChange={e => setDealsBannerTitleEn(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="admin-label">Subtitle Badge</label>
+                    <input
+                      type="text"
+                      className="admin-input"
+                      placeholder="e.g. UP TO 50% OFF FLASH SALE"
+                      value={dealsBannerSubtitle}
+                      onChange={e => setDealsBannerSubtitle(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label className="admin-label">Target Link URL</label>
+                  <input
+                    type="text"
+                    className="admin-input"
+                    placeholder="/deals?tier=big_discount"
+                    value={dealsBannerLink}
+                    onChange={e => setDealsBannerLink(e.target.value)}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="admin-label">Banner Cover Image</label>
+                  <ImageUploader images={dealsBannerImages} onChange={setDealsBannerImages} />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isCreatingDealsBanner}
+                  className="btn btn-primary"
+                  style={{ alignSelf: 'flex-start', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}
+                >
+                  <Plus size={16} />
+                  <span>{isCreatingDealsBanner ? 'Publishing Deals Banner...' : 'Publish Deals Banner'}</span>
+                </button>
+              </form>
             </div>
           </div>
 
-          <div className="admin-card">
-            <h2 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--color-admin-text)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Tag size={18} color="var(--color-primary-light)" />
-              <span>Claimable Vouchers & Coupons ({couponCount} Active)</span>
-            </h2>
+          {/* 2. DEALS PAGE HEADLINE & COUNTDOWN TIMER CONFIG */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '20px' }}>
+            <div className="admin-card">
+              <h2 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--color-admin-text)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Zap size={18} color="#ef4444" />
+                <span>Deals Hub Page Configuration</span>
+              </h2>
 
-            <p style={{ fontSize: '13px', color: 'var(--color-admin-muted)', lineHeight: '1.5', marginBottom: '16px' }}>
-              Active discount promo codes in your database appear automatically as claimable 1-tap voucher cards on the Deals page.
-            </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div className="form-group">
+                  <label className="admin-label">Hero Badge Text</label>
+                  <input
+                    type="text"
+                    className="admin-input"
+                    value={settings.deals_badge_text}
+                    onChange={e => updateSetting({ deals_badge_text: e.target.value })}
+                    placeholder="e.g. EXCLUSIVE FLASH PROMOTIONS"
+                  />
+                </div>
 
-            <Link
-              href="/admin/coupons"
-              className="btn btn-secondary"
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', width: '100%' }}
-            >
-              <Tag size={16} />
-              <span>Open Coupon Manager (Product Scope, ON/OFF) ➔</span>
-            </Link>
+                <div className="form-group">
+                  <label className="admin-label">Hero Headline</label>
+                  <input
+                    type="text"
+                    className="admin-input"
+                    value={settings.deals_hero_title}
+                    onChange={e => updateSetting({ deals_hero_title: e.target.value })}
+                    placeholder="e.g. 🔥 Super Flash Deals & Discounts"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="admin-label">Hero Subtitle</label>
+                  <textarea
+                    className="admin-input"
+                    rows={2}
+                    value={settings.deals_hero_subtitle}
+                    onChange={e => updateSetting({ deals_hero_subtitle: e.target.value })}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="admin-label">Live Daily Countdown Duration (Hours)</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={72}
+                    className="admin-input"
+                    value={settings.deals_timer_hours}
+                    onChange={e => updateSetting({ deals_timer_hours: Number(e.target.value) || 6 })}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* 3. CLAIMABLE VOUCHERS & COUPONS ON DEALS PAGE */}
+            <div className="admin-card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
+                <div>
+                  <h2 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--color-admin-text)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Tag size={18} color="var(--color-primary-light)" />
+                    <span>Deals Shelf Vouchers ({coupons.length})</span>
+                  </h2>
+                  <p style={{ fontSize: '12px', color: 'var(--color-admin-muted)', marginTop: '2px' }}>
+                    1-Click control over which coupons appear on the public /deals shelf vs private checkout codes.
+                  </p>
+                </div>
+
+                <Link
+                  href="/admin/coupons"
+                  className="btn btn-secondary btn-sm"
+                  style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 700 }}
+                >
+                  <span>Full Coupon Manager ➔</span>
+                </Link>
+              </div>
+
+              {/* Coupons Shelf List */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '420px', overflowY: 'auto', paddingRight: '4px' }}>
+                {coupons.length === 0 ? (
+                  <div style={{ padding: '20px', textAlign: 'center', color: 'var(--color-admin-muted)', fontSize: '13px' }}>
+                    No discount promo codes found.
+                  </div>
+                ) : (
+                  coupons.map(coupon => {
+                    const isDealsVisible = coupon.show_on_deals_page !== false;
+                    const isPercent = coupon.type === 'percent' || coupon.type === ('percentage' as any);
+                    const hasProductRules = coupon.applicable_product_ids && coupon.applicable_product_ids.length > 0;
+
+                    return (
+                      <div
+                        key={coupon.id}
+                        style={{
+                          background: 'var(--color-admin-surface-2)',
+                          border: `1px solid ${isDealsVisible ? 'var(--color-primary-20, rgba(37,99,235,0.25))' : 'var(--color-admin-border)'}`,
+                          borderRadius: 'var(--radius-lg)',
+                          padding: '12px 14px',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          gap: '10px',
+                          flexWrap: 'wrap',
+                        }}
+                      >
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                            <span
+                              style={{
+                                fontFamily: 'monospace',
+                                fontWeight: 800,
+                                fontSize: '13px',
+                                background: '#ffffff',
+                                border: '1px solid var(--color-admin-border)',
+                                padding: '2px 8px',
+                                borderRadius: 'var(--radius-sm)',
+                                color: 'var(--color-admin-text)',
+                              }}
+                            >
+                              {coupon.code}
+                            </span>
+
+                            <span
+                              style={{
+                                fontSize: '11px',
+                                fontWeight: 800,
+                                color: 'var(--color-primary-light)',
+                                background: 'var(--color-primary-10)',
+                                padding: '2px 8px',
+                                borderRadius: 'var(--radius-full)',
+                              }}
+                            >
+                              {isPercent ? `${coupon.value}% OFF` : `৳${coupon.value} FLAT`}
+                            </span>
+
+                            {hasProductRules ? (
+                              <span
+                                style={{
+                                  fontSize: '10px',
+                                  fontWeight: 700,
+                                  color: '#8b5cf6',
+                                  background: 'rgba(139, 92, 246, 0.12)',
+                                  padding: '1px 6px',
+                                  borderRadius: 'var(--radius-full)',
+                                }}
+                              >
+                                {coupon.applicable_product_ids!.length} Products Scope
+                              </span>
+                            ) : (
+                              <span
+                                style={{
+                                  fontSize: '10px',
+                                  fontWeight: 700,
+                                  color: '#059669',
+                                  background: 'rgba(5, 150, 105, 0.12)',
+                                  padding: '1px 6px',
+                                  borderRadius: 'var(--radius-full)',
+                                }}
+                              >
+                                Storewide
+                              </span>
+                            )}
+                          </div>
+
+                          <div style={{ fontSize: '11px', color: 'var(--color-admin-muted)', marginTop: '4px' }}>
+                            Min order: ৳{coupon.min_order_amount || 0} • Status: {coupon.is_active ? 'Active' : 'Disabled'}
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          {/* 1-Click Deals Shelf Toggle */}
+                          <button
+                            type="button"
+                            onClick={() => handleToggleCouponDealsVisibility(coupon)}
+                            className={`btn btn-sm ${isDealsVisible ? 'btn-primary' : 'btn-secondary'}`}
+                            style={{
+                              fontSize: '11px',
+                              padding: '4px 10px',
+                              height: '28px',
+                              fontWeight: 700,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                            }}
+                            title={isDealsVisible ? 'Click to hide from /deals shelf' : 'Click to show on /deals shelf'}
+                          >
+                            {isDealsVisible ? <Eye size={12} /> : <EyeOff size={12} />}
+                            <span>{isDealsVisible ? 'On /deals' : 'Hidden'}</span>
+                          </button>
+
+                          {/* Active Status Switch */}
+                          <button
+                            type="button"
+                            onClick={() => handleToggleCouponActive(coupon)}
+                            className={`btn btn-sm ${coupon.is_active ? 'btn-secondary' : 'btn-primary'}`}
+                            style={{ fontSize: '11px', padding: '4px 8px', height: '28px', fontWeight: 700 }}
+                            title="Toggle active coupon state"
+                          >
+                            {coupon.is_active ? 'ON' : 'OFF'}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}

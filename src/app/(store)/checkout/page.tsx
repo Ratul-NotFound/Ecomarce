@@ -22,6 +22,10 @@ function CheckoutContent() {
   const { showToast } = useToast();
 
   const [paymentSettings, setPaymentSettings] = useState<PaymentSettings>(DEFAULT_PAYMENT_SETTINGS);
+  const [shippingInsideDhaka, setShippingInsideDhaka] = useState<number>(STORE_CONFIG.shipping.insideDhaka);
+  const [shippingOutsideDhaka, setShippingOutsideDhaka] = useState<number>(STORE_CONFIG.shipping.outsideDhaka);
+  const [freeShippingAbove, setFreeShippingAbove] = useState<number>(STORE_CONFIG.shipping.freeAbove);
+
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [district, setDistrict] = useState('Dhaka');
@@ -60,27 +64,47 @@ function CheckoutContent() {
     }
   }, [user, profile]);
 
-  // Load dynamic payment settings from store settings (respecting Admin Hide/Unhide)
+  // Load dynamic store settings (delivery rates, free shipping threshold & payment methods)
   useEffect(() => {
-    fetch('/api/admin/settings')
+    fetch('/api/settings')
       .then(r => r.json())
       .then(res => {
-        if (res.settings && res.settings.payment_methods) {
-          const merged = getMergedPaymentSettings(res.settings.payment_methods);
-          setPaymentSettings(merged);
-          // If current selected payment method is disabled/hidden, switch to first active method
-          if (!merged[paymentMethod]?.enabled) {
-            const firstActive = (['cod', 'bkash', 'nagad', 'rocket'] as const).find(k => merged[k]?.enabled);
-            if (firstActive) setPaymentMethod(firstActive as any);
+        if (res.settings) {
+          if (res.settings.shipping_inside_dhaka !== undefined) {
+            setShippingInsideDhaka(Number(res.settings.shipping_inside_dhaka));
+          }
+          if (res.settings.shipping_outside_dhaka !== undefined) {
+            setShippingOutsideDhaka(Number(res.settings.shipping_outside_dhaka));
+          }
+          if (res.settings.free_shipping_above !== undefined) {
+            setFreeShippingAbove(Number(res.settings.free_shipping_above));
+          }
+          if (res.settings.payment_methods) {
+            const merged = getMergedPaymentSettings(res.settings.payment_methods);
+            setPaymentSettings(merged);
+            // If current selected payment method is disabled/hidden, switch to first active method
+            if (!merged[paymentMethod]?.enabled) {
+              const firstActive = (['cod', 'bkash', 'nagad', 'rocket'] as const).find(k => merged[k]?.enabled);
+              if (firstActive) setPaymentMethod(firstActive as any);
+            }
           }
         }
       })
       .catch(() => {});
   }, [paymentMethod]);
 
-  // Check initial coupon if passed from cart
+  // Check initial coupon or claimed coupon from deals page
   useEffect(() => {
-    if (initialCoupon && subtotal > 0 && cart.length > 0) {
+    let effectiveCoupon = initialCoupon;
+    if (!effectiveCoupon && typeof window !== 'undefined') {
+      const saved = localStorage.getItem('shopbd_claimed_coupon');
+      if (saved) {
+        effectiveCoupon = saved;
+        setCouponCode(saved);
+      }
+    }
+
+    if (effectiveCoupon && subtotal > 0 && cart.length > 0) {
       const itemsPayload = cart.map(i => ({
         product_id: i.product_id,
         price: i.variant ? (i.product.sale_price ?? i.product.base_price) + i.variant.price_modifier : (i.product.sale_price ?? i.product.base_price),
@@ -90,7 +114,7 @@ function CheckoutContent() {
       fetch('/api/coupons/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: initialCoupon, total: subtotal, items: itemsPayload }),
+        body: JSON.stringify({ code: effectiveCoupon, total: subtotal, items: itemsPayload }),
       })
         .then(r => r.json())
         .then(res => {
@@ -101,7 +125,8 @@ function CheckoutContent() {
     }
   }, [initialCoupon, subtotal, cart]);
 
-  const shippingFee = subtotal >= STORE_CONFIG.shipping.freeAbove ? 0 : getShippingFee(district);
+  const isFreeShipping = subtotal >= freeShippingAbove;
+  const shippingFee = isFreeShipping ? 0 : getShippingFee(district, shippingInsideDhaka, shippingOutsideDhaka);
   const grandTotal = Math.max(0, subtotal + shippingFee - discountAmount);
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
@@ -115,6 +140,12 @@ function CheckoutContent() {
 
     if (!fullName.trim() || !phone.trim() || !district || !streetAddress.trim()) {
       showToast('Please fill in all mandatory delivery address fields', 'error');
+      return;
+    }
+
+    const cleanPhone = phone.replace(/[^0-9]/g, '');
+    if (cleanPhone.length !== 11 || !cleanPhone.startsWith('01')) {
+      showToast('Please enter a valid 11-digit Bangladesh mobile number (e.g. 01700000000)', 'error');
       return;
     }
 
@@ -152,6 +183,9 @@ function CheckoutContent() {
       }
 
       showToast('Order placed successfully!', 'success');
+      try {
+        localStorage.removeItem('shopbd_claimed_coupon');
+      } catch {}
       clear(); // Empty the cart
       router.push(`/orders/${data.order_id || data.order_number}`);
     } catch (err: any) {
@@ -482,6 +516,12 @@ function CheckoutContent() {
                   <span>Delivery ({district})</span>
                   <span>{shippingFee === 0 ? <strong style={{ color: 'var(--color-success)' }}>FREE</strong> : formatCurrency(shippingFee)}</span>
                 </div>
+
+                {!isFreeShipping && (
+                  <div style={{ fontSize: '11px', color: 'var(--color-primary)', background: 'rgba(37, 99, 235, 0.08)', padding: '6px 10px', borderRadius: 'var(--radius-sm)', textAlign: 'center', fontWeight: 600 }}>
+                    ⚡ Add {formatCurrency(freeShippingAbove - subtotal)} more for FREE Delivery!
+                  </div>
+                )}
 
                 {discountAmount > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--color-danger)' }}>

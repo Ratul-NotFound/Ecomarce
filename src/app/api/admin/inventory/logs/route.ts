@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { requireAdminAuth } from '@/lib/auth/admin-guard';
 import { InventoryService } from '@/lib/services/InventoryService';
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    let dbClient = supabase;
-    if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      dbClient = createAdminClient();
+    const auth = await requireAdminAuth(request);
+    if (!auth.authorized) {
+      return auth.response!;
     }
+    const dbClient = auth.dbClient;
 
     const { searchParams } = new URL(request.url);
     const productId = searchParams.get('productId') || undefined;

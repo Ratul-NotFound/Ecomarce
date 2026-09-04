@@ -24,7 +24,7 @@ export type PaymentStatus = 'pending' | 'submitted' | 'confirmed' | 'failed';
 
 export type PaymentMethod = 'bkash' | 'nagad' | 'cod';
 
-export type OfferType = 'hero_banner' | 'promo_card' | 'special_offer';
+export type OfferType = 'hero_banner' | 'deals_banner' | 'promo_card' | 'special_offer';
 
 export type InventoryChangeType = 'sale' | 'restock' | 'adjustment' | 'return';
 
@@ -257,6 +257,9 @@ export interface Coupon {
   used_count: number;
   expires_at: string | null;
   is_active: boolean;
+  show_on_deals_page?: boolean;
+  applicable_product_ids?: string[];
+  created_at?: string;
 }
 
 export interface SpecialOffer {

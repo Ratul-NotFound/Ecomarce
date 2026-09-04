@@ -28,6 +28,17 @@ export default function TelegramChatWidget() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  const [storeName, setStoreName] = useState(STORE_CONFIG.name);
+
+  useEffect(() => {
+    fetch('/api/settings')
+      .then(r => r.json())
+      .then(res => {
+        if (res.settings?.store_name) setStoreName(res.settings.store_name);
+      })
+      .catch(() => {});
+  }, []);
+
   // Initialize or retrieve guest session ID from localStorage
   useEffect(() => {
     let sid = localStorage.getItem('shop_chat_session_id');
@@ -59,7 +70,7 @@ export default function TelegramChatWidget() {
             id: 'welcome-1',
             user_id: null,
             user_name: 'Customer Support',
-            message: `Hello! 👋 Welcome to ${STORE_CONFIG.name}. How can we assist you with your shopping today?`,
+            message: `Hello! 👋 Welcome to ${storeName}. How can we assist you with your shopping today?`,
             direction: 'out',
             telegram_message_id: null,
             created_at: new Date().toISOString(),
