@@ -92,8 +92,8 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        // API responses must never be cached by proxies or browsers
-        source: '/api/(.*)',
+        // Default API responses must never be cached by proxies or browsers (except search suggest)
+        source: '/api/((?!search/suggest).*)',
         headers: [
           { key: 'Cache-Control', value: 'no-store, no-cache, must-revalidate, proxy-revalidate' },
           { key: 'Pragma',        value: 'no-cache' },

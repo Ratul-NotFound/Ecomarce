@@ -1,4 +1,5 @@
 import React from 'react';
+import { cache } from 'react';
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { ProductRepository } from '@/lib/supabase/repositories/ProductRepository';
@@ -8,16 +9,37 @@ import FilterSidebar from '@/components/store/FilterSidebar';
 import type { Metadata } from 'next';
 import { STORE_CONFIG } from '@/lib/store-config';
 
+// ISR: Cache category pages for 5 minutes (300 seconds)
+export const revalidate = 300;
+
 interface CategoryPageProps {
   params: Promise<{ slug: string }>;
   searchParams: Promise<{ [key: string]: string | undefined }>;
 }
 
-export async function generateMetadata({ params }: CategoryPageProps): Promise<Metadata> {
-  const { slug } = await params;
+// React cache() deduplicates the category lookup between generateMetadata
+// and the page component, preventing double DB round-trips.
+const getCachedCategory = cache(async (slug: string) => {
   const supabase = await createClient();
   const catRepo = new CategoryRepository(supabase);
-  const cat = await catRepo.findBySlug(slug);
+  return catRepo.findBySlug(slug);
+});
+
+// Pre-render top-level categories at build time for instant CDN response
+export async function generateStaticParams() {
+  try {
+    const supabase = await createClient();
+    const catRepo = new CategoryRepository(supabase);
+    const categories = await catRepo.findTopLevel();
+    return categories.map(cat => ({ slug: cat.slug }));
+  } catch {
+    return [];
+  }
+}
+
+export async function generateMetadata({ params }: CategoryPageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const cat = await getCachedCategory(slug);
 
   if (!cat) return { title: 'Category Not Found' };
   return {
@@ -30,11 +52,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
   const { slug } = await params;
   const sParams = await searchParams;
 
-  const supabase = await createClient();
-  const productRepo = new ProductRepository(supabase);
-  const categoryRepo = new CategoryRepository(supabase);
-
-  const category = await categoryRepo.findBySlug(slug);
+  const category = await getCachedCategory(slug);
   if (!category) {
     notFound();
   }
@@ -42,6 +60,9 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
   const minPrice = sParams.min_price ? Number(sParams.min_price) : undefined;
   const maxPrice = sParams.max_price ? Number(sParams.max_price) : undefined;
   const sort = (sParams.sort as any) || 'newest';
+
+  const supabase = await createClient();
+  const productRepo = new ProductRepository(supabase);
 
   const { data: products, count } = await productRepo.findAll({
     category_id: category.id,

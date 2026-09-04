@@ -7,18 +7,15 @@ import type { Order } from '@/types';
 export const revalidate = 0;
 
 export default async function AdminOrdersPage() {
-  const supabase = await createClient();
-  let dbClient = supabase;
-  try {
-    if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      dbClient = createAdminClient();
-    }
-  } catch {}
+  const dbClient = process.env.SUPABASE_SERVICE_ROLE_KEY
+    ? createAdminClient()
+    : await createClient();
 
   const { data } = await dbClient
     .from('orders')
     .select('*')
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .limit(100);
 
   const orders = (data as Order[]) || [];
 

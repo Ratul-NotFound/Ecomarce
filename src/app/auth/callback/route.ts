@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.redirect(`${origin}/auth?error=${encodeURIComponent(error.message)}`);
       }
 
-      // Safety check: Ensure profile exists in profiles table
+      // Safety check: Ensure profile exists in profiles table and Google avatar is saved
       if (data?.session?.user) {
         const user = data.session.user;
         const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -52,25 +52,58 @@ export async function GET(request: NextRequest) {
           const adminClient = createAdmin(supabaseUrl, serviceRoleKey, {
             auth: { autoRefreshToken: false, persistSession: false },
           });
+
+          // Extract avatar from all possible Google OIDC claims
+          let googleAvatar: string | null = null;
+          const meta = user.user_metadata || {};
+          if (meta.avatar_url && typeof meta.avatar_url === 'string') googleAvatar = meta.avatar_url;
+          else if (meta.picture && typeof meta.picture === 'string') googleAvatar = meta.picture;
+          else if (Array.isArray(user.identities)) {
+            for (const id of user.identities) {
+              const idData = id.identity_data || {};
+              if (idData.avatar_url && typeof idData.avatar_url === 'string') {
+                googleAvatar = idData.avatar_url;
+                break;
+              }
+              if (idData.picture && typeof idData.picture === 'string') {
+                googleAvatar = idData.picture;
+                break;
+              }
+            }
+          }
+
+          const fullName =
+            meta.full_name ||
+            meta.name ||
+            user.identities?.[0]?.identity_data?.full_name ||
+            user.identities?.[0]?.identity_data?.name ||
+            user.email?.split('@')[0] ||
+            'Customer';
+
           const { data: existingProfile } = await adminClient
             .from('profiles')
-            .select('id, avatar_url')
+            .select('id, full_name, avatar_url, role')
             .eq('id', user.id)
-            .single();
-
-          const googleAvatar = user.user_metadata?.avatar_url || user.user_metadata?.picture || null;
+            .maybeSingle();
 
           if (!existingProfile) {
             await adminClient.from('profiles').insert({
               id: user.id,
-              full_name: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Customer',
+              full_name: fullName,
               avatar_url: googleAvatar,
               role: 'customer',
-            }).select();
-          } else if (googleAvatar && existingProfile.avatar_url !== googleAvatar) {
-            await adminClient.from('profiles').update({
-              avatar_url: googleAvatar,
-            }).eq('id', user.id);
+            });
+          } else {
+            const updates: Record<string, any> = {};
+            if (googleAvatar && existingProfile.avatar_url !== googleAvatar) {
+              updates.avatar_url = googleAvatar;
+            }
+            if (fullName && (!existingProfile.full_name || existingProfile.full_name === 'Customer')) {
+              updates.full_name = fullName;
+            }
+            if (Object.keys(updates).length > 0) {
+              await adminClient.from('profiles').update(updates).eq('id', user.id);
+            }
           }
         }
       }

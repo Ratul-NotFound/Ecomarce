@@ -4,7 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Menu, LogOut, Store } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth, extractAvatarUrl } from '@/hooks/useAuth';
 import { STORE_CONFIG } from '@/lib/store-config';
 
 interface AdminHeaderProps {
@@ -14,6 +14,7 @@ interface AdminHeaderProps {
 export default function AdminHeader({ onToggleSidebar }: AdminHeaderProps) {
   const router = useRouter();
   const { profile, user, signOut } = useAuth();
+  const userAvatar = profile?.avatar_url || extractAvatarUrl(user);
 
   const handleSignOut = async () => {
     await signOut('/auth');
@@ -56,22 +57,38 @@ export default function AdminHeader({ onToggleSidebar }: AdminHeaderProps) {
         </Link>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div
-            style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: '9999px',
-              background: 'var(--color-primary)',
-              color: '#ffffff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 800,
-              fontSize: '13px',
-            }}
-          >
-            {profile?.full_name?.charAt(0) || 'A'}
-          </div>
+          {userAvatar ? (
+            <img
+              src={userAvatar}
+              alt={profile?.full_name || 'Admin'}
+              referrerPolicy="no-referrer"
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '9999px',
+                objectFit: 'cover',
+                border: '1px solid var(--color-admin-border)',
+                display: 'block',
+              }}
+            />
+          ) : (
+            <div
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '9999px',
+                background: 'var(--color-primary)',
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 800,
+                fontSize: '13px',
+              }}
+            >
+              {profile?.full_name?.charAt(0) || user?.email?.charAt(0)?.toUpperCase() || 'A'}
+            </div>
+          )}
           <span className="hide-mobile" style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-admin-text)' }}>
             {profile?.full_name || user?.email || 'Admin'}
           </span>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { cache } from 'react';
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { ProductRepository } from '@/lib/supabase/repositories/ProductRepository';
@@ -11,15 +12,36 @@ import { STORE_CONFIG } from '@/lib/store-config';
 import { ShieldCheck, Truck, RotateCcw, Star } from 'lucide-react';
 import { getProductVideoUrl } from '@/lib/utils/video';
 
+// ISR: product pages revalidate every 5 minutes
+export const revalidate = 300;
+
 interface ProductPageProps {
   params: Promise<{ slug: string }>;
 }
 
-export async function generateMetadata({ params }: ProductPageProps): Promise<Metadata> {
-  const { slug } = await params;
+// React cache() deduplicates the product fetch between generateMetadata
+// and the page component so it only hits the DB ONCE per request.
+const getCachedProduct = cache(async (slug: string) => {
   const supabase = await createClient();
   const productRepo = new ProductRepository(supabase);
-  const product = await productRepo.findBySlug(slug);
+  return productRepo.findBySlug(slug);
+});
+
+// Pre-render top featured products at build time for instant edge CDN delivery
+export async function generateStaticParams() {
+  try {
+    const supabase = await createClient();
+    const productRepo = new ProductRepository(supabase);
+    const featured = await productRepo.findFeatured(12);
+    return featured.map(p => ({ slug: p.slug }));
+  } catch {
+    return [];
+  }
+}
+
+export async function generateMetadata({ params }: ProductPageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const product = await getCachedProduct(slug);
 
   if (!product) {
     return { title: 'Product Not Found' };
@@ -36,21 +58,21 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
 
 export default async function ProductDetailPage({ params }: ProductPageProps) {
   const { slug } = await params;
-  const supabase = await createClient();
-  const productRepo = new ProductRepository(supabase);
 
-  const product = await productRepo.findBySlug(slug);
+  // Uses React cache() — same request as generateMetadata = 0 extra DB call
+  const product = await getCachedProduct(slug);
 
   if (!product) {
     notFound();
   }
 
-  // Increment product view counter
-  productRepo.incrementViews(product.id).catch(() => {});
-
-  // Fetch related products
-  const related = await productRepo.findRelated(product.id, product.category_id, 4);
-
+  // Kick off view increment and related fetch in parallel — saves ~300ms
+  const supabase = await createClient();
+  const productRepo = new ProductRepository(supabase);
+  const [related] = await Promise.all([
+    productRepo.findRelated(product.id, product.category_id, 4),
+    productRepo.incrementViews(product.id).catch(() => {}),
+  ]);
   return (
     <div className="container" style={{ paddingBottom: '60px' }}>
       <div className="pdp-layout">

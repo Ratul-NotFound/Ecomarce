@@ -1,93 +1,115 @@
 import React from 'react';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { formatDate } from '@/lib/utils/format';
-import { Users } from 'lucide-react';
-import type { Profile } from '@/types';
+import AdminCustomersManager, { CustomerRecord } from '@/components/admin/AdminCustomersManager';
 
 export const revalidate = 0;
 
 export default async function AdminCustomersPage() {
   const supabase = await createClient();
   let dbClient = supabase;
+  let adminClient: any = null;
+
   try {
     if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      dbClient = createAdminClient();
+      adminClient = createAdminClient();
+      dbClient = adminClient;
     }
-  } catch {}
+  } catch (err) {
+    console.error('Error initializing admin client:', err);
+  }
 
-  const { data } = await dbClient
-    .from('profiles')
-    .select('*')
-    .order('created_at', { ascending: false });
+  // Fetch profiles, auth users (for email & oauth avatars), and orders (for lifetime stats) in parallel
+  const [profilesRes, usersRes, ordersRes] = await Promise.all([
+    dbClient
+      .from('profiles')
+      .select('*')
+      .order('created_at', { ascending: false }),
+    adminClient
+      ? adminClient.auth.admin.listUsers({ perPage: 1000 }).catch(() => ({ data: { users: [] } }))
+      : Promise.resolve({ data: { users: [] } }),
+    Promise.resolve(
+      dbClient.from('orders').select('id, user_id, customer_email, total, status')
+    ).catch(() => ({ data: [] as any[] })),
+  ]);
 
-  const profiles = (data as Profile[]) || [];
+  const profiles = profilesRes?.data || [];
+  const authUsers = usersRes?.data?.users || [];
+  const orders = ordersRes?.data || [];
+
+  // Map auth users by id for instant O(1) lookup of email and OAuth avatar
+  const authMap = new Map<string, { email: string | null; avatar_url: string | null }>();
+  for (const u of authUsers) {
+    const avatar =
+      u.user_metadata?.avatar_url ||
+      u.user_metadata?.picture ||
+      u.identities?.[0]?.identity_data?.avatar_url ||
+      u.identities?.[0]?.identity_data?.picture ||
+      null;
+
+    authMap.set(u.id, {
+      email: u.email || null,
+      avatar_url: avatar,
+    });
+  }
+
+  // Aggregate order stats by user_id and customer_email
+  const orderStatsByUserId = new Map<string, { count: number; spent: number }>();
+  const orderStatsByEmail = new Map<string, { count: number; spent: number }>();
+
+  for (const order of orders) {
+    const total = Number(order.total) || 0;
+    const isValidOrder = order.status !== 'cancelled';
+
+    if (order.user_id) {
+      const curr = orderStatsByUserId.get(order.user_id) || { count: 0, spent: 0 };
+      orderStatsByUserId.set(order.user_id, {
+        count: curr.count + 1,
+        spent: isValidOrder ? curr.spent + total : curr.spent,
+      });
+    }
+
+    if (order.customer_email) {
+      const emailKey = order.customer_email.trim().toLowerCase();
+      const curr = orderStatsByEmail.get(emailKey) || { count: 0, spent: 0 };
+      orderStatsByEmail.set(emailKey, {
+        count: curr.count + 1,
+        spent: isValidOrder ? curr.spent + total : curr.spent,
+      });
+    }
+  }
+
+  // Combine into unified CustomerRecord
+  const customerRecords: CustomerRecord[] = profiles.map((p: any) => {
+    const authInfo = authMap.get(p.id);
+    const email = authInfo?.email || p.email || null;
+    const avatarUrl = p.avatar_url || authInfo?.avatar_url || null;
+
+    // Prioritize user_id match, fallback to email match
+    let stats = orderStatsByUserId.get(p.id);
+    if (!stats && email) {
+      stats = orderStatsByEmail.get(email.toLowerCase());
+    }
+
+    return {
+      id: p.id,
+      full_name: p.full_name || null,
+      email,
+      phone: p.phone || null,
+      avatar_url: avatarUrl,
+      role: (p.role === 'admin' || p.role === 'moderator' ? p.role : 'customer'),
+      points: Number(p.points) || 0,
+      referral_code: p.referral_code || '—',
+      created_at: p.created_at || new Date().toISOString(),
+      orderCount: stats?.count || 0,
+      totalSpent: stats?.spent || 0,
+    };
+  });
 
   return (
     <div>
-      <div className="admin-page-header">
-        <div>
-          <h1 className="admin-page-title">Customer Directory</h1>
-          <p style={{ color: 'var(--color-admin-muted)', fontSize: '14px', marginTop: '4px' }}>
-            View registered user profiles, loyalty point balances, and referral codes.
-          </p>
-        </div>
-      </div>
-
-      <div className="admin-card">
-        {profiles.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '40px', color: 'var(--color-admin-muted)' }}>
-            <Users size={36} style={{ margin: '0 auto 12px', opacity: 0.6 }} />
-            <p>No customer profiles found yet.</p>
-          </div>
-        ) : (
-          <div className="admin-table-container">
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>Customer</th>
-                  <th>Phone</th>
-                  <th>Role</th>
-                  <th>Loyalty Points</th>
-                  <th>Referral Code</th>
-                  <th>Joined Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                {profiles.map(user => (
-                  <tr key={user.id}>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <div style={{ width: '32px', height: '32px', borderRadius: '9999px', background: 'var(--color-primary-10)', color: 'var(--color-primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '13px' }}>
-                          {user.full_name?.charAt(0) || 'U'}
-                        </div>
-                        <strong style={{ color: 'var(--color-admin-text)' }}>{user.full_name || 'Customer'}</strong>
-                      </div>
-                    </td>
-                    <td>{user.phone || '—'}</td>
-                    <td>
-                      <span className={`badge ${user.role === 'admin' ? 'badge-danger' : 'badge-primary'}`}>
-                        {user.role.toUpperCase()}
-                      </span>
-                    </td>
-                    <td>
-                      <strong style={{ color: 'var(--color-accent)' }}>{user.points || 0} pts</strong>
-                    </td>
-                    <td>
-                      <code style={{ fontSize: '12px', color: 'var(--color-primary-light)' }}>
-                        {user.referral_code}
-                      </code>
-                    </td>
-                    <td style={{ fontSize: '12px', color: 'var(--color-admin-muted)' }}>
-                      {formatDate(user.created_at)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      <AdminCustomersManager initialCustomers={customerRecords} />
     </div>
   );
 }
+

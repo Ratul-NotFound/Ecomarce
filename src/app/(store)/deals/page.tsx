@@ -16,6 +16,8 @@ interface DealsPageProps {
   searchParams: Promise<{ [key: string]: string | undefined }>;
 }
 
+export const revalidate = 60; // 60-second Incremental Static Regeneration
+
 export const metadata: Metadata = {
   title: `Flash Deals & Daily Discounts | ${STORE_CONFIG.name}`,
   description: 'Shop limited-time flash deals, exclusive discounts, and claimable store coupons on ShopBD.',
@@ -28,15 +30,8 @@ export default async function DealsPage({ searchParams }: DealsPageProps) {
   const supabase = await createClient();
   const productRepo = new ProductRepository(supabase);
 
-  // Fetch settings and live coupons from database in parallel
-  const [settings, couponsRes] = await Promise.all([
-    getStoreSettings(),
-    supabase
-      .from('coupons')
-      .select('*')
-      .eq('is_active', true)
-      .order('created_at', { ascending: false }),
-  ]);
+  // Settings are cached in-memory (0ms)
+  const settings = await getStoreSettings();
 
   const dealsIds = settings.deals_banner_ids
     ? (typeof settings.deals_banner_ids === 'string' ? JSON.parse(settings.deals_banner_ids) : settings.deals_banner_ids)
@@ -54,8 +49,35 @@ export default async function DealsPage({ searchParams }: DealsPageProps) {
     bannersQuery = bannersQuery.eq('type', 'deals_banner');
   }
 
-  const { data: rawBanners } = await bannersQuery;
-  const dealsBanners = (rawBanners as SpecialOffer[]) || [];
+  // Determine sort & price filter
+  let maxPrice: number | undefined = undefined;
+  let sort: 'newest' | 'price_asc' | 'price_desc' | 'best_selling' = 'newest';
+
+  if (tier === 'under1k') {
+    maxPrice = 1000;
+    sort = 'price_asc';
+  } else if (tier === 'best_selling') {
+    sort = 'best_selling';
+  }
+
+  // Fetch coupons, banners, and flash products in parallel (eliminates waterfall)
+  const [couponsRes, bannersRes, allProductsRes] = await Promise.all([
+    supabase
+      .from('coupons')
+      .select('*')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false }),
+    bannersQuery,
+    productRepo.findAll({
+      is_flash_sale: true,
+      max_price: maxPrice,
+      sort,
+      page_size: 40,
+    }),
+  ]);
+
+  const dealsBanners = (bannersRes.data as SpecialOffer[]) || [];
+  const allProducts = allProductsRes.data || [];
 
   // Parse coupon deals visibility fallback from store_settings
   let dealsVisMap: Record<string, boolean> = {};
@@ -86,24 +108,6 @@ export default async function DealsPage({ searchParams }: DealsPageProps) {
         };
       })
     : [];
-
-  // Fetch all flash sale or discounted items
-  let maxPrice: number | undefined = undefined;
-  let sort: 'newest' | 'price_asc' | 'price_desc' | 'best_selling' = 'newest';
-
-  if (tier === 'under1k') {
-    maxPrice = 1000;
-    sort = 'price_asc';
-  } else if (tier === 'best_selling') {
-    sort = 'best_selling';
-  }
-
-  const { data: allProducts } = await productRepo.findAll({
-    is_flash_sale: true,
-    max_price: maxPrice,
-    sort,
-    page_size: 40,
-  });
 
   // Fallback: if fewer than 4 flash sale products exist, include products with real discounts
   let products = allProducts || [];

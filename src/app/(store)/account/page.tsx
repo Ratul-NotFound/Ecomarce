@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth, extractAvatarUrl } from '@/hooks/useAuth';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/components/shared/ToastProvider';
 import { DISTRICTS } from '@/lib/utils/bangladesh-districts';
@@ -218,7 +218,7 @@ function AccountContent() {
 
   const referralLink = `${typeof window !== 'undefined' ? window.location.origin : ''}/auth?ref=${profile?.referral_code || ''}`;
 
-  const userAvatar = profile?.avatar_url || user.user_metadata?.avatar_url || user.user_metadata?.picture;
+  const userAvatar = profile?.avatar_url || extractAvatarUrl(user);
 
   return (
     <div className="container" style={{ padding: '20px 16px 140px', maxWidth: '1120px' }}>
@@ -262,6 +262,8 @@ function AccountContent() {
                 alt={profile?.full_name || 'User'}
                 fill
                 sizes="40px"
+                unoptimized
+                referrerPolicy="no-referrer"
                 style={{ objectFit: 'cover' }}
               />
             ) : (
@@ -404,6 +406,8 @@ function AccountContent() {
                   alt={profile?.full_name || 'User'}
                   fill
                   sizes="48px"
+                  unoptimized
+                  referrerPolicy="no-referrer"
                   style={{ objectFit: 'cover' }}
                 />
               ) : (

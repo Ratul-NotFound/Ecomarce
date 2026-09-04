@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { STORE_CONFIG } from '@/lib/store-config';
 import { useToast } from '@/components/shared/ToastProvider';
+import { Eye, EyeOff, Mail, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
 import styles from './auth.module.css';
 
 function AuthForm() {
@@ -16,9 +17,14 @@ function AuthForm() {
 
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [unconfirmedEmail, setUnconfirmedEmail] = useState<string | null>(null);
+  const [signupSuccessNotice, setSignupSuccessNotice] = useState<string | null>(null);
+  const [resending, setResending] = useState(false);
 
   const handleGoogleSignIn = async () => {
     try {
@@ -39,10 +45,39 @@ function AuthForm() {
     }
   };
 
+  const handleResendConfirmation = async () => {
+    if (!unconfirmedEmail && !email) return;
+    const targetEmail = unconfirmedEmail || email;
+    try {
+      setResending(true);
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: targetEmail,
+      });
+      if (error) throw error;
+      showToast(`Confirmation email resent to ${targetEmail}! Check inbox & spam folder.`, 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Failed to resend confirmation email', 'error');
+    } finally {
+      setResending(false);
+    }
+  };
+
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
+    setUnconfirmedEmail(null);
+    setSignupSuccessNotice(null);
+
+    const cleanEmail = email.trim();
+    const cleanPassword = password.trim();
+
+    if (!cleanEmail || !cleanPassword) {
       showToast('Please enter both email and password', 'error');
+      return;
+    }
+
+    if (isSignUp && cleanPassword.length < 6) {
+      showToast('Password must be at least 6 characters long', 'error');
       return;
     }
 
@@ -50,28 +85,56 @@ function AuthForm() {
       setLoading(true);
       if (isSignUp) {
         const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
+          email: cleanEmail,
+          password: cleanPassword,
           options: {
             data: {
-              full_name: fullName || 'Customer',
+              full_name: fullName.trim() || 'Customer',
+              phone: phone.trim() || null,
             },
           },
         });
+
         if (error) throw error;
 
-        showToast('Account created successfully!', 'success');
+        // Auto-create or ensure profile in public.profiles table
+        if (data.user) {
+          try {
+            await supabase.from('profiles').upsert({
+              id: data.user.id,
+              full_name: fullName.trim() || 'Customer',
+              phone: phone.trim() || null,
+              role: 'customer',
+              referral_code: data.user.id.slice(0, 8),
+            });
+          } catch {}
+        }
+
         if (data.session) {
+          showToast('Account created and signed in!', 'success');
           window.location.href = redirect;
         } else {
-          showToast('Please check your email to confirm your account', 'info');
+          setSignupSuccessNotice(cleanEmail);
+          showToast('Account created! Please check your email inbox to verify.', 'info');
         }
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: cleanEmail,
+          password: cleanPassword,
         });
-        if (error) throw error;
+
+        if (error) {
+          if (error.message.toLowerCase().includes('email not confirmed')) {
+            setUnconfirmedEmail(cleanEmail);
+            showToast('Email address has not been confirmed yet.', 'info');
+            return;
+          }
+          if (error.message.toLowerCase().includes('invalid login credentials')) {
+            showToast('Invalid email or password. Please try again or sign in with Google.', 'error');
+            return;
+          }
+          throw error;
+        }
 
         showToast('Signed in successfully!', 'success');
         window.location.href = redirect;
@@ -97,6 +160,107 @@ function AuthForm() {
           </p>
         </div>
 
+        {/* Unconfirmed Email Alert Banner */}
+        {unconfirmedEmail && (
+          <div
+            style={{
+              padding: '14px',
+              borderRadius: '12px',
+              background: 'rgba(234, 179, 8, 0.1)',
+              border: '1px solid rgba(234, 179, 8, 0.3)',
+              color: '#854d0e',
+              fontSize: '13px',
+              textAlign: 'left',
+              marginBottom: '18px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700 }}>
+              <AlertCircle size={16} />
+              <span>Email Confirmation Required</span>
+            </div>
+            <p style={{ margin: 0, lineHeight: 1.4 }}>
+              Your account with <strong>{unconfirmedEmail}</strong> has not been verified yet. Please click the confirmation link sent to your inbox.
+            </p>
+            <button
+              type="button"
+              onClick={handleResendConfirmation}
+              disabled={resending}
+              style={{
+                alignSelf: 'flex-start',
+                padding: '5px 12px',
+                borderRadius: '6px',
+                background: '#ca8a04',
+                color: '#ffffff',
+                border: 'none',
+                fontWeight: 700,
+                fontSize: '12px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                marginTop: '4px',
+              }}
+            >
+              <RefreshCw size={12} className={resending ? 'animate-spin' : ''} />
+              <span>{resending ? 'Resending...' : 'Resend Confirmation Email'}</span>
+            </button>
+          </div>
+        )}
+
+        {/* Signup Success Notice */}
+        {signupSuccessNotice && (
+          <div
+            style={{
+              padding: '16px',
+              borderRadius: '12px',
+              background: 'rgba(34, 197, 94, 0.1)',
+              border: '1px solid rgba(34, 197, 94, 0.3)',
+              color: '#15803d',
+              fontSize: '13px',
+              textAlign: 'left',
+              marginBottom: '18px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700 }}>
+              <CheckCircle2 size={18} />
+              <span>Verification Email Sent!</span>
+            </div>
+            <p style={{ margin: 0, lineHeight: 1.4 }}>
+              We sent a verification link to <strong>{signupSuccessNotice}</strong>. Please check your inbox and click the link to start shopping.
+            </p>
+            <button
+              type="button"
+              onClick={handleResendConfirmation}
+              disabled={resending}
+              style={{
+                alignSelf: 'flex-start',
+                padding: '5px 12px',
+                borderRadius: '6px',
+                background: '#16a34a',
+                color: '#ffffff',
+                border: 'none',
+                fontWeight: 700,
+                fontSize: '12px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                marginTop: '4px',
+              }}
+            >
+              <Mail size={12} />
+              <span>{resending ? 'Sending...' : 'Resend Email'}</span>
+            </button>
+          </div>
+        )}
+
+        {/* Google OAuth Button */}
         <button
           type="button"
           onClick={handleGoogleSignIn}
@@ -129,18 +293,32 @@ function AuthForm() {
 
         <form onSubmit={handleEmailAuth} className={styles.formSection}>
           {isSignUp && (
-            <div className="form-group">
-              <label className="form-label" htmlFor="full-name-input">Full Name</label>
-              <input
-                id="full-name-input"
-                type="text"
-                className="form-input"
-                placeholder="e.g. Tanvir Ahmed"
-                value={fullName}
-                onChange={e => setFullName(e.target.value)}
-                required={isSignUp}
-              />
-            </div>
+            <>
+              <div className="form-group">
+                <label className="form-label" htmlFor="full-name-input">Full Name</label>
+                <input
+                  id="full-name-input"
+                  type="text"
+                  className="form-input"
+                  placeholder="e.g. Tanvir Ahmed"
+                  value={fullName}
+                  onChange={e => setFullName(e.target.value)}
+                  required={isSignUp}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" htmlFor="phone-input">Phone Number (Optional)</label>
+                <input
+                  id="phone-input"
+                  type="tel"
+                  className="form-input"
+                  placeholder="e.g. 01712345678"
+                  value={phone}
+                  onChange={e => setPhone(e.target.value)}
+                />
+              </div>
+            </>
           )}
 
           <div className="form-group">
@@ -158,16 +336,43 @@ function AuthForm() {
 
           <div className="form-group">
             <label className="form-label" htmlFor="password-input">Password</label>
-            <input
-              id="password-input"
-              type="password"
-              className="form-input"
-              placeholder="••••••••"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              required
-              minLength={6}
-            />
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <input
+                id="password-input"
+                type={showPassword ? 'text' : 'password'}
+                className="form-input"
+                placeholder="••••••••"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                required
+                minLength={6}
+                style={{ width: '100%', paddingRight: '42px' }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  position: 'absolute',
+                  right: '12px',
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--color-text-muted)',
+                  cursor: 'pointer',
+                  padding: '4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+                tabIndex={-1}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+            {isSignUp && (
+              <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '4px', display: 'block' }}>
+                At least 6 characters required.
+              </span>
+            )}
           </div>
 
           <button
@@ -188,7 +393,11 @@ function AuthForm() {
                 role="button"
                 tabIndex={0}
                 className={styles.switchLink}
-                onClick={() => setIsSignUp(false)}
+                onClick={() => {
+                  setIsSignUp(false);
+                  setUnconfirmedEmail(null);
+                  setSignupSuccessNotice(null);
+                }}
                 onKeyDown={e => e.key === 'Enter' && setIsSignUp(false)}
               >
                 Sign In
@@ -201,7 +410,11 @@ function AuthForm() {
                 role="button"
                 tabIndex={0}
                 className={styles.switchLink}
-                onClick={() => setIsSignUp(true)}
+                onClick={() => {
+                  setIsSignUp(true);
+                  setUnconfirmedEmail(null);
+                  setSignupSuccessNotice(null);
+                }}
                 onKeyDown={e => e.key === 'Enter' && setIsSignUp(true)}
               >
                 Create one

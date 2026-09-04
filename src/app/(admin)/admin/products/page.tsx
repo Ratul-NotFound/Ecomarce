@@ -9,13 +9,9 @@ import type { Product } from '@/types';
 export const revalidate = 0;
 
 export default async function AdminProductsPage() {
-  const supabase = await createClient();
-  let dbClient = supabase;
-  try {
-    if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      dbClient = createAdminClient();
-    }
-  } catch {}
+  const dbClient = process.env.SUPABASE_SERVICE_ROLE_KEY
+    ? createAdminClient()
+    : await createClient();
 
   const [productsRes, categoriesRes] = await Promise.all([
     dbClient.from('products').select('*, category:categories(name_en)').order('created_at', { ascending: false }),

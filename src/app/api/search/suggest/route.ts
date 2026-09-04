@@ -186,12 +186,19 @@ export async function GET(request: Request) {
       }
     });
 
-    return NextResponse.json({
-      products: matchingProducts,
-      categories: matchingCategories,
-      suggestions,
-      total_matches: scoredProducts.length,
-    });
+    return NextResponse.json(
+      {
+        products: matchingProducts,
+        categories: matchingCategories,
+        suggestions,
+        total_matches: scoredProducts.length,
+      },
+      {
+        headers: {
+          'Cache-Control': 'public, max-age=30, stale-while-revalidate=60',
+        },
+      }
+    );
   } catch (error: any) {
     console.error('Search suggest error:', error);
     return NextResponse.json({ products: [], categories: [], suggestions: [], total_matches: 0 }, { status: 500 });

@@ -7,7 +7,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { ShoppingBag, Heart, User, Search, ShieldCheck, Package } from 'lucide-react';
 import { STORE_CONFIG } from '@/lib/store-config';
 import { useCart } from '@/hooks/useCart';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth, extractAvatarUrl } from '@/hooks/useAuth';
 import NotificationBell from '@/components/store/NotificationBell';
 import SearchBar from '@/components/store/SearchBar';
 
@@ -27,7 +27,7 @@ export default function Header({ categories = [], storeName, announcement }: Hea
   const isCleanPage = pathname === '/cart' || pathname === '/checkout' || pathname.startsWith('/account');
   const { itemCount } = useCart();
   const { user, profile, isAdmin, isModerator } = useAuth();
-  const userAvatar = profile?.avatar_url || user?.user_metadata?.avatar_url || user?.user_metadata?.picture;
+  const userAvatar = profile?.avatar_url || extractAvatarUrl(user);
 
   return (
     <header className="store-header">
@@ -122,6 +122,8 @@ export default function Header({ categories = [], storeName, announcement }: Hea
                       alt={profile?.full_name || 'User'}
                       fill
                       sizes="32px"
+                      unoptimized
+                      referrerPolicy="no-referrer"
                       style={{ objectFit: 'cover' }}
                     />
                   ) : (

@@ -6,13 +6,13 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { Home, LayoutGrid, Zap, ShoppingBag, User } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth, extractAvatarUrl } from '@/hooks/useAuth';
 
 export default function MobileNav() {
   const pathname = usePathname();
   const { itemCount } = useCart();
   const { user, profile } = useAuth();
-  const userAvatar = profile?.avatar_url || user?.user_metadata?.avatar_url || user?.user_metadata?.picture;
+  const userAvatar = profile?.avatar_url || extractAvatarUrl(user);
 
   return (
     <nav className="mobile-bottom-nav" aria-label="Mobile Navigation">
@@ -69,7 +69,7 @@ export default function MobileNav() {
               border: pathname.startsWith('/account') ? '2px solid var(--color-primary)' : '1px solid var(--color-border)',
             }}
           >
-            <Image src={userAvatar} alt="Account" fill sizes="22px" style={{ objectFit: 'cover' }} />
+            <Image src={userAvatar} alt="Account" fill sizes="22px" unoptimized referrerPolicy="no-referrer" style={{ objectFit: 'cover' }} />
           </div>
         ) : (
           <User size={20} />

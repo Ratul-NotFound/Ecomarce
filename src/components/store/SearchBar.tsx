@@ -41,8 +41,19 @@ export default function SearchBar({
   const wrapperRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Client-side instant query cache (0ms response on repeat searches & backspaces)
+  const queryCacheRef = useRef<Map<string, any>>(new Map());
+
   // Debounced auto-fetch recommendations
   useEffect(() => {
+    const q = searchTerm.trim().toLowerCase();
+    if (queryCacheRef.current.has(q)) {
+      setResults(queryCacheRef.current.get(q));
+      setSelectedIndex(-1);
+      setIsLoading(false);
+      return;
+    }
+
     let active = true;
     const timer = setTimeout(async () => {
       try {
@@ -50,6 +61,7 @@ export default function SearchBar({
         const res = await fetch(`/api/search/suggest?q=${encodeURIComponent(searchTerm.trim())}`);
         if (res.ok) {
           const data = await res.json();
+          queryCacheRef.current.set(q, data);
           if (active) {
             setResults(data);
             setSelectedIndex(-1);

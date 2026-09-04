@@ -4,6 +4,7 @@
 // to Supabase store_settings. (Server Components & API routes only)
 // ============================================================
 
+import { cache } from 'react';
 import { createClient } from '@/lib/supabase/server';
 import {
   type StorefrontCustomSettings,
@@ -13,7 +14,13 @@ import {
 
 export * from '@/lib/store-settings-shared';
 
-export async function getStoreSettings(): Promise<StorefrontCustomSettings> {
+// ── Module-level TTL cache (60 seconds) ──────────────────────
+// Prevents a full DB round-trip on every ISR revalidation cycle.
+// Shared across all concurrent RSC renders on the same server instance.
+let _settingsCache: StorefrontCustomSettings | null = null;
+let _settingsCacheExpiry = 0;
+
+async function _fetchStoreSettings(): Promise<StorefrontCustomSettings> {
   try {
     const supabase = await createClient();
     const { data } = await supabase.from('store_settings').select('*');
@@ -113,3 +120,18 @@ export async function getStoreSettings(): Promise<StorefrontCustomSettings> {
     return DEFAULT_STOREFRONT_SETTINGS;
   }
 }
+
+// ── React cache() wrapper ────────────────────────────────────
+// Deduplicates concurrent RSC calls within the SAME request.
+// e.g. StoreLayout + page.tsx both call getStoreSettings() but
+// only ONE DB round-trip fires per request thanks to cache().
+export const getStoreSettings = cache(async (): Promise<StorefrontCustomSettings> => {
+  const now = Date.now();
+  if (_settingsCache && now < _settingsCacheExpiry) {
+    return _settingsCache;
+  }
+  const fresh = await _fetchStoreSettings();
+  _settingsCache = fresh;
+  _settingsCacheExpiry = now + 60_000; // 60-second TTL
+  return fresh;
+});
