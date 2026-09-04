@@ -1163,31 +1163,26 @@
 /* ────────────────────────────────────────────────────────────
    CART & CHECKOUT RESPONSIVE LAYOUTS
    ──────────────────────────────────────────────────────────── */
-.cart-layout,
-.checkout-layout {
+.cart-layout {
   display: grid;
   grid-template-columns: 1fr;
   gap: var(--space-6);
 }
 
 @media (min-width: 1024px) {
-  .cart-layout,
-  .checkout-layout {
+  .cart-layout {
     grid-template-columns: 1fr 380px;
     gap: var(--space-8);
     align-items: start;
   }
 }
 
-.checkout-summary-sticky {
-  position: static;
-}
-
-@media (min-width: 1024px) {
-  .checkout-summary-sticky {
-    position: sticky;
-    top: 90px;
-  }
+.checkout-stream-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 800px;
+  margin: 0 auto;
 }
 
 /* ────────────────────────────────────────────────────────────
