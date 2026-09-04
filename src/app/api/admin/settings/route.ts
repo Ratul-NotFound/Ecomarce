@@ -2,6 +2,33 @@ import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { requireAdminAuth } from '@/lib/auth/admin-guard';
 
+/**
+ * Strictly whitelisted settings keys.
+ * Only keys in this set can be written via the admin settings API.
+ * Internal system keys (coupon_product_rules, coupon_deals_visibility, etc.)
+ * are NOT in this list and must be managed by their own dedicated endpoints.
+ */
+const ALLOWED_SETTING_KEYS = new Set([
+  'store_name', 'store_tagline', 'contact_email', 'contact_phone', 'contact_address',
+  'store_phone', 'store_whatsapp',
+  'shipping_inside_dhaka', 'shipping_outside_dhaka', 'free_shipping_above',
+  'primary_color',
+  'announcement_bar_enabled', 'announcement_bar_text', 'announcement_bar_link',
+  'homepage_flash_sale_enabled', 'homepage_flash_sale_title', 'homepage_flash_sale_end',
+  'flash_sale_end_time',
+  'homepage_featured_title', 'homepage_new_arrivals_title',
+  'homepage_sections_order', 'homepage_section_visibility',
+  'trust_badge_1_title', 'trust_badge_1_desc',
+  'trust_badge_2_title', 'trust_badge_2_desc',
+  'trust_badge_3_title', 'trust_badge_3_desc',
+  'trust_badge_4_title', 'trust_badge_4_desc',
+  'deals_hero_title', 'deals_hero_subtitle', 'deals_badge_text', 'deals_timer_hours',
+  'deals_banner_ids',
+  'explore_title', 'explore_departments_title', 'explore_trending_tags',
+  'payment_methods', 'bkash_number', 'nagad_number',
+  'telegram_bot_token', 'telegram_chat_id', 'telegram_orders_topic_id', 'telegram_messages_topic_id',
+]);
+
 export async function GET(request: NextRequest) {
   try {
     const auth = await requireAdminAuth(request);
@@ -34,6 +61,20 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const entries = Object.entries(body);
+
+    // Security: Only allow known, whitelisted setting keys
+    const rejectedKeys: string[] = [];
+    for (const [key] of entries) {
+      if (!ALLOWED_SETTING_KEYS.has(key)) {
+        rejectedKeys.push(key);
+      }
+    }
+    if (rejectedKeys.length > 0) {
+      return NextResponse.json(
+        { error: `Unrecognized setting key(s): ${rejectedKeys.join(', ')}. Only known settings can be modified.` },
+        { status: 400 }
+      );
+    }
 
     for (const [key, value] of entries) {
       await dbClient.from('store_settings').upsert({

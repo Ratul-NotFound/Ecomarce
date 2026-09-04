@@ -92,16 +92,9 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Fallback: if user creation wasn't possible, link to any customer profile
-      if (!userId) {
-        const { data: fallbackProfiles } = await dbClient
-          .from('profiles')
-          .select('id')
-          .limit(1);
-        if (fallbackProfiles && fallbackProfiles.length > 0) {
-          userId = fallbackProfiles[0].id;
-        }
-      }
+      // SECURITY: Never fall back to a random existing profile.
+      // If we could not create or find a guest user, reject the order
+      // to prevent linking orders to wrong accounts.
     }
 
     if (!userId) {

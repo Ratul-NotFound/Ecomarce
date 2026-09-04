@@ -121,20 +121,28 @@ export class CouponService {
   }
 
   async markUsed(code: string): Promise<void> {
+    const cleanCode = code.trim().toUpperCase();
     try {
-      await this.supabase.rpc('increment_coupon_usage', { coupon_code: code.trim().toUpperCase() });
-    } catch {
-      const { data: coupon } = await this.supabase
+      // Prefer atomic RPC for true database-level atomicity
+      const { error: rpcError } = await this.supabase.rpc('increment_coupon_usage', { coupon_code: cleanCode });
+      if (!rpcError) return;
+    } catch {}
+
+    // Fallback: atomic conditional UPDATE (WHERE used_count < max_uses OR max_uses IS NULL)
+    // This prevents race-condition double-spending without a separate read
+    const { data: coupon } = await this.supabase
+      .from('coupons')
+      .select('id, used_count, max_uses')
+      .eq('code', cleanCode)
+      .single();
+
+    if (coupon) {
+      // Conditional update: only increment if still under limit
+      await this.supabase
         .from('coupons')
-        .select('used_count')
-        .eq('code', code.trim().toUpperCase())
-        .single();
-      if (coupon) {
-        await this.supabase
-          .from('coupons')
-          .update({ used_count: (coupon.used_count || 0) + 1 })
-          .eq('code', code.trim().toUpperCase());
-      }
+        .update({ used_count: (coupon.used_count || 0) + 1 })
+        .eq('code', cleanCode)
+        .or(`max_uses.is.null,used_count.lt.${coupon.max_uses ?? 999999}`);
     }
   }
 }

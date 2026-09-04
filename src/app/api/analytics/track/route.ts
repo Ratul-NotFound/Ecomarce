@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const ALLOWED_EVENT_TYPES = new Set(['page_view', 'product_view', 'add_to_cart', 'purchase']);
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => ({}));
@@ -66,17 +69,20 @@ export async function POST(request: NextRequest) {
       data: { user },
     } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
 
-    // Encode IP in session_id: "${clientIp}::${sessionId}"
-    const cleanSession = session_id ? String(session_id).slice(-10) : 'anon';
+    // Sanitize and validate all inputs before DB insert
+    const safeEventType = ALLOWED_EVENT_TYPES.has(event_type) ? event_type : 'page_view';
+    const safePageUrl = String(page_url).replace(/[<>"']/g, '').slice(0, 500);
+    // Strictly validate product_id as UUID to prevent injection
+    const safeProductId = (product_id && UUID_REGEX.test(String(product_id))) ? String(product_id) : null;
+    // Sanitize session_id: alphanumeric, dashes, underscores only
+    const cleanSession = session_id ? String(session_id).replace(/[^a-zA-Z0-9_-]/g, '').slice(-10) : 'anon';
     const combinedSessionId = `${clientIp}::${cleanSession}`;
 
     // 5. Insert traffic record into analytics_events
     await dbClient.from('analytics_events').insert({
-      event_type: ['page_view', 'product_view', 'add_to_cart', 'purchase'].includes(event_type)
-        ? event_type
-        : 'page_view',
-      page_url: String(page_url).slice(0, 500),
-      product_id: product_id || null,
+      event_type: safeEventType,
+      page_url: safePageUrl,
+      product_id: safeProductId,
       user_id: user?.id || null,
       session_id: combinedSessionId,
       country: locationStr.slice(0, 100),

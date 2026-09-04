@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminAuth } from '@/lib/auth/admin-guard';
 
+/** Returns ISO week number (1-53) for a given date */
+function getISOWeek(d: Date): number {
+  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = date.getUTCDay() || 7;
+  date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+  return Math.ceil((((date.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+}
+
 export async function GET(request: NextRequest) {
   try {
     const auth = await requireAdminAuth(request);
@@ -83,18 +92,21 @@ export async function GET(request: NextRequest) {
         }
       });
     } else if (granularity === 'weekly') {
-      // 12 weeks buckets
+      // 12 weeks buckets - use ISO week number for accurate cross-month grouping
       for (let i = 11; i >= 0; i--) {
         const d = new Date(now.getTime() - i * 7 * 24 * 60 * 60 * 1000);
-        // Start of week date
-        const weekKey = `W-${d.getFullYear()}-${Math.floor(d.getDate() / 7) + 1}-${d.getMonth() + 1}`;
+        const isoWeek = getISOWeek(d);
+        const weekKey = `W-${d.getFullYear()}-W${String(isoWeek).padStart(2, '0')}`;
         const label = `Week of ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
-        bucketsMap[weekKey] = { label, visits: 0, uniqueIps: new Set() };
+        if (!bucketsMap[weekKey]) {
+          bucketsMap[weekKey] = { label, visits: 0, uniqueIps: new Set() };
+        }
       }
 
       eventList.forEach(e => {
         const d = new Date(e.created_at);
-        const weekKey = `W-${d.getFullYear()}-${Math.floor(d.getDate() / 7) + 1}-${d.getMonth() + 1}`;
+        const isoWeek = getISOWeek(d);
+        const weekKey = `W-${d.getFullYear()}-W${String(isoWeek).padStart(2, '0')}`;
         if (bucketsMap[weekKey]) {
           bucketsMap[weekKey].visits++;
           const ip = e.session_id ? e.session_id.split('::')[0] : '127.0.0.1';

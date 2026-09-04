@@ -146,8 +146,13 @@ export class OrderService {
       .eq('id', orderId)
       .single();
 
-    const previousStatus = currentOrder?.status;
-    const currentTracking = (currentOrder?.tracking_info as any[]) || [];
+    // Guard: explicit check prevents silent failure on invalid orderId
+    if (!currentOrder) {
+      throw new Error(`Order not found: ${orderId}`);
+    }
+
+    const previousStatus = currentOrder.status;
+    const currentTracking = (currentOrder.tracking_info as any[]) || [];
     const newTrackingEvent = {
       id: crypto.randomUUID(),
       order_id: orderId,
@@ -199,14 +204,7 @@ export class OrderService {
   }
 
   async confirmPayment(orderId: string, adminId: string): Promise<void> {
-    await this.supabase
-      .from('orders')
-      .update({
-        payment_status: 'confirmed',
-        status: 'confirmed',
-      })
-      .eq('id', orderId);
-
+    // Update payment record to confirmed
     await this.supabase
       .from('payments')
       .update({
@@ -216,6 +214,13 @@ export class OrderService {
       })
       .eq('order_id', orderId);
 
+    // updateStatus handles the orders.status update + tracking event atomically
     await this.updateStatus(orderId, 'confirmed', 'Payment verified and confirmed by moderator.', adminId);
+
+    // Also confirm payment_status field
+    await this.supabase
+      .from('orders')
+      .update({ payment_status: 'confirmed' })
+      .eq('id', orderId);
   }
 }

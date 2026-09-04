@@ -1,32 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { requireAdminAuth } from '@/lib/auth/admin-guard';
 import { TelegramService } from '@/lib/services/TelegramService';
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const auth = await requireAdminAuth(request);
+    if (!auth.authorized) {
+      return auth.response!;
     }
-
-    let dbClient = supabase;
-    if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      dbClient = createAdminClient();
-    }
-
-    // Verify admin role
-    const { data: profile } = await dbClient
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-
-    if (!profile || (profile.role !== 'admin' && profile.role !== 'moderator')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const dbClient = auth.dbClient;
 
     // Fetch all chat messages ordered by created_at ascending
     const { data: messages, error } = await dbClient
@@ -45,28 +27,18 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const auth = await requireAdminAuth(request);
+    if (!auth.authorized) {
+      return auth.response!;
     }
+    const { user, dbClient } = auth;
 
-    let dbClient = supabase;
-    if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      dbClient = createAdminClient();
-    }
-
-    // Verify admin role
+    // Fetch admin profile name for reply attribution
     const { data: profile } = await dbClient
       .from('profiles')
-      .select('role, full_name')
+      .select('full_name')
       .eq('id', user.id)
-      .single();
-
-    if (!profile || (profile.role !== 'admin' && profile.role !== 'moderator')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+      .maybeSingle();
 
     const { target_user_id, message, customer_name } = await request.json();
 
@@ -74,11 +46,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Message cannot be empty' }, { status: 400 });
     }
 
+    if (message.length > 1000) {
+      return NextResponse.json({ error: 'Message cannot exceed 1000 characters' }, { status: 400 });
+    }
+
     // Insert response as direction 'out'
-    // If replying to guest (no target_user_id), embed [to:customer_name] so it stays in the conversation
     const senderName = target_user_id
-      ? (profile.full_name || 'Admin Support')
-      : `${profile.full_name || 'Admin Support'} [to:${customer_name || 'Guest'}]`;
+      ? (profile?.full_name || 'Admin Support')
+      : `${profile?.full_name || 'Admin Support'} [to:${customer_name || 'Guest'}]`;
 
     const { data: newMessage, error } = await dbClient
       .from('chat_messages')

@@ -1,9 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { checkRateLimit } from '@/lib/utils/rate-limiter';
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit: 10 review submissions per hour per IP
+    const clientIp =
+      request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
+      request.headers.get('x-real-ip') ||
+      '127.0.0.1';
+    const rate = checkRateLimit(`review_submit:${clientIp}`, 10, 60 * 60 * 1000);
+    if (!rate.allowed) {
+      return NextResponse.json(
+        { error: 'Too many review submissions. Please try again later.' },
+        { status: 429 }
+      );
+    }
+
     const supabase = await createClient();
     const {
       data: { user },
