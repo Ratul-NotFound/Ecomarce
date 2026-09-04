@@ -89,6 +89,7 @@ export class TelegramService {
     payment_method: string;
     customer_name: string;
     district: string;
+    sender_phone?: string;
   }): Promise<void> {
     const message = `🛍️ <b>NEW ORDER RECEIVED!</b>\n` +
       `━━━━━━━━━━━━━━━━━━━\n` +
@@ -96,6 +97,7 @@ export class TelegramService {
       `👤 <b>Customer:</b> ${order.customer_name}\n` +
       `📍 <b>Location:</b> ${order.district}\n` +
       `💳 <b>Payment:</b> ${order.payment_method.toUpperCase()}\n` +
+      (order.sender_phone ? `📞 <b>Sender No:</b> <code>${order.sender_phone}</code>\n` : '') +
       `💰 <b>Total Amount:</b> ৳${order.total}\n` +
       `━━━━━━━━━━━━━━━━━━━\n` +
       `⚡ <i>Check Admin Dashboard for fulfillment</i>`;
@@ -108,12 +110,14 @@ export class TelegramService {
     total: number;
     transaction_id: string;
     method: string;
+    sender_phone?: string;
   }): Promise<void> {
     const message = `💳 <b>PAYMENT SUBMITTED!</b>\n` +
       `━━━━━━━━━━━━━━━━━━━\n` +
       `📦 <b>Order ID:</b> <code>${order.order_number}</code>\n` +
       `💰 <b>Amount:</b> ৳${order.total}\n` +
       `📱 <b>Method:</b> ${order.method.toUpperCase()}\n` +
+      (order.sender_phone ? `📞 <b>Sender Number:</b> <code>${order.sender_phone}</code>\n` : '') +
       `🔢 <b>TrxID:</b> <code>${order.transaction_id}</code>\n` +
       `━━━━━━━━━━━━━━━━━━━\n` +
       `⚠️ <i>Please verify transaction in Admin panel</i>`;

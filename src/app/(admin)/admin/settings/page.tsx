@@ -554,65 +554,6 @@ export default function AdminSettingsPage() {
                 />
               </div>
             </div>
-
-            {/* 4. Rocket / DBBL */}
-            <div
-              style={{
-                border: paymentSettings.rocket.enabled ? '2px solid #8b5cf6' : '1px dashed var(--color-admin-border)',
-                borderRadius: 'var(--radius-lg)',
-                padding: '16px',
-                background: paymentSettings.rocket.enabled ? '#ffffff' : 'var(--color-admin-surface-2)',
-                opacity: paymentSettings.rocket.enabled ? 1 : 0.65,
-                transition: 'all 0.2s ease',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: paymentSettings.rocket.enabled ? '#8b5cf6' : 'var(--color-admin-muted)' }} />
-                  <strong style={{ fontSize: '15px', color: '#8b5cf6' }}>Rocket (DBBL)</strong>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => handleTogglePaymentMethod('rocket')}
-                  className={`btn btn-sm ${paymentSettings.rocket.enabled ? 'btn-primary' : 'btn-secondary'}`}
-                  style={{
-                    fontSize: '11px',
-                    padding: '4px 10px',
-                    background: paymentSettings.rocket.enabled ? '#8b5cf6' : undefined,
-                    borderColor: paymentSettings.rocket.enabled ? '#8b5cf6' : undefined,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                  }}
-                >
-                  {paymentSettings.rocket.enabled ? <Eye size={12} /> : <EyeOff size={12} />}
-                  <span>{paymentSettings.rocket.enabled ? 'Visible (Active)' : 'Hidden (Disabled)'}</span>
-                </button>
-              </div>
-
-              <div className="form-group" style={{ marginBottom: '10px' }}>
-                <label className="admin-label">Rocket 12-digit Number</label>
-                <input
-                  type="text"
-                  className="admin-input"
-                  value={paymentSettings.rocket.number}
-                  onChange={e => handleUpdatePaymentMethod('rocket', { number: e.target.value })}
-                  placeholder="019XXXXXXXX9"
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="admin-label">Checkout Instructions</label>
-                <input
-                  type="text"
-                  className="admin-input"
-                  value={paymentSettings.rocket.description_en}
-                  onChange={e => handleUpdatePaymentMethod('rocket', { description_en: e.target.value })}
-                  placeholder="Send DBBL Rocket payment"
-                />
-              </div>
-            </div>
           </div>
         </div>
 

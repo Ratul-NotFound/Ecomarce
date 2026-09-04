@@ -43,6 +43,7 @@ export async function POST(request: NextRequest) {
       affiliateCode,
       paymentTransactionId,
       paymentScreenshotUrl,
+      paymentSenderPhone,
     } = body;
 
     if (!cart || cart.length === 0) {
@@ -69,6 +70,23 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
+    // Validate sender phone for mobile payment methods (bKash, Nagad)
+    const rawSenderPhone = (paymentSenderPhone || address.sender_phone || '').trim();
+    if (paymentMethod && paymentMethod !== 'cod') {
+      const cleanSender = rawSenderPhone.replace(/[^0-9]/g, '');
+      if (!cleanSender || cleanSender.length !== 11 || !cleanSender.startsWith('01')) {
+        return NextResponse.json({
+          error: 'Please provide a valid 11-digit mobile number from which you sent the money (e.g. 017XXXXXXXX)',
+        }, { status: 400 });
+      }
+      if (!paymentTransactionId || !paymentTransactionId.trim()) {
+        return NextResponse.json({
+          error: `Please provide the ${paymentMethod.toUpperCase()} Transaction ID (TrxID)`,
+        }, { status: 400 });
+      }
+      address.sender_phone = cleanSender;
+    }
+
     // Determine user ID: auth user or anonymous guest account ID
     let userId = user?.id;
 
@@ -88,8 +106,8 @@ export async function POST(request: NextRequest) {
       if (adminClient) {
         try {
           const cleanPhone = address.phone.replace(/[^0-9]/g, '');
-          const guestEmail = `guest_${cleanPhone || Date.now()}@shopbd.local`;
-          const { data: guestUser, error: guestErr } = await adminClient.auth.admin.createUser({
+          const guestEmail = `guest_${cleanPhone}_${Date.now()}@shopbd.local`;
+          const { data: guestUser } = await adminClient.auth.admin.createUser({
             email: guestEmail,
             password: crypto.randomUUID(),
             email_confirm: true,
@@ -101,8 +119,7 @@ export async function POST(request: NextRequest) {
 
           if (guestUser?.user?.id) {
             userId = guestUser.user.id;
-          } else if (guestErr?.message?.toLowerCase().includes('already')) {
-            // If already exists from earlier guest order, lookup profile by phone
+          } else {
             const { data: existingProfile } = await dbClient
               .from('profiles')
               .select('id')
@@ -262,6 +279,7 @@ export async function POST(request: NextRequest) {
       discountAmount,
       paymentTransactionId,
       paymentScreenshotUrl,
+      paymentSenderPhone: rawSenderPhone || undefined,
     });
 
     // Deduct stock for physical items
@@ -303,9 +321,10 @@ export async function POST(request: NextRequest) {
         await telegram.notifyNewOrder({
           order_number: order.order_number,
           total: order.total,
-          payment_method: order.payment_method,
+          payment_method: paymentMethod || order.payment_method,
           customer_name: address.full_name,
           district: address.district,
+          sender_phone: rawSenderPhone || undefined,
         });
 
         // If manual bKash/Nagad TrxID was provided at checkout, notify in topic as well
@@ -315,6 +334,7 @@ export async function POST(request: NextRequest) {
             total: order.total,
             transaction_id: paymentTransactionId,
             method: paymentMethod || 'bKash/Nagad',
+            sender_phone: rawSenderPhone || undefined,
           });
         }
       }

@@ -10,6 +10,7 @@ import MobileFilterDrawer from '@/components/store/MobileFilterDrawer';
 import { Search, Zap, LayoutGrid, Flame } from 'lucide-react';
 import { STORE_CONFIG } from '@/lib/store-config';
 import type { Metadata } from 'next';
+import { getCategoryEmoji } from '@/components/store/CategoryGrid';
 
 import { redirect } from 'next/navigation';
 
@@ -151,24 +152,24 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       {/* Visual Category Showcase (when browsing general catalog) */}
       {!categorySlug && !query && (
         <div style={{ marginBottom: '24px' }}>
-          <div style={{ fontSize: '14px', fontWeight: 800, marginBottom: '10px', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-            {settings.explore_departments_title}
+          <div style={{ fontSize: '14px', fontWeight: 800, marginBottom: '12px', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            {settings.explore_departments_title || 'Explore Departments'}
           </div>
-          <div className="explore-category-grid">
+          <div className="landing-category-grid">
             {categories.map((cat, idx) => {
-              const icons = ['👕', '🎧', '🛋️', '⚽', '🎒', '💄', '⌚', '🏠'];
-              const icon = icons[idx % icons.length];
+              const emoji = getCategoryEmoji(cat.slug, cat.name_en, idx);
               return (
                 <Link
                   key={cat.id}
                   href={`/search?category=${cat.slug}`}
-                  className="explore-category-card"
+                  className="landing-category-card"
+                  id={`cat-card-${cat.slug}`}
                 >
-                  <div className="explore-category-icon">{icon}</div>
-                  <div className="explore-category-info">
-                    <div className="explore-category-name">{cat.name_en}</div>
-                    <div className="explore-category-sub">Browse items ➔</div>
-                  </div>
+                  <div className="landing-category-icon">{emoji}</div>
+                  <div className="landing-category-title">{cat.name_en}</div>
+                  {cat.name_bn && (
+                    <div className="landing-category-sub">{cat.name_bn}</div>
+                  )}
                 </Link>
               );
             })}

@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import OrderTimeline from '@/components/store/OrderTimeline';
 import { formatCurrency, formatDate, getStatusLabel } from '@/lib/utils/format';
-import { CheckCircle, FileText, ArrowLeft, ShieldCheck, Phone, MapPin } from 'lucide-react';
+import { CheckCircle, FileText, ArrowLeft, ShieldCheck, Phone, MapPin, CreditCard, Hash } from 'lucide-react';
 import type { Order } from '@/types';
 
 interface OrderDetailPageProps {
@@ -89,32 +89,58 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
         {/* Live Timeline Tracking */}
         <OrderTimeline status={order.status} events={order.tracking_info} />
 
-        {/* Delivery Address & Contact */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', background: 'var(--color-surface-2)', padding: '20px', borderRadius: 'var(--radius-xl)', margin: '24px 0' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--color-text-muted)', marginBottom: '6px' }}>
-              <MapPin size={14} />
-              <span>Delivery Address</span>
-            </div>
-            <div style={{ fontWeight: 700, fontSize: '14px' }}>{order.shipping_address.full_name}</div>
-            <div style={{ fontSize: '13px', color: 'var(--color-text-secondary)' }}>
-              {order.shipping_address.street_address}, {order.shipping_address.upazila}, {order.shipping_address.district}
-            </div>
-          </div>
-
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--color-text-muted)', marginBottom: '6px' }}>
-              <Phone size={14} />
-              <span>Recipient Contact</span>
-            </div>
-            <div style={{ fontWeight: 700, fontSize: '14px' }}>{order.shipping_address.phone}</div>
-            {order.payment_transaction_id && (
-              <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '4px' }}>
-                TrxID: <code>{order.payment_transaction_id}</code>
+        {/* Delivery Address, Contact & Payment Information */}
+        {(() => {
+          const senderPhone = (order.shipping_address as any)?.sender_phone || order.payment_sender_phone || (order.notes?.includes('Payment Sender:') ? order.notes.split('Payment Sender:')[1]?.trim()?.split(' ')[0] : null);
+          return (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', background: 'var(--color-surface-2)', padding: '20px', borderRadius: 'var(--radius-xl)', margin: '24px 0' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--color-text-muted)', marginBottom: '6px' }}>
+                  <MapPin size={14} />
+                  <span>Delivery Address</span>
+                </div>
+                <div style={{ fontWeight: 700, fontSize: '14px' }}>{order.shipping_address.full_name}</div>
+                <div style={{ fontSize: '13px', color: 'var(--color-text-secondary)', marginTop: '2px' }}>
+                  {order.shipping_address.street_address}, {order.shipping_address.upazila}, {order.shipping_address.district}
+                </div>
               </div>
-            )}
-          </div>
-        </div>
+
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--color-text-muted)', marginBottom: '6px' }}>
+                  <Phone size={14} />
+                  <span>Recipient Contact</span>
+                </div>
+                <div style={{ fontWeight: 700, fontSize: '14px' }}>{order.shipping_address.phone}</div>
+                <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+                  District: {order.shipping_address.district}
+                </div>
+              </div>
+
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--color-text-muted)', marginBottom: '6px' }}>
+                  <CreditCard size={14} />
+                  <span>Payment Details</span>
+                </div>
+                <div style={{ fontWeight: 700, fontSize: '14px', textTransform: 'uppercase' }}>
+                  {order.payment_method}
+                  <span style={{ fontSize: '11px', fontWeight: 800, marginLeft: '6px', padding: '1px 6px', borderRadius: 'var(--radius-full)', background: order.payment_status === 'confirmed' ? 'rgba(34, 197, 94, 0.12)' : 'rgba(234, 179, 8, 0.12)', color: order.payment_status === 'confirmed' ? 'var(--color-success)' : '#d97706' }}>
+                    {order.payment_status}
+                  </span>
+                </div>
+                {senderPhone && (
+                  <div style={{ fontSize: '12px', marginTop: '4px', color: 'var(--color-text)' }}>
+                    <span style={{ color: 'var(--color-text-muted)' }}>Sent From:</span> <strong>{senderPhone}</strong>
+                  </div>
+                )}
+                {order.payment_transaction_id && (
+                  <div style={{ fontSize: '12px', marginTop: '2px', color: 'var(--color-text-muted)' }}>
+                    TrxID: <code style={{ color: 'var(--color-primary)', fontWeight: 700 }}>{order.payment_transaction_id}</code>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Items List */}
         <h3 style={{ fontSize: '16px', fontWeight: 800, marginBottom: '16px' }}>Order Items</h3>

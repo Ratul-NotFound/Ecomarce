@@ -1,7 +1,7 @@
 import { STORE_CONFIG } from '@/lib/store-config';
 
 export interface PaymentMethodConfig {
-  id: 'cod' | 'bkash' | 'nagad' | 'rocket';
+  id: 'cod' | 'bkash' | 'nagad';
   enabled: boolean;
   title_en: string;
   title_bn: string;
@@ -18,7 +18,6 @@ export interface PaymentSettings {
   cod: PaymentMethodConfig;
   bkash: PaymentMethodConfig;
   nagad: PaymentMethodConfig;
-  rocket: PaymentMethodConfig;
 }
 
 export const DEFAULT_PAYMENT_SETTINGS: PaymentSettings = {
@@ -56,18 +55,6 @@ export const DEFAULT_PAYMENT_SETTINGS: PaymentSettings = {
     badge: 'Instant',
     color: '#f97316',
   },
-  rocket: {
-    id: 'rocket',
-    enabled: false,
-    title_en: 'Rocket Payment',
-    title_bn: 'রকেট পেমেন্ট',
-    description_en: 'Send payment to our Dutch-Bangla Rocket account.',
-    description_bn: 'আমাদের রকেট অ্যাকাউন্টে পেমেন্ট করুন।',
-    number: '019000000009',
-    account_type: 'Personal',
-    badge: 'DBBL',
-    color: '#8b5cf6',
-  },
 };
 
 /**
@@ -82,6 +69,5 @@ export function getMergedPaymentSettings(rawSettings?: any): PaymentSettings {
     cod: { ...DEFAULT_PAYMENT_SETTINGS.cod, ...(rawSettings.cod || {}) },
     bkash: { ...DEFAULT_PAYMENT_SETTINGS.bkash, ...(rawSettings.bkash || {}) },
     nagad: { ...DEFAULT_PAYMENT_SETTINGS.nagad, ...(rawSettings.nagad || {}) },
-    rocket: { ...DEFAULT_PAYMENT_SETTINGS.rocket, ...(rawSettings.rocket || {}) },
   };
 }

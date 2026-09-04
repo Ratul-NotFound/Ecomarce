@@ -183,6 +183,7 @@ export interface Address {
   area: string | null;
   street_address: string;
   is_default: boolean;
+  sender_phone?: string | null;
 }
 
 export interface OrderItem {
@@ -220,6 +221,7 @@ export interface Order {
   payment_method: PaymentMethod;
   payment_status: PaymentStatus;
   payment_transaction_id: string | null;
+  payment_sender_phone?: string | null;
   payment_screenshot_url: string | null;
   status: OrderStatus;
   tracking_info: TrackingEvent[];

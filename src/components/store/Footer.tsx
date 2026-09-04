@@ -2,6 +2,8 @@ import React from 'react';
 import Link from 'next/link';
 import { STORE_CONFIG } from '@/lib/store-config';
 import type { StorefrontCustomSettings } from '@/lib/store-settings-shared';
+import { BkashLogo, NagadLogo } from '@/components/shared/PaymentLogos';
+import { ShieldCheck, Truck, Banknote } from 'lucide-react';
 
 interface FooterProps {
   settings?: StorefrontCustomSettings;
@@ -28,7 +30,7 @@ export default function Footer({ settings }: FooterProps) {
               {storeName}
             </div>
             <p style={{ color: 'var(--color-text-secondary)', fontSize: '14px', lineHeight: 1.6, marginBottom: '16px', maxWidth: '300px' }}>
-              {tagline}. Quality products, fast doorstep delivery, and secure bKash/Nagad payment.
+              {tagline}. Quality products, fast doorstep delivery, and 100% verified payment security.
             </p>
             <div style={{ fontSize: '13px', color: 'var(--color-text-muted)', lineHeight: 1.8 }}>
               {phone && <div>📞 {phone}</div>}
@@ -65,13 +67,66 @@ export default function Footer({ settings }: FooterProps) {
           {/* Payment & Security */}
           <div>
             <div className="footer-col-title">Payment & Trust</div>
-            <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)', marginBottom: '12px' }}>
-              We support bKash Personal, Nagad Personal, and Cash on Delivery across all 64 districts in Bangladesh.
+            <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)', marginBottom: '14px', lineHeight: 1.5 }}>
+              We accept official mobile payments and Cash on Delivery across all 64 districts in Bangladesh.
             </p>
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              <span className="badge badge-primary">bKash</span>
-              <span className="badge badge-warning">Nagad</span>
-              <span className="badge badge-success">Cash on Delivery</span>
+
+            {/* Official Payment Logos */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '14px' }}>
+              {/* bKash */}
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: '#ffffff',
+                  border: '1px solid rgba(226, 19, 110, 0.25)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '4px 10px 4px 6px',
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+                }}
+              >
+                <BkashLogo size={28} style={{ border: 'none', boxShadow: 'none', padding: 0 }} />
+                <span style={{ fontSize: '12px', fontWeight: 800, color: '#e2136e' }}>bKash</span>
+              </div>
+
+              {/* Nagad */}
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: '#ffffff',
+                  border: '1px solid rgba(249, 115, 22, 0.25)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '4px 10px 4px 6px',
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+                }}
+              >
+                <NagadLogo size={28} style={{ border: 'none', boxShadow: 'none', padding: 0 }} />
+                <span style={{ fontSize: '12px', fontWeight: 800, color: '#f97316' }}>Nagad</span>
+              </div>
+
+              {/* Cash on Delivery */}
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: 'rgba(37, 99, 235, 0.08)',
+                  border: '1px solid rgba(37, 99, 235, 0.25)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '6px 10px',
+                }}
+              >
+                <Banknote size={16} color="var(--color-primary)" />
+                <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--color-primary)' }}>Cash on Delivery</span>
+              </div>
+            </div>
+
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--color-success)', fontWeight: 700 }}>
+              <ShieldCheck size={16} />
+              <span>100% Safe & Verified Transactions</span>
             </div>
           </div>
         </div>
@@ -81,7 +136,7 @@ export default function Footer({ settings }: FooterProps) {
             © {new Date().getFullYear()} {storeName}. All rights reserved.
           </div>
           <div>
-            English & বাংলা Supported • Mobile PWA Ready
+            English & বাংলা Supported • Fast Islandwide Delivery
           </div>
         </div>
       </div>

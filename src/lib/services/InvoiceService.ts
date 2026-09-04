@@ -156,6 +156,7 @@ export class InvoiceService {
           <div class="meta-title">PAYMENT INFORMATION</div>
           <div style="font-weight: 600;">Method: ${order.payment_method.toUpperCase()}</div>
           <div>Status: <span style="font-weight: 700; color: ${order.payment_status === 'confirmed' ? '#10b981' : '#f59e0b'};">${order.payment_status.toUpperCase()}</span></div>
+          ${(order.shipping_address as any)?.sender_phone ? `<div>Sender: <strong>${(order.shipping_address as any).sender_phone}</strong></div>` : ''}
           ${order.payment_transaction_id ? `<div>TrxID: <code>${order.payment_transaction_id}</code></div>` : ''}
         </td>
       </tr>

@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { SlidersHorizontal, ArrowUpDown, X, RotateCcw, Zap, Check } from 'lucide-react';
+import { SlidersHorizontal, ArrowUpDown, X, RotateCcw, Zap, Check, ChevronDown } from 'lucide-react';
 import type { Category } from '@/types';
 import DualRangeSlider from './DualRangeSlider';
 
@@ -10,6 +10,13 @@ interface MobileFilterDrawerProps {
   categories?: Category[];
   totalCount?: number;
 }
+
+const SORT_OPTIONS = [
+  { value: 'newest', label: 'Newest' },
+  { value: 'price_asc', label: 'Price: Low to High' },
+  { value: 'price_desc', label: 'Price: High to Low' },
+  { value: 'best_selling', label: 'Best Selling' },
+];
 
 export default function MobileFilterDrawer({
   categories = [],
@@ -20,11 +27,29 @@ export default function MobileFilterDrawer({
   const searchParams = useSearchParams();
 
   const [isOpen, setIsOpen] = useState(false);
+  const [isSortOpen, setIsSortOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || '');
   const [minPrice, setMinPrice] = useState<number>(Number(searchParams.get('min_price')) || 0);
   const [maxPrice, setMaxPrice] = useState<number>(Number(searchParams.get('max_price')) || 10000);
   const [isFlashSale, setIsFlashSale] = useState(searchParams.get('flash_sale') === 'true');
   const [sort, setSort] = useState(searchParams.get('sort') || 'newest');
+
+  const sortDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close sort dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (sortDropdownRef.current && !sortDropdownRef.current.contains(e.target as Node)) {
+        setIsSortOpen(false);
+      }
+    }
+    if (isSortOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isSortOpen]);
 
   // Sync state when URL params change
   useEffect(() => {
@@ -69,6 +94,7 @@ export default function MobileFilterDrawer({
 
   const handleQuickSort = (newSort: string) => {
     setSort(newSort);
+    setIsSortOpen(false);
     const params = new URLSearchParams(searchParams.toString());
     if (newSort && newSort !== 'newest') params.set('sort', newSort);
     else params.delete('sort');
@@ -95,36 +121,108 @@ export default function MobileFilterDrawer({
     setMaxPrice(newMax);
   };
 
+  const currentSortLabel = SORT_OPTIONS.find(o => o.value === sort)?.label || 'Newest';
+
   return (
     <>
       {/* Mobile Sticky Filter & Sort Bar */}
       <div className="mobile-filter-bar">
+        {/* Filter Trigger Button */}
         <button
           type="button"
           onClick={() => setIsOpen(true)}
           className="mobile-filter-trigger"
           id="mobile-open-filters-btn"
         >
-          <SlidersHorizontal size={16} />
+          <SlidersHorizontal size={15} />
           <span>Filters</span>
           {activeFilterCount > 0 && (
             <span className="mobile-filter-badge">{activeFilterCount}</span>
           )}
         </button>
 
-        <div className="mobile-sort-select-wrapper">
-          <ArrowUpDown size={15} className="mobile-sort-icon" />
-          <select
-            value={sort}
-            onChange={e => handleQuickSort(e.target.value)}
+        {/* Custom Styled Sort Dropdown (Replaces Ugly Native Select) */}
+        <div className="mobile-sort-select-wrapper" ref={sortDropdownRef} style={{ position: 'relative' }}>
+          <button
+            type="button"
+            onClick={() => setIsSortOpen(!isSortOpen)}
             className="mobile-sort-select"
-            id="mobile-quick-sort"
+            id="mobile-quick-sort-btn"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '6px',
+              padding: '0 12px 0 32px',
+              textAlign: 'left',
+              width: '100%',
+              background: '#ffffff',
+              border: '1px solid var(--color-border)',
+              borderRadius: 'var(--radius-xl)',
+              height: '40px',
+              fontSize: '13px',
+              fontWeight: 600,
+              color: 'var(--color-text-main, #0f172a)',
+              cursor: 'pointer',
+            }}
           >
-            <option value="newest">Newest</option>
-            <option value="price_asc">Price: Low to High</option>
-            <option value="price_desc">Price: High to Low</option>
-            <option value="best_selling">Best Selling</option>
-          </select>
+            <ArrowUpDown size={14} className="mobile-sort-icon" />
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {currentSortLabel}
+            </span>
+            <ChevronDown size={14} style={{ opacity: 0.5, flexShrink: 0 }} />
+          </button>
+
+          {/* Custom Dropdown Popup Menu */}
+          {isSortOpen && (
+            <div
+              style={{
+                position: 'absolute',
+                top: 'calc(100% + 6px)',
+                right: 0,
+                left: 0,
+                background: '#ffffff',
+                border: '1px solid #e2e8f0',
+                borderRadius: 'var(--radius-lg)',
+                boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)',
+                padding: '6px',
+                zIndex: 60,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '2px',
+                animation: 'fadeIn 0.15s ease-out',
+              }}
+            >
+              {SORT_OPTIONS.map(opt => {
+                const isSelected = sort === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => handleQuickSort(opt.value)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '8px 10px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: isSelected ? 'rgba(37, 99, 235, 0.08)' : 'transparent',
+                      color: isSelected ? 'var(--color-primary, #2563eb)' : 'var(--color-text-main, #1e293b)',
+                      fontSize: '13px',
+                      fontWeight: isSelected ? 700 : 500,
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      transition: 'background 0.15s ease',
+                    }}
+                  >
+                    <span>{opt.label}</span>
+                    {isSelected && <Check size={14} color="var(--color-primary, #2563eb)" />}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 
@@ -169,7 +267,28 @@ export default function MobileFilterDrawer({
 
         {/* Drawer Scrollable Content */}
         <div className="mobile-drawer-body">
-          {/* 1. Category Selection */}
+          {/* 1. Sort Order */}
+          <div className="drawer-filter-section">
+            <h4 className="drawer-section-title">Sort By</h4>
+            <div className="drawer-chips-grid">
+              {SORT_OPTIONS.map(opt => {
+                const isSelected = sort === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setSort(opt.value)}
+                    className={`drawer-chip ${isSelected ? 'drawer-chip--active' : ''}`}
+                  >
+                    {isSelected && <Check size={12} />}
+                    <span>{opt.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 2. Category Selection */}
           <div className="drawer-filter-section">
             <h4 className="drawer-section-title">Category</h4>
             <div className="drawer-chips-grid">
@@ -198,7 +317,7 @@ export default function MobileFilterDrawer({
             </div>
           </div>
 
-          {/* 2. Clean & Smooth Two-Sided Adjustable Price Range */}
+          {/* 3. Clean & Smooth Two-Sided Adjustable Price Range */}
           <div className="drawer-filter-section">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '8px' }}>
               <h4 className="drawer-section-title" style={{ margin: 0 }}>Price Range</h4>
@@ -252,7 +371,7 @@ export default function MobileFilterDrawer({
             </div>
           </div>
 
-          {/* 3. Special Promotions Toggle */}
+          {/* 4. Special Promotions Toggle */}
           <div className="drawer-filter-section">
             <label className="drawer-toggle-row">
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>

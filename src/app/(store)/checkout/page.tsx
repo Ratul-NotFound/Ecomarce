@@ -9,9 +9,10 @@ import { DISTRICTS, getShippingFee } from '@/lib/utils/bangladesh-districts';
 import { STORE_CONFIG } from '@/lib/store-config';
 import { useToast } from '@/components/shared/ToastProvider';
 import { createClient } from '@/lib/supabase/client';
-import { CheckCircle2, ShieldCheck, Truck, CreditCard, ArrowRight } from 'lucide-react';
+import { CheckCircle2, ShieldCheck, Truck, CreditCard, ArrowRight, Copy, Check, Smartphone, Banknote, Hash, Phone, Sparkles } from 'lucide-react';
 import type { Address, PaymentMethod } from '@/types';
 import { DEFAULT_PAYMENT_SETTINGS, getMergedPaymentSettings, PaymentSettings } from '@/lib/utils/payment-config';
+import { NagadLogo, BkashLogo } from '@/components/shared/PaymentLogos';
 
 function CheckoutContent() {
   const router = useRouter();
@@ -33,10 +34,21 @@ function CheckoutContent() {
   const [streetAddress, setStreetAddress] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cod');
   const [transactionId, setTransactionId] = useState('');
+  const [senderPhone, setSenderPhone] = useState('');
+  const [copiedNumber, setCopiedNumber] = useState<string | null>(null);
   const [couponCode, setCouponCode] = useState(initialCoupon);
   const [discountAmount, setDiscountAmount] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [savedAddresses, setSavedAddresses] = useState<Address[]>([]);
+
+  const handleCopyNumber = (num: string, providerName: string) => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(num);
+      setCopiedNumber(num);
+      showToast(`Copied ${providerName} number (${num}) to clipboard!`, 'success');
+      setTimeout(() => setCopiedNumber(null), 2500);
+    }
+  };
 
   // Load existing user profile addresses if signed in
   useEffect(() => {
@@ -84,8 +96,8 @@ function CheckoutContent() {
             setPaymentSettings(merged);
             // If current selected payment method is disabled/hidden, switch to first active method
             if (!merged[paymentMethod]?.enabled) {
-              const firstActive = (['cod', 'bkash', 'nagad', 'rocket'] as const).find(k => merged[k]?.enabled);
-              if (firstActive) setPaymentMethod(firstActive as any);
+              const firstActive = (['cod', 'bkash', 'nagad'] as const).find(k => merged[k]?.enabled);
+              if (firstActive) setPaymentMethod(firstActive);
             }
           }
         }
@@ -149,9 +161,16 @@ function CheckoutContent() {
       return;
     }
 
-    if ((paymentMethod === 'bkash' || paymentMethod === 'nagad') && !transactionId.trim()) {
-      showToast(`Please enter the ${paymentMethod.toUpperCase()} Transaction ID (TrxID)`, 'error');
-      return;
+    if (paymentMethod !== 'cod') {
+      const cleanSender = senderPhone.replace(/[^0-9]/g, '');
+      if (cleanSender.length !== 11 || !cleanSender.startsWith('01')) {
+        showToast('Please enter the 11-digit mobile number from which you sent the money (e.g. 017XXXXXXXX)', 'error');
+        return;
+      }
+      if (!transactionId.trim()) {
+        showToast(`Please enter the ${paymentMethod.toUpperCase()} Transaction ID (TrxID)`, 'error');
+        return;
+      }
     }
 
     try {
@@ -165,8 +184,10 @@ function CheckoutContent() {
           district,
           upazila: upazila.trim() || district,
           street_address: streetAddress.trim(),
+          sender_phone: paymentMethod !== 'cod' ? senderPhone.trim() : undefined,
         },
         paymentMethod,
+        paymentSenderPhone: paymentMethod !== 'cod' ? senderPhone.trim() : undefined,
         paymentTransactionId: transactionId.trim() || undefined,
         couponCode: couponCode.trim() || undefined,
       };
@@ -286,196 +307,391 @@ function CheckoutContent() {
 
             {/* 2. Payment Method Section */}
             <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-xl)', padding: '24px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-                <CreditCard size={20} color="var(--color-primary)" />
-                <h2 style={{ fontSize: '18px', fontWeight: 700 }}>2. Payment Method</h2>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <CreditCard size={20} color="var(--color-primary)" />
+                  <h2 style={{ fontSize: '18px', fontWeight: 700 }}>2. Payment Method / পেমেন্ট পদ্ধতি</h2>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--color-success)', fontWeight: 600 }}>
+                  <ShieldCheck size={16} />
+                  <span>100% Secure & Verified</span>
+                </div>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 {/* Cash on Delivery */}
                 {paymentSettings.cod.enabled && (
-                  <label
+                  <div
+                    onClick={() => setPaymentMethod('cod')}
                     style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '12px',
-                      padding: '14px',
                       border: `2px solid ${paymentMethod === 'cod' ? 'var(--color-primary)' : 'var(--color-border)'}`,
                       borderRadius: 'var(--radius-lg)',
+                      padding: '16px',
                       cursor: 'pointer',
-                      background: paymentMethod === 'cod' ? 'var(--color-primary-10)' : '#ffffff',
+                      background: paymentMethod === 'cod' ? 'rgba(37, 99, 235, 0.04)' : '#ffffff',
+                      transition: 'all 0.2s ease',
+                      boxShadow: paymentMethod === 'cod' ? '0 4px 12px rgba(37, 99, 235, 0.08)' : 'none',
                     }}
                   >
-                    <input
-                      type="radio"
-                      name="payment_method"
-                      value="cod"
-                      checked={paymentMethod === 'cod'}
-                      onChange={() => setPaymentMethod('cod')}
-                    />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 700, fontSize: '14px' }}>
-                        {paymentSettings.cod.title_en} {paymentSettings.cod.title_bn ? `(${paymentSettings.cod.title_bn})` : ''}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <input
+                        type="radio"
+                        name="payment_method"
+                        value="cod"
+                        checked={paymentMethod === 'cod'}
+                        onChange={() => setPaymentMethod('cod')}
+                        style={{ width: '18px', height: '18px', accentColor: 'var(--color-primary)', cursor: 'pointer' }}
+                      />
+                      <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'rgba(37, 99, 235, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <Banknote size={22} color="var(--color-primary)" />
                       </div>
-                      <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
-                        {paymentSettings.cod.description_en}
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                          <span style={{ fontWeight: 800, fontSize: '15px' }}>
+                            {paymentSettings.cod.title_en}
+                          </span>
+                          <span style={{ fontSize: '13px', color: 'var(--color-text-secondary)' }}>
+                            ({paymentSettings.cod.title_bn || 'ক্যাশ অন ডেলিভারি'})
+                          </span>
+                          <span style={{ fontSize: '10px', fontWeight: 800, padding: '2px 8px', borderRadius: 'var(--radius-full)', background: 'rgba(37, 99, 235, 0.12)', color: 'var(--color-primary)' }}>
+                            POPULAR
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+                          {paymentSettings.cod.description_en}
+                        </div>
                       </div>
                     </div>
-                  </label>
+                  </div>
                 )}
 
                 {/* bKash */}
-                {paymentSettings.bkash.enabled && (
-                  <label
-                    style={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: '12px',
-                      padding: '14px',
-                      border: `2px solid ${paymentMethod === 'bkash' ? '#e2136e' : 'var(--color-border)'}`,
-                      borderRadius: 'var(--radius-lg)',
-                      cursor: 'pointer',
-                      background: paymentMethod === 'bkash' ? 'rgba(226, 19, 110, 0.05)' : '#ffffff',
-                    }}
-                  >
-                    <input
-                      type="radio"
-                      name="payment_method"
-                      value="bkash"
-                      checked={paymentMethod === 'bkash'}
-                      onChange={() => setPaymentMethod('bkash')}
-                      style={{ marginTop: '3px' }}
-                    />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 700, fontSize: '14px', color: '#e2136e' }}>
-                        {paymentSettings.bkash.title_en} ({paymentSettings.bkash.account_type || 'Personal'})
-                      </div>
-                      <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginTop: '2px' }}>
-                        Send <strong>{formatCurrency(grandTotal)}</strong> to <strong>{paymentSettings.bkash.number || STORE_CONFIG.payment.bkash.number}</strong> ({paymentSettings.bkash.account_type || 'Personal'})
+                {paymentSettings.bkash.enabled && (() => {
+                  const bkashNumber = paymentSettings.bkash.number || STORE_CONFIG.payment.bkash.number || '01700000000';
+                  const isSelected = paymentMethod === 'bkash';
+                  return (
+                    <div
+                      onClick={() => setPaymentMethod('bkash')}
+                      style={{
+                        border: `2px solid ${isSelected ? '#e2136e' : 'var(--color-border)'}`,
+                        borderRadius: 'var(--radius-lg)',
+                        padding: '16px',
+                        cursor: 'pointer',
+                        background: isSelected ? 'rgba(226, 19, 110, 0.03)' : '#ffffff',
+                        transition: 'all 0.2s ease',
+                        boxShadow: isSelected ? '0 4px 14px rgba(226, 19, 110, 0.12)' : 'none',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <input
+                          type="radio"
+                          name="payment_method"
+                          value="bkash"
+                          checked={isSelected}
+                          onChange={() => setPaymentMethod('bkash')}
+                          style={{ width: '18px', height: '18px', accentColor: '#e2136e', cursor: 'pointer' }}
+                        />
+                        <BkashLogo size={42} />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                            <span style={{ fontWeight: 800, fontSize: '15px', color: '#e2136e' }}>
+                              bKash Send Money
+                            </span>
+                            <span style={{ fontSize: '13px', color: 'var(--color-text-secondary)' }}>
+                              (বিকাশ)
+                            </span>
+                            <span style={{ fontSize: '10px', fontWeight: 800, padding: '2px 8px', borderRadius: 'var(--radius-full)', background: 'rgba(226, 19, 110, 0.12)', color: '#e2136e' }}>
+                              {paymentSettings.bkash.account_type || 'Personal'}
+                            </span>
+                            <span style={{ fontSize: '10px', fontWeight: 800, padding: '2px 8px', borderRadius: 'var(--radius-full)', background: 'rgba(34, 197, 94, 0.12)', color: 'var(--color-success)' }}>
+                              INSTANT
+                            </span>
+                          </div>
+                          <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+                            Send <strong>{formatCurrency(grandTotal)}</strong> to our bKash number & submit details below.
+                          </div>
+                        </div>
                       </div>
 
-                      {paymentMethod === 'bkash' && (
-                        <div style={{ marginTop: '12px' }}>
-                          <label className="form-label" style={{ fontSize: '12px' }} htmlFor="bkash-trx-id">
-                            Enter bKash TrxID (ট্রানজেকশন আইডি) *
-                          </label>
-                          <input
-                            id="bkash-trx-id"
-                            type="text"
-                            className="form-input"
-                            placeholder="e.g. 9J87AKL12"
-                            value={transactionId}
-                            onChange={e => setTransactionId(e.target.value)}
-                            style={{ textTransform: 'uppercase' }}
-                            required
-                          />
+                      {/* Expanded verification inputs */}
+                      {isSelected && (
+                        <div
+                          onClick={e => e.stopPropagation()}
+                          style={{
+                            marginTop: '16px',
+                            padding: '16px',
+                            background: '#ffffff',
+                            borderRadius: 'var(--radius-md)',
+                            border: '1px solid rgba(226, 19, 110, 0.2)',
+                            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.03)',
+                          }}
+                        >
+                          {/* Recipient Number Box with 1-click Copy */}
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', background: 'rgba(226, 19, 110, 0.06)', padding: '12px 14px', borderRadius: 'var(--radius-md)', marginBottom: '14px' }}>
+                            <div>
+                              <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: '#e2136e', letterSpacing: '0.5px' }}>
+                                OUR BKASH ACCOUNT NUMBER ({paymentSettings.bkash.account_type || 'Personal'})
+                              </div>
+                              <div style={{ fontSize: '18px', fontWeight: 900, color: '#111827', letterSpacing: '1px', marginTop: '2px', fontFamily: 'monospace' }}>
+                                {bkashNumber}
+                              </div>
+                              <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginTop: '2px' }}>
+                                Exact Payable: <strong style={{ color: '#e2136e' }}>{formatCurrency(grandTotal)}</strong>
+                              </div>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => handleCopyNumber(bkashNumber, 'bKash')}
+                              className="btn btn-sm"
+                              style={{
+                                background: copiedNumber === bkashNumber ? 'var(--color-success)' : '#e2136e',
+                                color: '#ffffff',
+                                border: 'none',
+                                padding: '8px 14px',
+                                borderRadius: 'var(--radius-full)',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                fontSize: '12px',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                transition: 'background 0.2s ease',
+                              }}
+                            >
+                              {copiedNumber === bkashNumber ? (
+                                <>
+                                  <Check size={14} />
+                                  <span>Copied! ✓</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Copy size={14} />
+                                  <span>Copy Number</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+
+                          {/* Instructions bullet */}
+                          <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginBottom: '14px', lineHeight: 1.5, background: 'var(--color-surface-2)', padding: '10px 12px', borderRadius: 'var(--radius-sm)' }}>
+                            <div style={{ fontWeight: 700, color: 'var(--color-text)' }}>ধাপসমূহ / Steps to pay:</div>
+                            <div>১. আপনার bKash অ্যাপ থেকে উপরের নম্বরে <strong>Send Money</strong> করুন।</div>
+                            <div>২. আপনি যে নম্বর থেকে টাকা পাঠিয়েছেন এবং TrxID নিচের ঘরে বসান।</div>
+                          </div>
+
+                          {/* Dual inputs: Sender Phone Number + Transaction ID */}
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
+                            <div className="form-group" style={{ margin: 0 }}>
+                              <label className="form-label" style={{ fontSize: '12px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }} htmlFor="bkash-sender-phone">
+                                <Phone size={13} color="#e2136e" />
+                                <span>Sender Phone Number (টাকা পাঠানোর নম্বর) *</span>
+                              </label>
+                              <input
+                                id="bkash-sender-phone"
+                                type="tel"
+                                className="form-input"
+                                placeholder="01XXXXXXXXX"
+                                maxLength={11}
+                                value={senderPhone}
+                                onChange={e => setSenderPhone(e.target.value)}
+                                style={{ borderColor: isSelected && !senderPhone ? '#fda4af' : undefined }}
+                                required
+                              />
+                              <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
+                                যে বিকাশ নম্বর থেকে টাকা পাঠিয়েছেন
+                              </span>
+                            </div>
+
+                            <div className="form-group" style={{ margin: 0 }}>
+                              <label className="form-label" style={{ fontSize: '12px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }} htmlFor="bkash-trx-id">
+                                <Hash size={13} color="#e2136e" />
+                                <span>bKash TrxID (ট্রানজেকশন আইডি) *</span>
+                              </label>
+                              <input
+                                id="bkash-trx-id"
+                                type="text"
+                                className="form-input"
+                                placeholder="e.g. 9J87AKL12"
+                                value={transactionId}
+                                onChange={e => setTransactionId(e.target.value.toUpperCase())}
+                                style={{ textTransform: 'uppercase', borderColor: isSelected && !transactionId ? '#fda4af' : undefined }}
+                                required
+                              />
+                              <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
+                                এসএমএস-এ আসা TrxID কোড
+                              </span>
+                            </div>
+                          </div>
                         </div>
                       )}
                     </div>
-                  </label>
-                )}
+                  );
+                })()}
 
                 {/* Nagad */}
-                {paymentSettings.nagad.enabled && (
-                  <label
-                    style={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: '12px',
-                      padding: '14px',
-                      border: `2px solid ${paymentMethod === 'nagad' ? '#f7941d' : 'var(--color-border)'}`,
-                      borderRadius: 'var(--radius-lg)',
-                      cursor: 'pointer',
-                      background: paymentMethod === 'nagad' ? 'rgba(247, 148, 29, 0.05)' : '#ffffff',
-                    }}
-                  >
-                    <input
-                      type="radio"
-                      name="payment_method"
-                      value="nagad"
-                      checked={paymentMethod === 'nagad'}
-                      onChange={() => setPaymentMethod('nagad')}
-                      style={{ marginTop: '3px' }}
-                    />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 700, fontSize: '14px', color: '#f7941d' }}>
-                        {paymentSettings.nagad.title_en} ({paymentSettings.nagad.account_type || 'Personal'})
-                      </div>
-                      <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginTop: '2px' }}>
-                        Send <strong>{formatCurrency(grandTotal)}</strong> to <strong>{paymentSettings.nagad.number || STORE_CONFIG.payment.nagad.number}</strong> ({paymentSettings.nagad.account_type || 'Personal'})
+                {paymentSettings.nagad.enabled && (() => {
+                  const nagadNumber = paymentSettings.nagad.number || STORE_CONFIG.payment.nagad.number || '01800000000';
+                  const isSelected = paymentMethod === 'nagad';
+                  return (
+                    <div
+                      onClick={() => setPaymentMethod('nagad')}
+                      style={{
+                        border: `2px solid ${isSelected ? '#f97316' : 'var(--color-border)'}`,
+                        borderRadius: 'var(--radius-lg)',
+                        padding: '16px',
+                        cursor: 'pointer',
+                        background: isSelected ? 'rgba(249, 115, 22, 0.03)' : '#ffffff',
+                        transition: 'all 0.2s ease',
+                        boxShadow: isSelected ? '0 4px 14px rgba(249, 115, 22, 0.12)' : 'none',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <input
+                          type="radio"
+                          name="payment_method"
+                          value="nagad"
+                          checked={isSelected}
+                          onChange={() => setPaymentMethod('nagad')}
+                          style={{ width: '18px', height: '18px', accentColor: '#f97316', cursor: 'pointer' }}
+                        />
+                        <NagadLogo size={42} />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                            <span style={{ fontWeight: 800, fontSize: '15px', color: '#f97316' }}>
+                              Nagad Send Money
+                            </span>
+                            <span style={{ fontSize: '13px', color: 'var(--color-text-secondary)' }}>
+                              (নগদ)
+                            </span>
+                            <span style={{ fontSize: '10px', fontWeight: 800, padding: '2px 8px', borderRadius: 'var(--radius-full)', background: 'rgba(249, 115, 22, 0.12)', color: '#f97316' }}>
+                              {paymentSettings.nagad.account_type || 'Personal'}
+                            </span>
+                            <span style={{ fontSize: '10px', fontWeight: 800, padding: '2px 8px', borderRadius: 'var(--radius-full)', background: 'rgba(34, 197, 94, 0.12)', color: 'var(--color-success)' }}>
+                              INSTANT
+                            </span>
+                          </div>
+                          <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+                            Send <strong>{formatCurrency(grandTotal)}</strong> to our Nagad number & submit details below.
+                          </div>
+                        </div>
                       </div>
 
-                      {paymentMethod === 'nagad' && (
-                        <div style={{ marginTop: '12px' }}>
-                          <label className="form-label" style={{ fontSize: '12px' }} htmlFor="nagad-trx-id">
-                            Enter Nagad TrxID (ট্রানজেকশন আইডি) *
-                          </label>
-                          <input
-                            id="nagad-trx-id"
-                            type="text"
-                            className="form-input"
-                            placeholder="e.g. 7X32LM89"
-                            value={transactionId}
-                            onChange={e => setTransactionId(e.target.value)}
-                            style={{ textTransform: 'uppercase' }}
-                            required
-                          />
+                      {/* Expanded verification inputs */}
+                      {isSelected && (
+                        <div
+                          onClick={e => e.stopPropagation()}
+                          style={{
+                            marginTop: '16px',
+                            padding: '16px',
+                            background: '#ffffff',
+                            borderRadius: 'var(--radius-md)',
+                            border: '1px solid rgba(249, 115, 22, 0.25)',
+                            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.03)',
+                          }}
+                        >
+                          {/* Recipient Number Box with 1-click Copy */}
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', background: 'rgba(249, 115, 22, 0.06)', padding: '12px 14px', borderRadius: 'var(--radius-md)', marginBottom: '14px' }}>
+                            <div>
+                              <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: '#f97316', letterSpacing: '0.5px' }}>
+                                OUR NAGAD ACCOUNT NUMBER ({paymentSettings.nagad.account_type || 'Personal'})
+                              </div>
+                              <div style={{ fontSize: '18px', fontWeight: 900, color: '#111827', letterSpacing: '1px', marginTop: '2px', fontFamily: 'monospace' }}>
+                                {nagadNumber}
+                              </div>
+                              <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginTop: '2px' }}>
+                                Exact Payable: <strong style={{ color: '#f97316' }}>{formatCurrency(grandTotal)}</strong>
+                              </div>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => handleCopyNumber(nagadNumber, 'Nagad')}
+                              className="btn btn-sm"
+                              style={{
+                                background: copiedNumber === nagadNumber ? 'var(--color-success)' : '#f97316',
+                                color: '#ffffff',
+                                border: 'none',
+                                padding: '8px 14px',
+                                borderRadius: 'var(--radius-full)',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                fontSize: '12px',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                transition: 'background 0.2s ease',
+                              }}
+                            >
+                              {copiedNumber === nagadNumber ? (
+                                <>
+                                  <Check size={14} />
+                                  <span>Copied! ✓</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Copy size={14} />
+                                  <span>Copy Number</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+
+                          {/* Instructions bullet */}
+                          <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginBottom: '14px', lineHeight: 1.5, background: 'var(--color-surface-2)', padding: '10px 12px', borderRadius: 'var(--radius-sm)' }}>
+                            <div style={{ fontWeight: 700, color: 'var(--color-text)' }}>ধাপসমূহ / Steps to pay:</div>
+                            <div>১. আপনার নগদ অ্যাপ থেকে উপরের নম্বরে <strong>Send Money</strong> করুন।</div>
+                            <div>২. আপনি যে নম্বর থেকে টাকা পাঠিয়েছেন এবং TrxID নিচের ঘরে বসান।</div>
+                          </div>
+
+                          {/* Dual inputs: Sender Phone Number + Transaction ID */}
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
+                            <div className="form-group" style={{ margin: 0 }}>
+                              <label className="form-label" style={{ fontSize: '12px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }} htmlFor="nagad-sender-phone">
+                                <Phone size={13} color="#f97316" />
+                                <span>Sender Phone Number (টাকা পাঠানোর নম্বর) *</span>
+                              </label>
+                              <input
+                                id="nagad-sender-phone"
+                                type="tel"
+                                className="form-input"
+                                placeholder="01XXXXXXXXX"
+                                maxLength={11}
+                                value={senderPhone}
+                                onChange={e => setSenderPhone(e.target.value)}
+                                style={{ borderColor: isSelected && !senderPhone ? '#fed7aa' : undefined }}
+                                required
+                              />
+                              <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
+                                যে নগদ নম্বর থেকে টাকা পাঠিয়েছেন
+                              </span>
+                            </div>
+
+                            <div className="form-group" style={{ margin: 0 }}>
+                              <label className="form-label" style={{ fontSize: '12px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }} htmlFor="nagad-trx-id">
+                                <Hash size={13} color="#f97316" />
+                                <span>Nagad TrxID (ট্রানজেকশন আইডি) *</span>
+                              </label>
+                              <input
+                                id="nagad-trx-id"
+                                type="text"
+                                className="form-input"
+                                placeholder="e.g. 7X32LM89"
+                                value={transactionId}
+                                onChange={e => setTransactionId(e.target.value.toUpperCase())}
+                                style={{ textTransform: 'uppercase', borderColor: isSelected && !transactionId ? '#fed7aa' : undefined }}
+                                required
+                              />
+                              <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
+                                এসএমএস-এ আসা TrxID কোড
+                              </span>
+                            </div>
+                          </div>
                         </div>
                       )}
                     </div>
-                  </label>
-                )}
-
-                {/* Rocket */}
-                {paymentSettings.rocket?.enabled && (
-                  <label
-                    style={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: '12px',
-                      padding: '14px',
-                      border: `2px solid ${paymentMethod === ('rocket' as any) ? '#8b5cf6' : 'var(--color-border)'}`,
-                      borderRadius: 'var(--radius-lg)',
-                      cursor: 'pointer',
-                      background: paymentMethod === ('rocket' as any) ? 'rgba(139, 92, 246, 0.05)' : '#ffffff',
-                    }}
-                  >
-                    <input
-                      type="radio"
-                      name="payment_method"
-                      value="rocket"
-                      checked={paymentMethod === ('rocket' as any)}
-                      onChange={() => setPaymentMethod('rocket' as any)}
-                      style={{ marginTop: '3px' }}
-                    />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 700, fontSize: '14px', color: '#8b5cf6' }}>
-                        {paymentSettings.rocket.title_en}
-                      </div>
-                      <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginTop: '2px' }}>
-                        Send <strong>{formatCurrency(grandTotal)}</strong> to <strong>{paymentSettings.rocket.number}</strong>
-                      </div>
-
-                      {paymentMethod === ('rocket' as any) && (
-                        <div style={{ marginTop: '12px' }}>
-                          <label className="form-label" style={{ fontSize: '12px' }} htmlFor="rocket-trx-id">
-                            Enter Rocket Transaction ID *
-                          </label>
-                          <input
-                            id="rocket-trx-id"
-                            type="text"
-                            className="form-input"
-                            placeholder="e.g. RCK198762"
-                            value={transactionId}
-                            onChange={e => setTransactionId(e.target.value)}
-                            style={{ textTransform: 'uppercase' }}
-                            required
-                          />
-                        </div>
-                      )}
-                    </div>
-                  </label>
-                )}
+                  );
+                })()}
               </div>
             </div>
           </div>

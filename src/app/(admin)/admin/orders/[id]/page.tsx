@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { formatCurrency, formatDate, getStatusLabel } from '@/lib/utils/format';
-import { ArrowLeft, FileText, Phone, MapPin, User, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, FileText, Phone, MapPin, User, ShieldCheck, CreditCard } from 'lucide-react';
 import AdminOrderDetailClient from './AdminOrderDetailClient';
 import type { Order } from '@/types';
 
@@ -92,6 +92,12 @@ export default async function AdminOrderDetailPage({ params }: AdminOrderDetailP
                 <MapPin size={14} color="var(--color-primary-light)" />
                 <span>{order.shipping_address?.street_address}, {order.shipping_address?.upazila}, {order.shipping_address?.district}</span>
               </div>
+              {order.shipping_address?.sender_phone && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--color-admin-text)' }}>
+                  <CreditCard size={14} color="var(--color-primary-light)" />
+                  <span>Payment Sent From: <strong>{order.shipping_address.sender_phone}</strong></span>
+                </div>
+              )}
             </div>
 
             {/* Items table */}

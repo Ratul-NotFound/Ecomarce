@@ -32,7 +32,9 @@ export default function AdminOrdersManager({ initialOrders }: AdminOrdersManager
           const matchName = o.shipping_address?.full_name?.toLowerCase().includes(q);
           const matchPhone = o.shipping_address?.phone?.toLowerCase().includes(q);
           const matchCity = o.shipping_address?.district?.toLowerCase().includes(q);
-          if (!matchNum && !matchName && !matchPhone && !matchCity) return false;
+          const matchSender = (o.shipping_address as any)?.sender_phone?.toLowerCase().includes(q) || o.notes?.toLowerCase().includes(q);
+          const matchTrx = o.payment_transaction_id?.toLowerCase().includes(q);
+          if (!matchNum && !matchName && !matchPhone && !matchCity && !matchSender && !matchTrx) return false;
         }
 
         // Status
@@ -273,21 +275,59 @@ export default function AdminOrdersManager({ initialOrders }: AdminOrdersManager
                         </div>
                       </td>
                       <td>
-                        <div style={{ textTransform: 'uppercase', fontWeight: 700, fontSize: '12px', color: 'var(--color-admin-text)' }}>
-                          {order.payment_method || 'COD'}
-                        </div>
-                        <span
-                          style={{
-                            fontSize: '10px',
-                            fontWeight: 800,
-                            padding: '1px 6px',
-                            borderRadius: 'var(--radius-full)',
-                            background: order.payment_status === 'confirmed' ? 'rgba(34, 197, 94, 0.12)' : 'rgba(234, 179, 8, 0.12)',
-                            color: order.payment_status === 'confirmed' ? 'var(--color-success)' : '#d97706',
-                          }}
-                        >
-                          {order.payment_status?.toUpperCase() || 'PENDING'}
-                        </span>
+                        {(() => {
+                          const senderPhone = (addr as any)?.sender_phone || order.payment_sender_phone || (order.notes?.includes('Payment Sender:') ? order.notes.split('Payment Sender:')[1]?.trim()?.split(' ')[0] : null);
+                          const isBkash = order.payment_method?.toLowerCase() === 'bkash';
+                          const isNagad = order.payment_method?.toLowerCase() === 'nagad';
+                          const methodColor = isBkash ? '#e2136e' : isNagad ? '#f97316' : '#2563eb';
+                          const methodBg = isBkash ? 'rgba(226, 19, 110, 0.1)' : isNagad ? 'rgba(249, 115, 22, 0.1)' : 'rgba(37, 99, 235, 0.1)';
+
+                          return (
+                            <div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                <span
+                                  style={{
+                                    fontSize: '11px',
+                                    fontWeight: 800,
+                                    padding: '2px 8px',
+                                    borderRadius: 'var(--radius-sm)',
+                                    background: methodBg,
+                                    color: methodColor,
+                                    textTransform: 'uppercase',
+                                  }}
+                                >
+                                  {(order.payment_method || 'COD').toUpperCase()}
+                                </span>
+                                <span
+                                  style={{
+                                    fontSize: '10px',
+                                    fontWeight: 800,
+                                    padding: '1px 6px',
+                                    borderRadius: 'var(--radius-full)',
+                                    background: order.payment_status === 'confirmed' ? 'rgba(34, 197, 94, 0.12)' : 'rgba(234, 179, 8, 0.12)',
+                                    color: order.payment_status === 'confirmed' ? 'var(--color-success)' : '#d97706',
+                                  }}
+                                >
+                                  {order.payment_status?.toUpperCase() || 'PENDING'}
+                                </span>
+                              </div>
+
+                              {/* Synced Sender Phone Number */}
+                              {senderPhone && (
+                                <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-admin-text)', marginTop: '4px' }}>
+                                  <span style={{ fontSize: '10px', color: 'var(--color-admin-muted)', fontWeight: 600 }}>FROM:</span> {senderPhone}
+                                </div>
+                              )}
+
+                              {/* Synced TrxID */}
+                              {order.payment_transaction_id && (
+                                <div style={{ fontSize: '11px', color: 'var(--color-admin-muted)', marginTop: '2px' }}>
+                                  <span style={{ fontSize: '10px', fontWeight: 600 }}>TRX:</span> <code style={{ fontSize: '11px', color: methodColor, fontWeight: 700 }}>{order.payment_transaction_id}</code>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </td>
                       <td>
                         <strong style={{ fontSize: '15px', fontWeight: 800, color: 'var(--color-admin-text)' }}>

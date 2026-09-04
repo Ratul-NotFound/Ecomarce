@@ -19,6 +19,7 @@ export class OrderService {
     discountAmount: number;
     paymentTransactionId?: string;
     paymentScreenshotUrl?: string;
+    paymentSenderPhone?: string;
   }): Promise<Order> {
     const {
       userId,
@@ -31,6 +32,7 @@ export class OrderService {
       discountAmount,
       paymentTransactionId,
       paymentScreenshotUrl,
+      paymentSenderPhone,
     } = params;
 
     const subtotal = cart.reduce((sum, item: any) => {
@@ -73,11 +75,21 @@ export class OrderService {
       },
     ];
 
+    const effectiveSenderPhone = paymentSenderPhone || address.sender_phone || null;
+    const finalAddress = {
+      ...address,
+      sender_phone: effectiveSenderPhone,
+    };
+
+    const paymentNote = effectiveSenderPhone
+      ? `Payment Sender: ${effectiveSenderPhone}`
+      : null;
+
     const { data: order, error } = await this.supabase
       .from('orders')
       .insert({
         user_id: userId,
-        shipping_address: address,
+        shipping_address: finalAddress,
         items_snapshot: itemsSnapshot,
         subtotal,
         shipping_fee: shippingFee,
@@ -91,6 +103,7 @@ export class OrderService {
         tracking_info: initialTracking,
         coupon_code: couponCode || null,
         affiliate_code: affiliateCode || null,
+        notes: paymentNote,
       })
       .select()
       .single();
@@ -126,6 +139,7 @@ export class OrderService {
           screenshot_url: paymentScreenshotUrl || null,
           amount: total,
           status: 'submitted',
+          notes: effectiveSenderPhone ? `Sender Phone: ${effectiveSenderPhone}` : null,
         });
       }
     }
