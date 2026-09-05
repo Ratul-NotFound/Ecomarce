@@ -35,6 +35,8 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const timeframe = searchParams.get('timeframe') || 'today';
+    const fromDate = searchParams.get('from');
+    const toDate = searchParams.get('to');
     const status = searchParams.get('status') || 'all';
     const idsParam = searchParams.get('ids');
     const orderIds = idsParam ? idsParam.split(',').map(s => s.trim()).filter(Boolean) : [];
@@ -43,12 +45,24 @@ export async function GET(request: NextRequest) {
 
     if (orderIds.length > 0) {
       query = query.in('id', orderIds);
+    } else if (fromDate || toDate) {
+      if (fromDate) {
+        query = query.gte('created_at', new Date(fromDate).toISOString());
+      }
+      if (toDate) {
+        query = query.lte('created_at', new Date(toDate).toISOString());
+      }
     } else if (timeframe !== 'all') {
       const now = new Date().getTime();
       let diffMs = 24 * 60 * 60 * 1000;
 
       if (timeframe === '1h') diffMs = 1 * 60 * 60 * 1000;
+      else if (timeframe === '2h') diffMs = 2 * 60 * 60 * 1000;
+      else if (timeframe === '4h') diffMs = 4 * 60 * 60 * 1000;
+      else if (timeframe === '6h') diffMs = 6 * 60 * 60 * 1000;
+      else if (timeframe === '12h') diffMs = 12 * 60 * 60 * 1000;
       else if (timeframe === 'today' || timeframe === '24h') diffMs = 24 * 60 * 60 * 1000;
+      else if (timeframe === 'yesterday') diffMs = 48 * 60 * 60 * 1000;
       else if (timeframe === '7d' || timeframe === 'week') diffMs = 7 * 24 * 60 * 60 * 1000;
       else if (timeframe === '30d' || timeframe === 'month') diffMs = 30 * 24 * 60 * 60 * 1000;
       else if (timeframe === 'quarter') diffMs = 90 * 24 * 60 * 60 * 1000;
@@ -61,7 +75,7 @@ export async function GET(request: NextRequest) {
       query = query.eq('status', status);
     }
 
-    query = query.order('created_at', { ascending: false }).limit(300);
+    query = query.order('created_at', { ascending: false }).limit(400);
 
     const { data: orders, error } = await query;
 
@@ -128,6 +142,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       timeframe,
+      fromDate,
+      toDate,
       totalOrders: orderList.length,
       totalUnits,
       totalRevenue,

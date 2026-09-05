@@ -19,6 +19,7 @@ import {
   Layers,
   ChevronDown,
   CheckCircle2,
+  Clock,
 } from 'lucide-react';
 import { formatCurrency, formatDate, getStatusLabel } from '@/lib/utils/format';
 import type { Order } from '@/types';
@@ -31,7 +32,13 @@ export default function AdminOrdersManager({ initialOrders }: AdminOrdersManager
   const [orders] = useState<Order[]>(initialOrders);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [timeRange, setTimeRange] = useState<'all' | 'today' | 'week' | 'month' | 'quarter'>('all');
+  const [timeRange, setTimeRange] = useState<
+    'all' | '1h' | '2h' | '6h' | 'today' | 'yesterday' | 'week' | 'month' | 'quarter' | 'custom'
+  >('all');
+  const [customFrom, setCustomFrom] = useState('');
+  const [customTo, setCustomTo] = useState('');
+  const [showCustomDate, setShowCustomDate] = useState(false);
+
   const [paymentFilter, setPaymentFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'highest' | 'lowest'>('newest');
 
@@ -40,13 +47,18 @@ export default function AdminOrdersManager({ initialOrders }: AdminOrdersManager
 
   // Picking & Fulfillment Hub Modal State
   const [isHubOpen, setIsHubOpen] = useState(false);
-  const [hubTimeframe, setHubTimeframe] = useState<'1h' | 'today' | '7d' | '30d' | 'selected'>('today');
+  const [hubTimeframe, setHubTimeframe] = useState<
+    '1h' | '2h' | '6h' | 'today' | 'yesterday' | '7d' | '30d' | 'custom' | 'selected'
+  >('today');
+  const [hubFrom, setHubFrom] = useState('');
+  const [hubTo, setHubTo] = useState('');
   const [hubLoading, setHubLoading] = useState(false);
   const [hubSummary, setHubSummary] = useState<any>(null);
 
   // Filter & Sort Logic
   const filteredOrders = useMemo(() => {
     const now = new Date().getTime();
+    const oneHourMs = 60 * 60 * 1000;
     const oneDayMs = 24 * 60 * 60 * 1000;
 
     return orders
@@ -76,12 +88,20 @@ export default function AdminOrdersManager({ initialOrders }: AdminOrdersManager
           if (paymentFilter === 'nagad' && method !== 'nagad') return false;
         }
 
-        // Time Range
-        if (timeRange !== 'all') {
-          const orderDate = new Date(o.created_at).getTime();
+        // Time Range / Custom Timestamp Filtering
+        const orderDate = new Date(o.created_at).getTime();
+
+        if (timeRange === 'custom') {
+          if (customFrom && orderDate < new Date(customFrom).getTime()) return false;
+          if (customTo && orderDate > new Date(customTo).getTime()) return false;
+        } else if (timeRange !== 'all') {
           const diffMs = now - orderDate;
 
+          if (timeRange === '1h' && diffMs > 1 * oneHourMs) return false;
+          if (timeRange === '2h' && diffMs > 2 * oneHourMs) return false;
+          if (timeRange === '6h' && diffMs > 6 * oneHourMs) return false;
           if (timeRange === 'today' && diffMs > oneDayMs) return false;
+          if (timeRange === 'yesterday' && diffMs > 2 * oneDayMs) return false;
           if (timeRange === 'week' && diffMs > 7 * oneDayMs) return false;
           if (timeRange === 'month' && diffMs > 30 * oneDayMs) return false;
           if (timeRange === 'quarter' && diffMs > 90 * oneDayMs) return false;
@@ -96,7 +116,7 @@ export default function AdminOrdersManager({ initialOrders }: AdminOrdersManager
         if (sortBy === 'lowest') return (Number(a.total) || 0) - (Number(b.total) || 0);
         return 0;
       });
-  }, [orders, search, statusFilter, timeRange, paymentFilter, sortBy]);
+  }, [orders, search, statusFilter, timeRange, customFrom, customTo, paymentFilter, sortBy]);
 
   // Metrics on filtered view
   const metrics = useMemo(() => {
@@ -141,6 +161,8 @@ export default function AdminOrdersManager({ initialOrders }: AdminOrdersManager
     let url = `/api/admin/orders/summary?timeframe=${hubTimeframe}`;
     if (hubTimeframe === 'selected' && selectedIds.size > 0) {
       url = `/api/admin/orders/summary?ids=${Array.from(selectedIds).join(',')}`;
+    } else if (hubTimeframe === 'custom') {
+      url = `/api/admin/orders/summary?timeframe=custom${hubFrom ? `&from=${encodeURIComponent(hubFrom)}` : ''}${hubTo ? `&to=${encodeURIComponent(hubTo)}` : ''}`;
     }
 
     fetch(url)
@@ -152,7 +174,7 @@ export default function AdminOrdersManager({ initialOrders }: AdminOrdersManager
       })
       .catch(() => {})
       .finally(() => setHubLoading(false));
-  }, [isHubOpen, hubTimeframe, selectedIds]);
+  }, [isHubOpen, hubTimeframe, hubFrom, hubTo, selectedIds]);
 
   const statusBadges: Record<string, string> = {
     pending: 'badge-warning',
@@ -169,29 +191,38 @@ export default function AdminOrdersManager({ initialOrders }: AdminOrdersManager
       const ids = Array.from(selectedIds).join(',');
       return `/api/invoices/batch?ids=${ids}&type=${type}&layout=${layout}`;
     }
+
+    if (timeRange === 'custom' && (customFrom || customTo)) {
+      return `/api/invoices/batch?timeframe=custom&from=${encodeURIComponent(customFrom)}&to=${encodeURIComponent(customTo)}&type=${type}&layout=${layout}&status=${statusFilter}`;
+    }
+
     return `/api/invoices/batch?timeframe=${timeRange === 'all' ? 'today' : timeRange}&type=${type}&layout=${layout}&status=${statusFilter}`;
   };
 
   return (
     <div>
-      {/* Top Header Controls: Timeframe & Fulfillment Hub Button */}
+      {/* Top Header Controls: Timeframe Tabs & Fulfillment Hub Button */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-admin-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-admin-muted)', display: 'flex', alignItems: 'center', gap: '6px', marginRight: '4px' }}>
             <Calendar size={15} color="var(--color-primary)" />
             Timeframe:
           </span>
           {[
             { label: 'All Time', value: 'all' },
+            { label: 'Last 1 Hour', value: '1h' },
             { label: 'Today (24h)', value: 'today' },
             { label: 'Last 7 Days', value: 'week' },
-            { label: 'This Month (30d)', value: 'month' },
-            { label: 'Quarter (90d)', value: 'quarter' },
+            { label: 'This Month', value: 'month' },
+            { label: '📅 Custom Range', value: 'custom' },
           ].map(t => (
             <button
               key={t.value}
               type="button"
-              onClick={() => setTimeRange(t.value as any)}
+              onClick={() => {
+                setTimeRange(t.value as any);
+                if (t.value === 'custom') setShowCustomDate(true);
+              }}
               className="btn btn-sm"
               style={{
                 background: timeRange === t.value ? 'var(--color-primary)' : '#ffffff',
@@ -199,7 +230,7 @@ export default function AdminOrdersManager({ initialOrders }: AdminOrdersManager
                 border: '1px solid var(--color-admin-border)',
                 fontWeight: 700,
                 fontSize: '12px',
-                padding: '6px 14px',
+                padding: '5px 12px',
                 borderRadius: 'var(--radius-md)',
               }}
             >
@@ -232,6 +263,71 @@ export default function AdminOrdersManager({ initialOrders }: AdminOrdersManager
         </button>
       </div>
 
+      {/* Custom Date & Time Range Filter Card */}
+      {(timeRange === 'custom' || showCustomDate) && (
+        <div
+          className="admin-card"
+          style={{
+            padding: '12px 16px',
+            marginBottom: '16px',
+            background: 'var(--color-admin-surface-2)',
+            border: '1px solid var(--color-primary)',
+            borderRadius: 'var(--radius-lg)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            flexWrap: 'wrap',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 700, color: 'var(--color-admin-text)' }}>
+            <Clock size={15} color="var(--color-primary)" />
+            <span>Custom Date/Time Filter:</span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontSize: '12px', color: 'var(--color-admin-muted)' }}>From:</span>
+            <input
+              type="datetime-local"
+              className="admin-input"
+              value={customFrom}
+              onChange={e => {
+                setCustomFrom(e.target.value);
+                setTimeRange('custom');
+              }}
+              style={{ padding: '4px 8px', height: '32px', fontSize: '12px' }}
+            />
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontSize: '12px', color: 'var(--color-admin-muted)' }}>To:</span>
+            <input
+              type="datetime-local"
+              className="admin-input"
+              value={customTo}
+              onChange={e => {
+                setCustomTo(e.target.value);
+                setTimeRange('custom');
+              }}
+              style={{ padding: '4px 8px', height: '32px', fontSize: '12px' }}
+            />
+          </div>
+
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={() => {
+              setCustomFrom('');
+              setCustomTo('');
+              setTimeRange('all');
+              setShowCustomDate(false);
+            }}
+            style={{ fontSize: '11px', padding: '4px 10px' }}
+          >
+            Reset
+          </button>
+        </div>
+      )}
+
       {/* Live Metrics Header Bar */}
       <div style={{ display: 'flex', gap: '16px', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap' }}>
         <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-admin-text)' }}>
@@ -242,6 +338,9 @@ export default function AdminOrdersManager({ initialOrders }: AdminOrdersManager
         </div>
         <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-admin-text)' }}>
           Pending / Confirmed: <span style={{ color: '#d97706' }}>{metrics.pendingCount}</span>
+        </div>
+        <div style={{ marginLeft: 'auto', fontSize: '12px', color: 'var(--color-admin-muted)', fontWeight: 600 }}>
+          📄 Standard A4 Paper Format Active
         </div>
       </div>
 
@@ -307,7 +406,7 @@ export default function AdminOrdersManager({ initialOrders }: AdminOrdersManager
               <span>Print A4 Invoices ({selectedIds.size})</span>
             </a>
 
-            {/* Print 6-Up Shipping Tags */}
+            {/* Print 6-Up A4 Shipping Tags */}
             <a
               href={getBatchPrintUrl('tags', '6-up')}
               target="_blank"
@@ -326,10 +425,10 @@ export default function AdminOrdersManager({ initialOrders }: AdminOrdersManager
               }}
             >
               <Tag size={13} />
-              <span>Print 6-Up Tags</span>
+              <span>Print 6-Up A4 Tags</span>
             </a>
 
-            {/* Print 9-Up Mini Tags */}
+            {/* Print 9-Up A4 Mini Tags */}
             <a
               href={getBatchPrintUrl('tags', '9-up')}
               target="_blank"
@@ -348,12 +447,12 @@ export default function AdminOrdersManager({ initialOrders }: AdminOrdersManager
               }}
             >
               <Tag size={13} />
-              <span>9-Up Mini</span>
+              <span>9-Up A4 Mini</span>
             </a>
 
-            {/* Print Thermal Label */}
+            {/* Print 4-Up Large A4 Tags */}
             <a
-              href={getBatchPrintUrl('tags', 'thermal')}
+              href={getBatchPrintUrl('tags', '4-up')}
               target="_blank"
               rel="noopener noreferrer"
               className="btn btn-sm"
@@ -369,8 +468,8 @@ export default function AdminOrdersManager({ initialOrders }: AdminOrdersManager
                 padding: '6px 12px',
               }}
             >
-              <Printer size={13} />
-              <span>Thermal (4x6)</span>
+              <Tag size={13} />
+              <span>4-Up Large A4</span>
             </a>
 
             {/* Print Picking Manifest */}
@@ -392,7 +491,7 @@ export default function AdminOrdersManager({ initialOrders }: AdminOrdersManager
               }}
             >
               <Package size={13} />
-              <span>Picking Manifest</span>
+              <span>A4 Picking Manifest</span>
             </a>
           </div>
         </div>
@@ -482,7 +581,7 @@ export default function AdminOrdersManager({ initialOrders }: AdminOrdersManager
               No matching orders found
             </h3>
             <p style={{ fontSize: '14px', maxWidth: '400px', margin: '0 auto' }}>
-              Try adjusting your timeframe (Days, Weeks, Months), order status, or search query.
+              Try adjusting your timeframe (Days, Weeks, Months, Custom Date/Time), order status, or search query.
             </p>
           </div>
         ) : (
@@ -508,7 +607,7 @@ export default function AdminOrdersManager({ initialOrders }: AdminOrdersManager
                   <th>Payment</th>
                   <th>Total Amount</th>
                   <th>Status</th>
-                  <th style={{ textAlign: 'right' }}>Actions</th>
+                  <th style={{ textAlign: 'right' }}>A4 Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -645,10 +744,10 @@ export default function AdminOrdersManager({ initialOrders }: AdminOrdersManager
                             target="_blank"
                             rel="noopener noreferrer"
                             className="btn btn-secondary btn-sm"
-                            title="Print Single Shipping Tag"
+                            title="Print A4 Shipping Tag"
                             style={{ padding: '6px 8px', borderColor: 'var(--color-admin-border)' }}
                           >
-                            <Tag size={13} />
+                            <Tag size={13} color="#059669" />
                           </a>
 
                           <a
@@ -656,10 +755,10 @@ export default function AdminOrdersManager({ initialOrders }: AdminOrdersManager
                             target="_blank"
                             rel="noopener noreferrer"
                             className="btn btn-secondary btn-sm"
-                            title="Print Full Invoice"
+                            title="Print A4 Invoice"
                             style={{ padding: '6px 8px', borderColor: 'var(--color-admin-border)' }}
                           >
-                            <Printer size={13} />
+                            <Printer size={13} color="#2563eb" />
                           </a>
 
                           <Link
@@ -712,9 +811,9 @@ export default function AdminOrdersManager({ initialOrders }: AdminOrdersManager
             style={{
               background: '#ffffff',
               borderRadius: 'var(--radius-xl)',
-              maxWidth: '900px',
+              maxWidth: '960px',
               width: '100%',
-              maxHeight: '90vh',
+              maxHeight: '92vh',
               overflowY: 'auto',
               padding: '24px',
               boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
@@ -726,10 +825,10 @@ export default function AdminOrdersManager({ initialOrders }: AdminOrdersManager
               <div>
                 <h2 style={{ fontSize: '20px', fontWeight: 900, color: 'var(--color-admin-text)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <Package size={22} color="var(--color-primary)" />
-                  <span>Order Processing & Warehouse Picking Hub / প্যাকিং হাব</span>
+                  <span>Order Processing & Warehouse Picking Hub / প্যাকিং হাব (A4)</span>
                 </h2>
                 <p style={{ fontSize: '13px', color: 'var(--color-admin-muted)', marginTop: '4px' }}>
-                  Instant product aggregation and batch print generator for order packing teams.
+                  Customizable timeframes, item summaries, and Standard A4 batch printing.
                 </p>
               </div>
 
@@ -742,13 +841,16 @@ export default function AdminOrdersManager({ initialOrders }: AdminOrdersManager
               </button>
             </div>
 
-            {/* Timeframe Selector for Aggregation */}
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
+            {/* Timeframe Presets & Custom Date Pickers */}
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
               {[
-                { label: '⚡ Last 1 Hour (১ ঘণ্টা)', value: '1h' },
-                { label: '📅 Today (আজকে)', value: 'today' },
-                { label: '📦 Last 7 Days (৭ দিন)', value: '7d' },
-                { label: '📊 This Month (৩০ দিন)', value: '30d' },
+                { label: '⚡ Last 1 Hour', value: '1h' },
+                { label: '⏱️ Last 2 Hours', value: '2h' },
+                { label: '🕒 Last 6 Hours', value: '6h' },
+                { label: '📅 Today (24h)', value: 'today' },
+                { label: '📦 Last 7 Days', value: '7d' },
+                { label: '📊 This Month', value: '30d' },
+                { label: '⚙️ Custom Date/Time', value: 'custom' },
                 ...(selectedIds.size > 0 ? [{ label: `✓ Selected Orders (${selectedIds.size})`, value: 'selected' }] : []),
               ].map(t => (
                 <button
@@ -769,6 +871,45 @@ export default function AdminOrdersManager({ initialOrders }: AdminOrdersManager
                 </button>
               ))}
             </div>
+
+            {/* Custom Range Inputs inside Hub */}
+            {hubTimeframe === 'custom' && (
+              <div
+                style={{
+                  background: 'var(--color-admin-surface-2)',
+                  padding: '12px 16px',
+                  borderRadius: 'var(--radius-lg)',
+                  border: '1px solid var(--color-primary)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  flexWrap: 'wrap',
+                  marginBottom: '20px',
+                }}
+              >
+                <span style={{ fontSize: '12px', fontWeight: 700 }}>Custom Window:</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '11px', color: 'var(--color-admin-muted)' }}>From:</span>
+                  <input
+                    type="datetime-local"
+                    className="admin-input"
+                    value={hubFrom}
+                    onChange={e => setHubFrom(e.target.value)}
+                    style={{ padding: '4px 8px', height: '32px', fontSize: '12px' }}
+                  />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '11px', color: 'var(--color-admin-muted)' }}>To:</span>
+                  <input
+                    type="datetime-local"
+                    className="admin-input"
+                    value={hubTo}
+                    onChange={e => setHubTo(e.target.value)}
+                    style={{ padding: '4px 8px', height: '32px', fontSize: '12px' }}
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Summary KPI Cards */}
             {hubSummary && (
@@ -795,7 +936,7 @@ export default function AdminOrdersManager({ initialOrders }: AdminOrdersManager
               </div>
             )}
 
-            {/* Batch Generation & Print Action Links */}
+            {/* Direct A4 Print Action Links */}
             <div
               style={{
                 background: '#f8fafc',
@@ -811,15 +952,15 @@ export default function AdminOrdersManager({ initialOrders }: AdminOrdersManager
               }}
             >
               <div>
-                <strong style={{ fontSize: '14px', color: '#0f172a' }}>Direct Print & Export</strong>
+                <strong style={{ fontSize: '14px', color: '#0f172a' }}>Standard A4 Document Printing</strong>
                 <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
-                  Print manifest or parcel tags for this timeframe ({hubTimeframe.toUpperCase()}).
+                  All sheets are strictly calibrated for Standard A4 Paper with cutting guides and barcode headers.
                 </div>
               </div>
 
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 <a
-                  href={`/api/invoices/batch?timeframe=${hubTimeframe === 'selected' ? '' : hubTimeframe}&ids=${hubTimeframe === 'selected' ? Array.from(selectedIds).join(',') : ''}&type=manifest`}
+                  href={`/api/invoices/batch?timeframe=${hubTimeframe === 'selected' ? '' : hubTimeframe}&ids=${hubTimeframe === 'selected' ? Array.from(selectedIds).join(',') : ''}&from=${encodeURIComponent(hubFrom)}&to=${encodeURIComponent(hubTo)}&type=manifest`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn btn-sm"
@@ -835,11 +976,11 @@ export default function AdminOrdersManager({ initialOrders }: AdminOrdersManager
                   }}
                 >
                   <Package size={14} />
-                  <span>🖨️ Print Picking Sheet</span>
+                  <span>🖨️ Print A4 Picking Sheet</span>
                 </a>
 
                 <a
-                  href={`/api/invoices/batch?timeframe=${hubTimeframe === 'selected' ? '' : hubTimeframe}&ids=${hubTimeframe === 'selected' ? Array.from(selectedIds).join(',') : ''}&type=tags&layout=6-up`}
+                  href={`/api/invoices/batch?timeframe=${hubTimeframe === 'selected' ? '' : hubTimeframe}&ids=${hubTimeframe === 'selected' ? Array.from(selectedIds).join(',') : ''}&from=${encodeURIComponent(hubFrom)}&to=${encodeURIComponent(hubTo)}&type=tags&layout=6-up`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn btn-sm"
@@ -855,11 +996,11 @@ export default function AdminOrdersManager({ initialOrders }: AdminOrdersManager
                   }}
                 >
                   <Tag size={14} />
-                  <span>🏷️ Print 6-Up Shipping Tags</span>
+                  <span>🏷️ Print 6-Up A4 Tags</span>
                 </a>
 
                 <a
-                  href={`/api/invoices/batch?timeframe=${hubTimeframe === 'selected' ? '' : hubTimeframe}&ids=${hubTimeframe === 'selected' ? Array.from(selectedIds).join(',') : ''}&type=tags&layout=9-up`}
+                  href={`/api/invoices/batch?timeframe=${hubTimeframe === 'selected' ? '' : hubTimeframe}&ids=${hubTimeframe === 'selected' ? Array.from(selectedIds).join(',') : ''}&from=${encodeURIComponent(hubFrom)}&to=${encodeURIComponent(hubTo)}&type=tags&layout=9-up`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn btn-sm"
@@ -875,11 +1016,11 @@ export default function AdminOrdersManager({ initialOrders }: AdminOrdersManager
                   }}
                 >
                   <Tag size={14} />
-                  <span>🏷️ Print 9-Up Mini Tags</span>
+                  <span>🏷️ Print 9-Up A4 Mini</span>
                 </a>
 
                 <a
-                  href={`/api/invoices/batch?timeframe=${hubTimeframe === 'selected' ? '' : hubTimeframe}&ids=${hubTimeframe === 'selected' ? Array.from(selectedIds).join(',') : ''}&type=standard`}
+                  href={`/api/invoices/batch?timeframe=${hubTimeframe === 'selected' ? '' : hubTimeframe}&ids=${hubTimeframe === 'selected' ? Array.from(selectedIds).join(',') : ''}&from=${encodeURIComponent(hubFrom)}&to=${encodeURIComponent(hubTo)}&type=standard`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn btn-sm"
@@ -895,7 +1036,7 @@ export default function AdminOrdersManager({ initialOrders }: AdminOrdersManager
                   }}
                 >
                   <Printer size={14} />
-                  <span>📄 Print All A4 Invoices</span>
+                  <span>📄 Print A4 Invoices</span>
                 </a>
               </div>
             </div>
