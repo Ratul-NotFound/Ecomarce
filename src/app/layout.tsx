@@ -2,6 +2,9 @@
 import type { Metadata, Viewport } from 'next';
 import { STORE_CONFIG } from '@/lib/store-config';
 import '@/styles/globals.css';
+import { Suspense } from 'react';
+import TrafficTracker from '@/components/shared/TrafficTracker';
+import ServiceWorkerRegister from '@/components/shared/ServiceWorkerRegister';
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'),
@@ -12,6 +15,11 @@ export const metadata: Metadata = {
   description: STORE_CONFIG.seo.defaultDescription,
   manifest:    '/manifest.json',
   applicationName: STORE_CONFIG.name,
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: STORE_CONFIG.name,
+  },
   authors: [{ name: STORE_CONFIG.name }],
   keywords: ['online shopping', 'bangladesh', 'fashion', 'electronics', 'lifestyle'],
   openGraph: {
@@ -35,6 +43,9 @@ export const metadata: Metadata = {
     index:  true,
     follow: true,
   },
+  other: {
+    'mobile-web-app-capable': 'yes',
+  },
 };
 
 export const viewport: Viewport = {
@@ -47,9 +58,6 @@ export const viewport: Viewport = {
     { media: '(prefers-color-scheme: dark)',  color: '#6366f1' },
   ],
 };
-
-import { Suspense } from 'react';
-import TrafficTracker from '@/components/shared/TrafficTracker';
 
 export default function RootLayout({
   children,
@@ -66,8 +74,13 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Hind+Siliguri:wght@400;500;600;700&display=swap"
           rel="stylesheet"
         />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content={STORE_CONFIG.name} />
+        <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body suppressHydrationWarning>
+        <ServiceWorkerRegister />
         <Suspense fallback={null}>
           <TrafficTracker />
         </Suspense>
@@ -76,4 +89,3 @@ export default function RootLayout({
     </html>
   );
 }
-
