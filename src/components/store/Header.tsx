@@ -26,9 +26,13 @@ export default function Header({ categories = [], storeName, storeLogo, announce
   const router = useRouter();
   const pathname = usePathname();
   const isCleanPage = pathname === '/cart' || pathname === '/checkout' || pathname.startsWith('/account');
+  const [logoError, setLogoError] = useState(false);
   const { itemCount } = useCart();
   const { user, profile, isAdmin, isModerator } = useAuth();
   const userAvatar = profile?.avatar_url || extractAvatarUrl(user);
+
+  const hasLogo = Boolean(storeLogo && storeLogo !== '/logo.svg' && !logoError);
+  const displayName = storeName || STORE_CONFIG.name;
 
   return (
     <header className="store-header">
@@ -50,17 +54,16 @@ export default function Header({ categories = [], storeName, storeLogo, announce
         <div className="store-header__inner">
           {/* Logo */}
           <Link href="/" className="store-header__logo" id="header-logo-link" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {storeLogo && (
+            {hasLogo ? (
               <img
                 src={storeLogo}
-                alt={storeName || STORE_CONFIG.name}
+                alt={displayName}
                 style={{ maxHeight: '34px', maxWidth: '140px', objectFit: 'contain' }}
-                onError={(e) => {
-                  (e.currentTarget as HTMLElement).style.display = 'none';
-                }}
+                onError={() => setLogoError(true)}
               />
+            ) : (
+              <span>{displayName}</span>
             )}
-            <span>{storeName || STORE_CONFIG.name}</span>
           </Link>
 
           {/* Desktop Search Bar with Live Recommendations */}

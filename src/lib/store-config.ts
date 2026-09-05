@@ -10,7 +10,7 @@ export const STORE_CONFIG = {
   name: 'ShopBD',                              // ← Change store name here
   tagline: 'Your Trusted Online Shop',
   tagline_bn: 'আপনার বিশ্বস্ত অনলাইন শপ',
-  logo: '/logo.svg',                           // Place your logo at public/logo.svg
+  logo: '',                                    // Upload logo via Admin Settings or place at public/logo.svg
   favicon: '/favicon.ico',
 
   // --- Currency ---
