@@ -1,39 +1,6 @@
 // next.config.ts
 import type { NextConfig } from 'next';
 
-const withPWA = require('next-pwa')({
-  dest: 'public',
-  disable: process.env.NODE_ENV === 'development', // Disable SW in dev
-  register: true,
-  skipWaiting: true,
-  runtimeCaching: [
-    {
-      urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-      handler: 'CacheFirst',
-      options: {
-        cacheName: 'google-fonts',
-        expiration: { maxEntries: 10, maxAgeSeconds: 365 * 24 * 60 * 60 },
-      },
-    },
-    {
-      urlPattern: /^https:\/\/.*\.supabase\.co\/storage\/.*/i,
-      handler: 'CacheFirst',
-      options: {
-        cacheName: 'supabase-images',
-        expiration: { maxEntries: 200, maxAgeSeconds: 30 * 24 * 60 * 60 },
-      },
-    },
-    {
-      urlPattern: /\/_next\/static\/.*/i,
-      handler: 'StaleWhileRevalidate',
-      options: {
-        cacheName: 'next-static',
-        expiration: { maxEntries: 200, maxAgeSeconds: 24 * 60 * 60 },
-      },
-    },
-  ],
-});
-
 const nextConfig: NextConfig = {
   // ── Security ────────────────────────────────────────────────
   // Remove X-Powered-By: Next.js header to prevent tech fingerprinting
@@ -135,4 +102,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-module.exports = withPWA(nextConfig);
+module.exports = nextConfig;

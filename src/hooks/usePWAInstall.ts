@@ -134,7 +134,31 @@ export function usePWAInstall() {
       return true;
     }
 
-    const promptEvent = deferredPromptRef.current || window.__pwaInstall || window.__pwaInstallPrompt;
+    let promptEvent = deferredPromptRef.current || window.__pwaInstall || window.__pwaInstallPrompt;
+
+    // If prompt hasn't arrived yet, wait up to 2 seconds for beforeinstallprompt to fire
+    if (!promptEvent && typeof window !== 'undefined') {
+      setIsInstalling(true);
+      promptEvent = await new Promise<BeforeInstallPromptEvent | null>((resolve) => {
+        const handler = () => {
+          const p = window.__pwaInstall || window.__pwaInstallPrompt || deferredPromptRef.current;
+          cleanup();
+          resolve(p);
+        };
+        const timer = setTimeout(() => {
+          cleanup();
+          resolve(null);
+        }, 2000);
+        const cleanup = () => {
+          window.removeEventListener('pwa-install-ready', handler);
+          window.removeEventListener('beforeinstallprompt', handler);
+          clearTimeout(timer);
+        };
+        window.addEventListener('pwa-install-ready', handler, { once: true });
+        window.addEventListener('beforeinstallprompt', handler, { once: true });
+      });
+      setIsInstalling(false);
+    }
 
     if (promptEvent && typeof promptEvent.prompt === 'function') {
       setIsInstalling(true);
@@ -162,7 +186,7 @@ export function usePWAInstall() {
       }
     }
 
-    // If native prompt is not yet ready or unsupported (iOS Safari / desktop address bar)
+    // Only show guide if on iOS or desktop where native event is not supported
     setShowGuide(true);
     return false;
   }, []);

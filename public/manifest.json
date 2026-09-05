@@ -2,17 +2,18 @@
   "name": "ShopBD — Online Shopping",
   "short_name": "ShopBD",
   "description": "Your Trusted Online Shop — Fast delivery across Bangladesh",
-  "start_url": "/",
-  "id": "/",
+  "start_url": "/?source=pwa",
+  "scope": "/",
   "display": "standalone",
-  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait-primary",
   "background_color": "#0f0f1a",
   "theme_color": "#6366f1",
-  "orientation": "portrait-primary",
-  "scope": "/",
   "lang": "en-BD",
   "dir": "ltr",
-  "categories": ["shopping", "lifestyle"],
+  "categories": [
+    "shopping",
+    "lifestyle"
+  ],
   "prefer_related_applications": false,
   "icons": [
     {
@@ -45,20 +46,19 @@
       "name": "My Orders",
       "short_name": "Orders",
       "url": "/account?tab=orders",
-      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
     },
     {
       "name": "Deals & Offers",
       "short_name": "Deals",
       "url": "/deals",
-      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
     },
     {
       "name": "Shopping Cart",
       "short_name": "Cart",
       "url": "/cart",
-      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
     }
-  ],
-  "related_applications": []
+  ]
 }
