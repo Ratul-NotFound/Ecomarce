@@ -452,6 +452,10 @@ export default function ProductForm({ initialProduct, categories = [] }: Product
       const finalTags = syncVideoToTags(withFinancialTags, videoUrl.trim() || null);
 
       const effectiveBase = Number(salePrice || basePrice || 0);
+      const isVariantProduct = Boolean(hasVariants && variants.length > 0);
+      const totalVariantStock = isVariantProduct
+        ? variants.reduce((sum, v) => sum + Math.max(0, Number(v.stock_quantity) || 0), 0)
+        : Math.max(0, Number(stockQuantity) || 0);
 
       const payload = {
         name_en: nameEn.trim(),
@@ -465,7 +469,7 @@ export default function ProductForm({ initialProduct, categories = [] }: Product
         cost_price: costPrice ? Number(costPrice) : null,
         video_url: videoUrl.trim() || null,
         tags: finalTags,
-        stock_quantity: Number(stockQuantity) || 0,
+        stock_quantity: totalVariantStock,
         total_sold: Number(totalSold) || 0,
         low_stock_threshold: Number(lowStockThreshold) || 5,
         description_en: descriptionEn.trim() || null,
@@ -478,7 +482,7 @@ export default function ProductForm({ initialProduct, categories = [] }: Product
               : new Date(Date.now() + 7 * 86400000).toISOString())
           : null,
         display_order: Number(displayOrder) || 0,
-        has_variants: hasVariants && variants.length > 0,
+        has_variants: isVariantProduct,
         variants: (hasVariants && variants.length > 0)
           ? variants.map((v, idx) => {
               const numSell = Number(v.sale_price || v.regular_price || 0);

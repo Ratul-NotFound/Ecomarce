@@ -12,6 +12,18 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { variants, ...productData } = body;
 
+    // Calculate variant stock and flag
+    const hasVariants = Boolean(variants && Array.isArray(variants) && variants.length > 0);
+    productData.has_variants = hasVariants;
+    if (hasVariants) {
+      productData.stock_quantity = variants.reduce(
+        (sum: number, v: any) => sum + Math.max(0, Number(v.stock_quantity) || 0),
+        0
+      );
+    } else {
+      productData.stock_quantity = Math.max(0, Number(productData.stock_quantity) || 0);
+    }
+
     // Ensure cost_price is encoded in tags
     if (productData.cost_price != null && !isNaN(Number(productData.cost_price))) {
       const existingTags = Array.isArray(productData.tags) ? productData.tags.filter((t: string) => !t.startsWith('cost:')) : [];
@@ -39,7 +51,7 @@ export async function POST(request: NextRequest) {
     const product = productResult.data;
 
     // Insert variants if defined
-    if (variants && variants.length > 0) {
+    if (hasVariants) {
       const variantsToInsert = variants.map((v: any) => ({
         product_id: product.id,
         sku: v.sku,
@@ -47,7 +59,7 @@ export async function POST(request: NextRequest) {
         color: v.color || null,
         material: v.material || null,
         price_modifier: Number(v.price_modifier) || 0,
-        stock_quantity: Number(v.stock_quantity) || 0,
+        stock_quantity: Math.max(0, Number(v.stock_quantity) || 0),
         images: Array.isArray(v.images) ? v.images : [],
       }));
       await dbClient.from('product_variants').insert(variantsToInsert);
@@ -69,10 +81,22 @@ export async function PUT(request: NextRequest) {
     const dbClient = auth.dbClient;
 
     const body = await request.json();
-    const { id, ...updates } = body;
+    const { id, variants, ...updates } = body;
 
     if (!id) {
       return NextResponse.json({ error: 'Product ID is required' }, { status: 400 });
+    }
+
+    // Sync has_variants and stock_quantity if variants array is provided
+    if (variants !== undefined && Array.isArray(variants)) {
+      const hasVariants = variants.length > 0;
+      updates.has_variants = hasVariants;
+      if (hasVariants) {
+        updates.stock_quantity = variants.reduce(
+          (sum: number, v: any) => sum + Math.max(0, Number(v.stock_quantity) || 0),
+          0
+        );
+      }
     }
 
     // Sync cost_price to tags if provided

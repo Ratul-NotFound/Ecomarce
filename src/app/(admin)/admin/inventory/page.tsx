@@ -46,6 +46,7 @@ export default function AdminInventoryPage() {
   const { showToast } = useToast();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [search, setSearch] = useState('');
   const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
 
@@ -544,6 +545,25 @@ export default function AdminInventoryPage() {
     }
   };
 
+  // Full Database Inventory Sync & Reconciliation
+  const handleSyncAllInventory = async () => {
+    setIsSyncing(true);
+    try {
+      const res = await fetch('/api/admin/inventory/sync', {
+        method: 'POST',
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to sync inventory');
+
+      showToast(data.message || 'Inventory reconciled successfully!', 'success');
+      loadProducts();
+    } catch (err: any) {
+      showToast(err.message || 'Failed to sync inventory', 'error');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   const filteredProducts = products.filter(p => {
     if (!search.trim()) return true;
     const q = search.toLowerCase();
@@ -570,10 +590,33 @@ export default function AdminInventoryPage() {
           </p>
         </div>
 
-        <Link href="/admin/products/new" className="btn btn-primary btn-sm">
-          <Plus size={16} />
-          <span>Add New Product</span>
-        </Link>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <button
+            type="button"
+            onClick={handleSyncAllInventory}
+            disabled={isSyncing}
+            className="btn btn-secondary btn-sm"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontWeight: 600,
+            }}
+          >
+            <RefreshCw
+              size={15}
+              style={{
+                animation: isSyncing ? 'spin 1s linear infinite' : 'none',
+              }}
+            />
+            <span>{isSyncing ? 'Syncing...' : 'Sync & Reconcile Stocks'}</span>
+          </button>
+
+          <Link href="/admin/products/new" className="btn btn-primary btn-sm">
+            <Plus size={16} />
+            <span>Add New Product</span>
+          </Link>
+        </div>
       </div>
 
       {/* Financial Valuation KPI Cards */}

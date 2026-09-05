@@ -42,10 +42,10 @@ export class InventoryService {
           .select('stock_quantity')
           .eq('product_id', productId);
         if (allVariants) {
-          const totalStock = allVariants.reduce((sum, v) => sum + (v.stock_quantity || 0), 0);
+          const totalStock = allVariants.reduce((sum, v) => sum + Math.max(0, Number(v.stock_quantity) || 0), 0);
           await this.supabase
             .from('products')
-            .update({ stock_quantity: totalStock })
+            .update({ stock_quantity: totalStock, has_variants: true })
             .eq('id', productId);
         }
       } catch (err) {
@@ -66,31 +66,133 @@ export class InventoryService {
     } else {
       const { data: product } = await this.supabase
         .from('products')
-        .select('stock_quantity')
+        .select('stock_quantity, has_variants')
         .eq('id', productId)
         .single();
 
       if (!product) throw new Error('Product not found');
-      const before = product.stock_quantity;
-      const after = Math.max(0, before + delta);
 
-      await this.supabase
-        .from('products')
-        .update({ stock_quantity: after })
-        .eq('id', productId);
+      // Check if this product actually has variants
+      const { data: existingVars } = await this.supabase
+        .from('product_variants')
+        .select('id, stock_quantity')
+        .eq('product_id', productId);
 
-      await this.supabase.from('inventory_logs').insert({
-        product_id: productId,
-        variant_id: null,
-        change_type: changeType,
-        quantity_before: before,
-        quantity_change: delta,
-        quantity_after: after,
-        reference_id: referenceId || null,
-        notes: notes || null,
-        created_by: adminId || null,
-      });
+      if (existingVars && existingVars.length > 0) {
+        // If product has variants, parent stock must always be sum of variants
+        const totalStock = existingVars.reduce((sum, v) => sum + Math.max(0, Number(v.stock_quantity) || 0), 0);
+        await this.supabase
+          .from('products')
+          .update({ stock_quantity: totalStock, has_variants: true })
+          .eq('id', productId);
+      } else {
+        const before = product.stock_quantity;
+        const after = Math.max(0, before + delta);
+
+        await this.supabase
+          .from('products')
+          .update({ stock_quantity: after, has_variants: false })
+          .eq('id', productId);
+
+        await this.supabase.from('inventory_logs').insert({
+          product_id: productId,
+          variant_id: null,
+          change_type: changeType,
+          quantity_before: before,
+          quantity_change: delta,
+          quantity_after: after,
+          reference_id: referenceId || null,
+          notes: notes || null,
+          created_by: adminId || null,
+        });
+      }
     }
+  }
+
+  /**
+   * Database-wide inventory synchronization and reconciliation.
+   * Recalculates parent stock quantities against variant sums and ensures state consistency.
+   */
+  async syncAllProductStocks(): Promise<{
+    totalProductsChecked: number;
+    syncedCount: number;
+    fixedProducts: Array<{ id: string; name: string; oldStock: number; newStock: number; variantCount: number }>;
+  }> {
+    const { data: allProducts, error: pErr } = await this.supabase
+      .from('products')
+      .select('id, name_en, stock_quantity, has_variants');
+
+    if (pErr) throw pErr;
+    if (!allProducts || allProducts.length === 0) {
+      return { totalProductsChecked: 0, syncedCount: 0, fixedProducts: [] };
+    }
+
+    const { data: allVariants, error: vErr } = await this.supabase
+      .from('product_variants')
+      .select('id, product_id, stock_quantity');
+
+    if (vErr) throw vErr;
+
+    // Group variants by product_id
+    const variantsByProduct = new Map<string, Array<{ id: string; stock_quantity: number }>>();
+    (allVariants || []).forEach(v => {
+      const list = variantsByProduct.get(v.product_id) || [];
+      list.push(v);
+      variantsByProduct.set(v.product_id, list);
+    });
+
+    const fixedProducts: Array<{ id: string; name: string; oldStock: number; newStock: number; variantCount: number }> = [];
+
+    for (const product of allProducts) {
+      const variants = variantsByProduct.get(product.id) || [];
+      const hasVars = variants.length > 0;
+      const currentStock = Number(product.stock_quantity) || 0;
+
+      if (hasVars) {
+        const totalVariantStock = variants.reduce((sum, v) => sum + Math.max(0, Number(v.stock_quantity) || 0), 0);
+        const needsUpdate = currentStock !== totalVariantStock || !product.has_variants;
+
+        if (needsUpdate) {
+          await this.supabase
+            .from('products')
+            .update({
+              stock_quantity: totalVariantStock,
+              has_variants: true,
+            })
+            .eq('id', product.id);
+
+          fixedProducts.push({
+            id: product.id,
+            name: product.name_en || 'Unnamed Product',
+            oldStock: currentStock,
+            newStock: totalVariantStock,
+            variantCount: variants.length,
+          });
+        }
+      } else if (product.has_variants && variants.length === 0) {
+        // has_variants flag was true but no variants exist
+        await this.supabase
+          .from('products')
+          .update({
+            has_variants: false,
+          })
+          .eq('id', product.id);
+
+        fixedProducts.push({
+          id: product.id,
+          name: product.name_en || 'Unnamed Product',
+          oldStock: currentStock,
+          newStock: currentStock,
+          variantCount: 0,
+        });
+      }
+    }
+
+    return {
+      totalProductsChecked: allProducts.length,
+      syncedCount: fixedProducts.length,
+      fixedProducts,
+    };
   }
 
   async deductForOrder(

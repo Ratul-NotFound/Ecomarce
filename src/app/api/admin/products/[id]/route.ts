@@ -16,6 +16,20 @@ export async function PUT(
     const body = await request.json();
     const { variants, ...productData } = body;
 
+    // Calculate variant stock and flag if variants provided
+    const hasVariants = Boolean(variants && Array.isArray(variants) && variants.length > 0);
+    if (variants !== undefined && Array.isArray(variants)) {
+      productData.has_variants = hasVariants;
+      if (hasVariants) {
+        productData.stock_quantity = variants.reduce(
+          (sum: number, v: any) => sum + Math.max(0, Number(v.stock_quantity) || 0),
+          0
+        );
+      } else if (productData.stock_quantity !== undefined) {
+        productData.stock_quantity = Math.max(0, Number(productData.stock_quantity) || 0);
+      }
+    }
+
     // Ensure cost_price is encoded in tags
     if (productData.cost_price !== undefined) {
       if (productData.tags) {
@@ -48,7 +62,7 @@ export async function PUT(
     const product = updateRes.data;
 
     // Update variants: delete old and recreate
-    if (variants) {
+    if (variants && Array.isArray(variants)) {
       await dbClient.from('product_variants').delete().eq('product_id', id);
       if (variants.length > 0) {
         const variantsToInsert = variants.map((v: any) => ({
@@ -58,7 +72,7 @@ export async function PUT(
           color: v.color || null,
           material: v.material || null,
           price_modifier: Number(v.price_modifier) || 0,
-          stock_quantity: Number(v.stock_quantity) || 0,
+          stock_quantity: Math.max(0, Number(v.stock_quantity) || 0),
           images: Array.isArray(v.images) ? v.images : [],
         }));
         await dbClient.from('product_variants').insert(variantsToInsert);

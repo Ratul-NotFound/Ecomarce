@@ -233,6 +233,28 @@ export class OrderService {
         console.error('Failed to restore inventory for cancelled order:', err);
       }
     }
+
+    // Automatically re-deduct inventory if order is re-opened from cancelled/returned state
+    if (
+      (previousStatus === 'cancelled' || previousStatus === 'returned') &&
+      status !== 'cancelled' &&
+      status !== 'returned'
+    ) {
+      try {
+        const { InventoryService } = await import('@/lib/services/InventoryService');
+        const inventoryService = new InventoryService(this.supabase);
+        const itemsToDeduct = (currentOrder?.items_snapshot || []).map((item: any) => ({
+          productId: item.product_id,
+          variantId: item.variant_id || undefined,
+          quantity: item.quantity,
+        }));
+        if (itemsToDeduct.length > 0) {
+          await inventoryService.deductForOrder(orderId, itemsToDeduct, adminId);
+        }
+      } catch (err) {
+        console.error('Failed to re-deduct inventory for un-cancelled order:', err);
+      }
+    }
   }
 
   async confirmPayment(orderId: string, adminId: string): Promise<void> {
