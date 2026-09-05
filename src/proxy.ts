@@ -364,6 +364,6 @@ async function getUserRole(userId: string, supabaseUrl: string, supabase: any, u
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|manifest.json|icons/|sw.js|workbox-.*).*)',
+    '/((?!_next/static|_next/image|favicon.ico|manifest.json|manifest.webmanifest|icons/|sw.js|sw-push.js|worker-.*|workbox-.*).*)',
   ],
 };

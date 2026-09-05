@@ -1,0 +1,69 @@
+// src/app/manifest.ts
+import { MetadataRoute } from 'next';
+import { STORE_CONFIG } from '@/lib/store-config';
+
+export default function manifest(): MetadataRoute.Manifest {
+  return {
+    name: `${STORE_CONFIG.name} — Online Shopping`,
+    short_name: STORE_CONFIG.name,
+    description: `${STORE_CONFIG.tagline} — Fast delivery across Bangladesh`,
+    start_url: '/',
+    id: '/',
+    display: 'standalone',
+    display_override: ['standalone', 'minimal-ui'],
+    background_color: '#0f0f1a',
+    theme_color: '#6366f1',
+    orientation: 'portrait-primary',
+    scope: '/',
+    lang: 'en-BD',
+    dir: 'ltr',
+    categories: ['shopping', 'lifestyle'],
+    prefer_related_applications: false,
+    icons: [
+      {
+        src: '/icons/icon-192.png',
+        sizes: '192x192',
+        type: 'image/png',
+        purpose: 'any',
+      },
+      {
+        src: '/icons/icon-192.png',
+        sizes: '192x192',
+        type: 'image/png',
+        purpose: 'maskable',
+      },
+      {
+        src: '/icons/icon-512.png',
+        sizes: '512x512',
+        type: 'image/png',
+        purpose: 'any',
+      },
+      {
+        src: '/icons/icon-512.png',
+        sizes: '512x512',
+        type: 'image/png',
+        purpose: 'maskable',
+      },
+    ],
+    shortcuts: [
+      {
+        name: 'My Orders',
+        short_name: 'Orders',
+        url: '/account?tab=orders',
+        icons: [{ src: '/icons/icon-192.png', sizes: '192x192' }],
+      },
+      {
+        name: 'Flash Deals',
+        short_name: 'Deals',
+        url: '/deals',
+        icons: [{ src: '/icons/icon-192.png', sizes: '192x192' }],
+      },
+      {
+        name: 'Cart',
+        short_name: 'Cart',
+        url: '/cart',
+        icons: [{ src: '/icons/icon-192.png', sizes: '192x192' }],
+      },
+    ],
+  };
+}
