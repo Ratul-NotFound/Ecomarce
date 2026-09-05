@@ -6,6 +6,16 @@ import '@/styles/pwa-install.css';
 
 const DISMISS_KEY = 'pwa_install_dismissed_v2';
 const INSTALLED_KEY = 'pwa_app_installed';
+const DISMISS_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+function isDismissed(): boolean {
+  if (typeof localStorage === 'undefined') return false;
+  const raw = localStorage.getItem(DISMISS_KEY);
+  if (!raw) return false;
+  const ts = parseInt(raw, 10);
+  if (isNaN(ts)) return false; // legacy '1' value → treat as expired
+  return Date.now() - ts < DISMISS_TTL_MS;
+}
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -61,9 +71,8 @@ export default function PWAInstallPrompt() {
       const installEvent = e as BeforeInstallPromptEvent;
       setDeferred(installEvent);
 
-      // Show install prompt quickly (1.5 seconds) if not recently dismissed
-      const dismissed = typeof localStorage !== 'undefined' && localStorage.getItem(DISMISS_KEY);
-      if (!dismissed) {
+      // Show install prompt quickly (1.5 seconds) if not recently dismissed (within 7 days)
+      if (!isDismissed()) {
         setTimeout(() => {
           setShowPrompt(true);
           setTimeout(() => setVisible(true), 50);
@@ -88,8 +97,7 @@ export default function PWAInstallPrompt() {
     // 5. iOS Safari fallback helper (if not standalone)
     let iosTimer: ReturnType<typeof setTimeout> | undefined;
     if (isIOS()) {
-      const dismissed = typeof localStorage !== 'undefined' && localStorage.getItem(DISMISS_KEY);
-      if (!dismissed) {
+      if (!isDismissed()) {
         iosTimer = setTimeout(() => {
           setShowIOS(true);
           setTimeout(() => setVisible(true), 50);

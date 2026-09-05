@@ -119,7 +119,12 @@ export async function POST(request: NextRequest) {
     // Broadcast in real-time to active admin dashboard and storefront
     try {
       const { broadcastRealtimeEvent } = await import('@/lib/supabase/realtime-broadcast');
+      // Broadcast to shared chat channel (admin dashboard + storefront chat widget)
       await broadcastRealtimeEvent('live_store_chat', 'new_chat_message', { message: newMessage });
+      // ALSO broadcast to customer's personal notification channel so NotificationBell sees it
+      if (target_user_id) {
+        await broadcastRealtimeEvent(`user_notifs_${target_user_id}`, 'new_chat_message', { message: newMessage });
+      }
     } catch (bcErr) {
       console.warn('Realtime broadcast error:', bcErr);
     }

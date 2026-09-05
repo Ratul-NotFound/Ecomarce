@@ -158,11 +158,11 @@ export default function TelegramChatWidget() {
   // Silent adaptive background sync when chat widget is open
   useEffect(() => {
     if (!isOpen) return;
-    // Sync immediately on open, then every 5 seconds
+    // Sync immediately on open, then every 2 seconds as fallback
     loadChatHistory();
     const interval = setInterval(() => {
       loadChatHistory();
-    }, 5000);
+    }, 2000);
     return () => clearInterval(interval);
   }, [isOpen, loadChatHistory]);
 

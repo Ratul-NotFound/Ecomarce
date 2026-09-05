@@ -13,7 +13,6 @@ export const metadata: Metadata = {
     template: `%s | ${STORE_CONFIG.seo.siteName}`,
   },
   description: STORE_CONFIG.seo.defaultDescription,
-  manifest:    '/manifest.json',
   applicationName: STORE_CONFIG.name,
   appleWebApp: {
     capable: true,

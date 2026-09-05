@@ -5,6 +5,16 @@ import { usePushNotifications } from '@/hooks/usePushNotifications';
 import '@/styles/push-prompt.css';
 
 const DISMISS_KEY = 'pwa_push_prompt_dismissed_v2';
+const DISMISS_TTL_MS = 7 * 24 * 60 * 60 * 1000; // re-prompt after 7 days
+
+function isPushDismissed(): boolean {
+  if (typeof localStorage === 'undefined') return false;
+  const raw = localStorage.getItem(DISMISS_KEY);
+  if (!raw) return false;
+  const ts = parseInt(raw, 10);
+  if (isNaN(ts)) return false; // legacy '1' → treat as expired
+  return Date.now() - ts < DISMISS_TTL_MS;
+}
 
 export default function PushNotificationPrompt() {
   const { user } = useAuth();
@@ -23,7 +33,7 @@ export default function PushNotificationPrompt() {
 
     if (permission === 'granted' || permission === 'denied' || permission === 'unsupported') return;
     if (isSubscribed) return;
-    if (typeof localStorage !== 'undefined' && localStorage.getItem(DISMISS_KEY)) return;
+    if (isPushDismissed()) return;
 
     // Show prompt 2.5s after user is authenticated
     const timer = setTimeout(() => {
@@ -45,7 +55,7 @@ export default function PushNotificationPrompt() {
   const handleDismiss = () => {
     setVisible(false);
     if (typeof localStorage !== 'undefined') {
-      localStorage.setItem(DISMISS_KEY, '1');
+      localStorage.setItem(DISMISS_KEY, Date.now().toString());
     }
     setTimeout(() => setShown(false), 500);
   };
