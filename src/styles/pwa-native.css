@@ -1,0 +1,44 @@
+/* src/styles/pwa-native.css — Native app-shell: safe-areas, iOS bounce fix, tap feedback */
+
+:root {
+  --safe-top:    env(safe-area-inset-top,    0px);
+  --safe-right:  env(safe-area-inset-right,  0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left:   env(safe-area-inset-left,   0px);
+}
+
+@media (display-mode: standalone) {
+  html { overflow: hidden; height: 100%; overscroll-behavior-y: none; }
+  body { overflow-y: auto; height: 100%; -webkit-overflow-scrolling: touch; }
+  body::before {
+    content: ''; position: fixed; top: 0; left: 0; right: 0;
+    height: var(--safe-top); background: var(--color-primary, #6366f1); z-index: 99999; pointer-events: none;
+  }
+}
+
+.bottom-nav, .mobile-nav, [data-bottom-nav] {
+  padding-bottom: max(12px, var(--safe-bottom));
+}
+.fixed-bottom, [data-fixed-bottom] {
+  bottom: max(16px, calc(var(--safe-bottom) + 12px));
+}
+header[data-pwa-header], .fixed-top, [data-fixed-top] {
+  padding-top: max(0px, var(--safe-top));
+}
+
+* { -webkit-tap-highlight-color: transparent; }
+
+button, a, [role="button"] {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+button:active, a:active, [role="button"]:active {
+  transform: scale(0.97);
+  transition: transform 0.08s ease;
+}
+
+:focus:not(:focus-visible) { outline: none; }
+:focus-visible { outline: 2px solid var(--color-primary, #6366f1); outline-offset: 2px; }
+
+[data-scroll] { -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }

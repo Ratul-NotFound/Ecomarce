@@ -1,0 +1,37 @@
+/* src/styles/pwa-install.css */
+.pwa-install {
+  position: fixed;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 76px);
+  right: 16px; z-index: 9998;
+  background: linear-gradient(135deg, #1e1b4b, #312e81);
+  border: 1px solid rgba(99,102,241,0.5);
+  border-radius: 20px; padding: 14px 18px; max-width: 300px;
+  box-shadow: 0 20px 48px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.06) inset;
+  opacity: 0; transform: translateY(20px) scale(0.95);
+  transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+  pointer-events: none;
+}
+.pwa-install.pwa-install--visible { opacity: 1; transform: translateY(0) scale(1); pointer-events: all; }
+.pwa-install__header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.pwa-install__icon   { width: 40px; height: 40px; border-radius: 10px; object-fit: cover; }
+.pwa-install__name   { font-size: 14px; font-weight: 700; color: #f1f5f9; }
+.pwa-install__sub    { font-size: 11px; color: #94a3b8; }
+.pwa-install__body   { font-size: 12px; color: #94a3b8; margin-bottom: 12px; line-height: 1.5; }
+.pwa-install__actions { display: flex; gap: 8px; }
+.pwa-install__btn    { flex: 1; padding: 8px; border-radius: 10px; font-size: 12px; font-weight: 600; border: none; cursor: pointer; }
+.pwa-install__btn--install { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; }
+.pwa-install__btn--dismiss { background: rgba(255,255,255,0.08); color: #94a3b8; }
+.pwa-ios-guide {
+  position: fixed; bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+  left: 50%; transform: translateX(-50%);
+  background: rgba(15,15,26,0.95); border: 1px solid rgba(99,102,241,0.4);
+  border-radius: 16px; padding: 12px 18px; width: min(340px, calc(100vw - 32px));
+  font-size: 12px; color: #94a3b8; text-align: center; z-index: 9997;
+  backdrop-filter: blur(10px);
+  animation: slide-up-ios 0.4s ease forwards;
+}
+@keyframes slide-up-ios {
+  from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+.pwa-ios-guide strong { color: #f1f5f9; }

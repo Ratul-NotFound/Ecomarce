@@ -10,6 +10,7 @@ import {
   clearCart as clearCartLib,
   calculateCartTotals,
 } from '@/lib/cart';
+import { haptics } from '@/lib/haptics';
 
 export function useCart() {
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -39,6 +40,7 @@ export function useCart() {
   const add = useCallback((product: Product, variant: ProductVariant | null = null, quantity = 1) => {
     const updated = addToCartLib(product, variant, quantity);
     setCart([...updated]);
+    haptics.cartAdd();
   }, []);
 
   const remove = useCallback((productId: string, variantId: string | null = null) => {

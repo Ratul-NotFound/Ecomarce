@@ -117,6 +117,24 @@ export async function POST(request: NextRequest) {
 
         // Broadcast real-time event to Admin Panel and Storefront Live Chat
         if (insertedReply) {
+          // Push notification to the customer if they are authenticated
+          if (targetUserId) {
+            try {
+              const { sendPushToUser } = await import('@/lib/push-notifications');
+              const preview = cleanMessage.length > 80 ? cleanMessage.slice(0, 77) + '…' : cleanMessage;
+              await sendPushToUser(targetUserId, {
+                title:   '💬 New Reply from Support',
+                body:    preview,
+                url:     '/?chat=open',
+                tag:     'chat-reply',
+                vibrate: [150, 75, 150],
+                actions: [{ action: 'reply', title: '💬 View Message' }],
+              });
+            } catch (pushErr) {
+              console.warn('[push] Chat push failed (non-fatal):', pushErr);
+            }
+          }
+
           try {
             const channel = dbClient.channel('live_store_chat');
             await channel.send({

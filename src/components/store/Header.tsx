@@ -14,6 +14,7 @@ import SearchBar from '@/components/store/SearchBar';
 interface HeaderProps {
   categories?: Array<{ id: string; name_en: string; name_bn?: string | null; slug: string }>;
   storeName?: string;
+  storeLogo?: string;
   announcement?: {
     enabled: boolean;
     text: string;
@@ -21,7 +22,7 @@ interface HeaderProps {
   };
 }
 
-export default function Header({ categories = [], storeName, announcement }: HeaderProps) {
+export default function Header({ categories = [], storeName, storeLogo, announcement }: HeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
   const isCleanPage = pathname === '/cart' || pathname === '/checkout' || pathname.startsWith('/account');
@@ -48,7 +49,17 @@ export default function Header({ categories = [], storeName, announcement }: Hea
         {/* Main Row */}
         <div className="store-header__inner">
           {/* Logo */}
-          <Link href="/" className="store-header__logo" id="header-logo-link">
+          <Link href="/" className="store-header__logo" id="header-logo-link" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {storeLogo && (
+              <img
+                src={storeLogo}
+                alt={storeName || STORE_CONFIG.name}
+                style={{ maxHeight: '34px', maxWidth: '140px', objectFit: 'contain' }}
+                onError={(e) => {
+                  (e.currentTarget as HTMLElement).style.display = 'none';
+                }}
+              />
+            )}
             <span>{storeName || STORE_CONFIG.name}</span>
           </Link>
 

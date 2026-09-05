@@ -10,10 +10,10 @@ import { invalidateStoreSettingsCache } from '@/lib/store-settings';
  * are NOT in this list and must be managed by their own dedicated endpoints.
  */
 const ALLOWED_SETTING_KEYS = new Set([
-  'store_name', 'store_tagline', 'contact_email', 'contact_phone', 'contact_address',
+  'store_name', 'store_tagline', 'store_logo_url', 'store_favicon_url', 'contact_email', 'contact_phone', 'contact_address',
   'store_phone', 'store_whatsapp',
   'shipping_inside_dhaka', 'shipping_outside_dhaka', 'free_shipping_above',
-  'primary_color',
+  'primary_color', 'secondary_color', 'accent_color', 'color_bg', 'color_text',
   'announcement_bar_enabled', 'announcement_bar_text', 'announcement_bar_link',
   'homepage_flash_sale_enabled', 'homepage_flash_sale_title', 'homepage_flash_sale_end',
   'flash_sale_end_time',

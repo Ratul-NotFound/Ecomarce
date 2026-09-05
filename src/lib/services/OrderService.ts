@@ -1,6 +1,34 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import type { CartItem, Address, Order, OrderStatus, PaymentMethod } from '@/types';
 
+// Lazy-loaded to avoid bundling web-push in client code
+async function dispatchOrderPush(userId: string, orderId: string, status: string): Promise<void> {
+  try {
+    const { sendPushToUser } = await import('@/lib/push-notifications');
+    const shortId = orderId.slice(0, 8).toUpperCase();
+    const map: Record<string, { title: string; body: string }> = {
+      confirmed:        { title: '✅ Order Confirmed',   body: `Your order #${shortId} is confirmed and being prepared.` },
+      processing:       { title: '⚙️ Order Processing', body: `We're preparing your #${shortId} items for shipment.` },
+      shipped:          { title: '🚚 Order Shipped!',    body: `Your order #${shortId} is on its way. Tap to track.` },
+      out_for_delivery: { title: '📦 Out for Delivery', body: `Your order #${shortId} arrives today!` },
+      delivered:        { title: '🎉 Order Delivered!', body: `Your order #${shortId} has arrived. Enjoy!` },
+      cancelled:        { title: '❌ Order Cancelled',  body: `Your order #${shortId} has been cancelled.` },
+      returned:         { title: '↩️ Return Confirmed', body: `Your return for #${shortId} has been processed.` },
+    };
+    const entry = map[status];
+    if (!entry) return;
+    await sendPushToUser(userId, {
+      ...entry,
+      url:     '/account/orders',
+      tag:     `order-${orderId}`,
+      vibrate: [200, 100, 200, 100, 400],
+      actions: [{ action: 'track', title: '📦 Track Order' }],
+    });
+  } catch (err) {
+    console.warn('[push] Order push failed (non-fatal):', err);
+  }
+}
+
 export class OrderService {
   private supabase: SupabaseClient;
 
@@ -156,7 +184,7 @@ export class OrderService {
   ): Promise<void> {
     const { data: currentOrder } = await this.supabase
       .from('orders')
-      .select('status, items_snapshot, tracking_info')
+      .select('user_id, status, items_snapshot, tracking_info')
       .eq('id', orderId)
       .single();
 
@@ -199,6 +227,12 @@ export class OrderService {
       location: location || null,
       updated_by: adminId,
     });
+
+    // Non-blocking push notification to customer (fire-and-forget)
+    const orderUserId = (currentOrder as any)?.user_id as string | null;
+    if (orderUserId) {
+      dispatchOrderPush(orderUserId, orderId, status);
+    }
 
     // Automatically restore inventory when order is cancelled or returned (idempotency guarded)
     if (

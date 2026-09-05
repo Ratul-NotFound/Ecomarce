@@ -39,6 +39,7 @@ import {
   updateCartQuantity, 
   removeFromCart 
 } from '@/lib/cart';
+import { haptics } from '@/lib/haptics';
 
 function CheckoutContent() {
   const router = useRouter();
@@ -405,6 +406,7 @@ function CheckoutContent() {
       }
 
       showToast('Order placed successfully! 🎉', 'success');
+      haptics.success();
       try {
         localStorage.removeItem('shopbd_claimed_coupon');
       } catch {}
@@ -418,6 +420,7 @@ function CheckoutContent() {
 
       router.push(`/orders/${data.order_id || data.order_number}`);
     } catch (err: any) {
+      haptics.error();
       showToast(err.message || 'Something went wrong placing your order', 'error');
     } finally {
       setIsSubmitting(false);

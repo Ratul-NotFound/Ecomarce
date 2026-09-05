@@ -67,6 +67,8 @@ async function _fetchStoreSettings(): Promise<StorefrontCustomSettings> {
     return {
       store_name: settingsMap['store_name'] || DEFAULT_STOREFRONT_SETTINGS.store_name,
       store_tagline: settingsMap['store_tagline'] || DEFAULT_STOREFRONT_SETTINGS.store_tagline,
+      store_logo_url: settingsMap['store_logo_url'] ?? DEFAULT_STOREFRONT_SETTINGS.store_logo_url,
+      store_favicon_url: settingsMap['store_favicon_url'] ?? DEFAULT_STOREFRONT_SETTINGS.store_favicon_url,
       contact_email: settingsMap['contact_email'] || DEFAULT_STOREFRONT_SETTINGS.contact_email,
       contact_phone: settingsMap['contact_phone'] || settingsMap['store_phone'] || DEFAULT_STOREFRONT_SETTINGS.contact_phone,
       contact_address: settingsMap['contact_address'] || DEFAULT_STOREFRONT_SETTINGS.contact_address,
@@ -76,6 +78,10 @@ async function _fetchStoreSettings(): Promise<StorefrontCustomSettings> {
       free_shipping_above: freeAbove,
 
       primary_color: settingsMap['primary_color'] || DEFAULT_STOREFRONT_SETTINGS.primary_color,
+      secondary_color: settingsMap['secondary_color'] || DEFAULT_STOREFRONT_SETTINGS.secondary_color,
+      accent_color: settingsMap['accent_color'] || DEFAULT_STOREFRONT_SETTINGS.accent_color,
+      color_bg: settingsMap['color_bg'] || DEFAULT_STOREFRONT_SETTINGS.color_bg,
+      color_text: settingsMap['color_text'] || DEFAULT_STOREFRONT_SETTINGS.color_text,
 
       announcement_bar_enabled: settingsMap['announcement_bar_enabled'] !== undefined
         ? String(settingsMap['announcement_bar_enabled']) === 'true' || settingsMap['announcement_bar_enabled'] === true

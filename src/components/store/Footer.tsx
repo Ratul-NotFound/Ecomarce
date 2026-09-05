@@ -118,8 +118,17 @@ export default function Footer({ settings }: FooterProps) {
         <div className="footer-grid">
           {/* Brand Info & Social Media Links */}
           <div>
-            <div style={{ fontSize: '22px', fontWeight: 800, color: 'var(--color-primary)', marginBottom: '12px' }}>
-              {storeName}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+              {settings?.store_logo_url && (
+                <img
+                  src={settings.store_logo_url}
+                  alt={storeName}
+                  style={{ maxHeight: '32px', maxWidth: '120px', objectFit: 'contain' }}
+                />
+              )}
+              <div style={{ fontSize: '22px', fontWeight: 800, color: 'var(--color-primary)' }}>
+                {storeName}
+              </div>
             </div>
             <p style={{ color: 'var(--color-text-secondary)', fontSize: '14px', lineHeight: 1.6, marginBottom: '14px', maxWidth: '300px' }}>
               {tagline}. Quality products, fast doorstep delivery, and 100% verified payment security.

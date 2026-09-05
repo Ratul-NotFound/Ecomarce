@@ -7,6 +7,8 @@ export interface StorefrontCustomSettings {
   // Brand & Identity
   store_name: string;
   store_tagline: string;
+  store_logo_url?: string;
+  store_favicon_url?: string;
   contact_email: string;
   contact_phone: string;
   contact_address: string;
@@ -18,6 +20,10 @@ export interface StorefrontCustomSettings {
 
   // Theme & Styling
   primary_color?: string;
+  secondary_color?: string;
+  accent_color?: string;
+  color_bg?: string;
+  color_text?: string;
 
   // Global Header Announcement Bar
   announcement_bar_enabled: boolean;
@@ -83,6 +89,8 @@ export const DEFAULT_HOMEPAGE_SECTIONS = [
 export const DEFAULT_STOREFRONT_SETTINGS: StorefrontCustomSettings = {
   store_name: STORE_CONFIG.name,
   store_tagline: STORE_CONFIG.tagline,
+  store_logo_url: STORE_CONFIG.logo || '',
+  store_favicon_url: STORE_CONFIG.favicon || '',
   contact_email: STORE_CONFIG.contact.email,
   contact_phone: STORE_CONFIG.contact.phone,
   contact_address: STORE_CONFIG.contact.address,
@@ -92,6 +100,10 @@ export const DEFAULT_STOREFRONT_SETTINGS: StorefrontCustomSettings = {
   free_shipping_above: STORE_CONFIG.shipping.freeAbove,
 
   primary_color: '#2563eb',
+  secondary_color: '#1d4ed8',
+  accent_color: '#f59e0b',
+  color_bg: '#f8f7f4',
+  color_text: '#1a1a1a',
 
   announcement_bar_enabled: true,
   announcement_bar_text: `⚡ Super Flash Offers: Cash on Delivery Nationwide & Free Delivery Over ৳${STORE_CONFIG.shipping.freeAbove}!`,

@@ -90,6 +90,7 @@ const CSRF_EXEMPT = new Set([
   '/api/reviews/check-purchase', // storefront query
   '/api/search/suggest',   // storefront search
   '/api/settings',         // storefront config
+  '/api/push/subscribe',   // PWA push subscription
 ]);
 
 function passesCSRF(request: NextRequest): boolean {

@@ -41,7 +41,16 @@ export default function AdminSettingsPage() {
   const [telegramChatId, setTelegramChatId] = useState('');
   const [ordersTopicId, setOrdersTopicId] = useState('');
   const [messagesTopicId, setMessagesTopicId] = useState('');
+  
+  // Brand & Theme Styling Customization
+  const [logoUrl, setLogoUrl] = useState<string>(STORE_CONFIG.logo || '');
+  const [faviconUrl, setFaviconUrl] = useState<string>(STORE_CONFIG.favicon || '');
   const [primaryColor, setPrimaryColor] = useState('#2563eb');
+  const [secondaryColor, setSecondaryColor] = useState('#1d4ed8');
+  const [accentColor, setAccentColor] = useState('#f59e0b');
+  const [colorBg, setColorBg] = useState('#f8f7f4');
+  const [colorText, setColorText] = useState('#1a1a1a');
+
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -52,6 +61,8 @@ export default function AdminSettingsPage() {
           const s = res.settings;
           if (s.store_name) setStoreName(s.store_name);
           if (s.store_tagline) setTagline(s.store_tagline);
+          if (s.store_logo_url !== undefined) setLogoUrl(s.store_logo_url);
+          if (s.store_favicon_url !== undefined) setFaviconUrl(s.store_favicon_url);
           if (s.contact_email) setEmail(s.contact_email);
           if (s.contact_phone) setPhone(s.contact_phone);
           if (s.contact_address) setAddress(s.contact_address);
@@ -83,7 +94,12 @@ export default function AdminSettingsPage() {
           if (s.telegram_chat_id) setTelegramChatId(s.telegram_chat_id);
           if (s.telegram_orders_topic_id) setOrdersTopicId(s.telegram_orders_topic_id);
           if (s.telegram_messages_topic_id) setMessagesTopicId(s.telegram_messages_topic_id);
+          
           if (s.primary_color) setPrimaryColor(s.primary_color);
+          if (s.secondary_color) setSecondaryColor(s.secondary_color);
+          if (s.accent_color) setAccentColor(s.accent_color);
+          if (s.color_bg) setColorBg(s.color_bg);
+          if (s.color_text) setColorText(s.color_text);
 
           if (s.homepage_flash_sale_enabled !== undefined) {
             setFlashSaleEnabled(String(s.homepage_flash_sale_enabled) === 'true' || s.homepage_flash_sale_enabled === true);
@@ -122,6 +138,8 @@ export default function AdminSettingsPage() {
       const payload = {
         store_name: storeName,
         store_tagline: tagline,
+        store_logo_url: logoUrl,
+        store_favicon_url: faviconUrl,
         contact_email: email,
         contact_phone: phone,
         contact_address: address,
@@ -146,6 +164,10 @@ export default function AdminSettingsPage() {
         telegram_orders_topic_id: ordersTopicId,
         telegram_messages_topic_id: messagesTopicId,
         primary_color: primaryColor,
+        secondary_color: secondaryColor,
+        accent_color: accentColor,
+        color_bg: colorBg,
+        color_text: colorText,
         homepage_flash_sale_enabled: flashSaleEnabled,
         homepage_flash_sale_title: flashSaleTitle,
         homepage_flash_sale_end: flashSaleEndTime,
@@ -162,10 +184,14 @@ export default function AdminSettingsPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
-      // Apply dynamic CSS custom property live
+      // Apply dynamic CSS custom properties live
       document.documentElement.style.setProperty('--color-primary', primaryColor);
+      document.documentElement.style.setProperty('--color-primary-dark', secondaryColor);
+      document.documentElement.style.setProperty('--color-accent', accentColor);
+      document.documentElement.style.setProperty('--color-bg', colorBg);
+      document.documentElement.style.setProperty('--color-text-primary', colorText);
 
-      showToast('Store settings & payment methods saved successfully!', 'success');
+      showToast('Store brand identity, theme & settings saved successfully!', 'success');
     } catch (err: any) {
       showToast(err.message || 'Failed to save settings', 'error');
     } finally {
@@ -735,51 +761,350 @@ export default function AdminSettingsPage() {
            GENERAL STORE IDENTITY & DELIVERY CHARGES
            ──────────────────────────────────────────────────────────── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
-          {/* Identity & Theme */}
-          <div className="admin-card">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-              <Palette size={18} color="var(--color-primary)" />
-              <h2 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--color-admin-text)' }}>Store Identity & Color Theme</h2>
+          {/* Full Brand Identity & Live Theme Customizer */}
+          <div className="admin-card" style={{ gridColumn: '1 / -1' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'var(--color-primary-10, rgba(37,99,235,0.1))', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Palette size={20} color="var(--color-primary)" />
+                </div>
+                <div>
+                  <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--color-admin-text)' }}>Store Brand Identity & Dynamic Theme</h2>
+                  <p style={{ fontSize: '13px', color: 'var(--color-admin-muted)', marginTop: '2px' }}>
+                    Easily rebrand your store name, upload logo/favicon, and switch color palettes anytime without editing code.
+                  </p>
+                </div>
+              </div>
+
+              {/* Quick Preset Selector Buttons */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-admin-dim)' }}>Theme Presets:</span>
+                {[
+                  { name: 'Sapphire', primary: '#2563eb', secondary: '#1d4ed8', accent: '#f59e0b', bg: '#f8f7f4', text: '#1a1a1a' },
+                  { name: 'Emerald', primary: '#059669', secondary: '#047857', accent: '#f59e0b', bg: '#f7fdf9', text: '#0f172a' },
+                  { name: 'Purple', primary: '#7c3aed', secondary: '#6d28d9', accent: '#fbbf24', bg: '#faf5ff', text: '#1e1b4b' },
+                  { name: 'Crimson', primary: '#e11d48', secondary: '#be123c', accent: '#f59e0b', bg: '#fff5f5', text: '#18181b' },
+                  { name: 'Midnight', primary: '#0f172a', secondary: '#1e293b', accent: '#3b82f6', bg: '#f8fafc', text: '#020617' },
+                  { name: 'Amber', primary: '#d97706', secondary: '#b45309', accent: '#2563eb', bg: '#fefdf8', text: '#1c1917' },
+                ].map(preset => (
+                  <button
+                    key={preset.name}
+                    type="button"
+                    onClick={() => {
+                      setPrimaryColor(preset.primary);
+                      setSecondaryColor(preset.secondary);
+                      setAccentColor(preset.accent);
+                      setColorBg(preset.bg);
+                      setColorText(preset.text);
+                      showToast(`Applied ${preset.name} color palette!`, 'info');
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '5px 10px',
+                      borderRadius: '8px',
+                      border: primaryColor === preset.primary ? '2px solid var(--color-admin-text)' : '1px solid var(--color-admin-border)',
+                      background: 'var(--color-admin-surface)',
+                      cursor: 'pointer',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                    }}
+                  >
+                    <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: preset.primary, display: 'inline-block' }} />
+                    {preset.name}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div className="form-group">
-                <label className="admin-label">Store Brand Name</label>
-                <input
-                  type="text"
-                  className="admin-input"
-                  value={storeName}
-                  onChange={e => setStoreName(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="admin-label">Tagline (Slogan)</label>
-                <input
-                  type="text"
-                  className="admin-input"
-                  value={tagline}
-                  onChange={e => setTagline(e.target.value)}
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="admin-label">Brand Primary Color</label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <input
-                    type="color"
-                    value={primaryColor}
-                    onChange={e => setPrimaryColor(e.target.value)}
-                    style={{ width: '40px', height: '40px', padding: 0, border: 'none', cursor: 'pointer', borderRadius: 'var(--radius-md)' }}
-                  />
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
+              {/* Left Column: Brand Names & Logo Assets */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div className="form-group">
+                  <label className="admin-label" style={{ fontWeight: 700 }}>Store Brand Name</label>
                   <input
                     type="text"
                     className="admin-input"
-                    value={primaryColor}
-                    onChange={e => setPrimaryColor(e.target.value)}
-                    style={{ flex: 1 }}
+                    value={storeName}
+                    onChange={e => setStoreName(e.target.value)}
+                    placeholder="e.g. ShopBD, BrandName"
+                    required
                   />
+                  <span style={{ fontSize: '11px', color: 'var(--color-admin-dim)', marginTop: '3px' }}>
+                    Displays in website header, footer, invoices, and tab titles.
+                  </span>
+                </div>
+
+                <div className="form-group">
+                  <label className="admin-label" style={{ fontWeight: 700 }}>Tagline / Slogan</label>
+                  <input
+                    type="text"
+                    className="admin-input"
+                    value={tagline}
+                    onChange={e => setTagline(e.target.value)}
+                    placeholder="e.g. Your Trusted Online Shop"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="admin-label" style={{ fontWeight: 700 }}>Logo Image URL</label>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input
+                      type="text"
+                      className="admin-input"
+                      value={logoUrl}
+                      onChange={e => setLogoUrl(e.target.value)}
+                      placeholder="e.g. /logo.svg or https://example.com/logo.png"
+                    />
+                    {logoUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setLogoUrl('')}
+                        style={{ padding: '0 12px', background: 'transparent', border: '1px solid var(--color-admin-border)', borderRadius: '8px', cursor: 'pointer', fontSize: '12px' }}
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                  <span style={{ fontSize: '11px', color: 'var(--color-admin-dim)', marginTop: '3px' }}>
+                    PNG, SVG, or WebP with transparent background recommended.
+                  </span>
+                </div>
+
+                <div className="form-group">
+                  <label className="admin-label" style={{ fontWeight: 700 }}>Favicon URL</label>
+                  <input
+                    type="text"
+                    className="admin-input"
+                    value={faviconUrl}
+                    onChange={e => setFaviconUrl(e.target.value)}
+                    placeholder="e.g. /favicon.ico"
+                  />
+                  <span style={{ fontSize: '11px', color: 'var(--color-admin-dim)', marginTop: '3px' }}>
+                    Browser tab miniature icon (16x16 or 32x32 px).
+                  </span>
+                </div>
+              </div>
+
+              {/* Middle Column: 5-Token Color Palette Customizer */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-admin-text)', marginBottom: '4px' }}>
+                  🎨 Color Palette Tokens
+                </div>
+
+                {/* Primary Color */}
+                <div className="form-group">
+                  <label className="admin-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Primary Brand Color</span>
+                    <span style={{ fontFamily: 'monospace', color: 'var(--color-admin-dim)' }}>{primaryColor}</span>
+                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <input
+                      type="color"
+                      value={primaryColor}
+                      onChange={e => setPrimaryColor(e.target.value)}
+                      style={{ width: '42px', height: '42px', padding: 0, border: 'none', cursor: 'pointer', borderRadius: '8px' }}
+                    />
+                    <input
+                      type="text"
+                      className="admin-input"
+                      value={primaryColor}
+                      onChange={e => setPrimaryColor(e.target.value)}
+                      style={{ flex: 1, fontFamily: 'monospace' }}
+                    />
+                  </div>
+                </div>
+
+                {/* Secondary Color */}
+                <div className="form-group">
+                  <label className="admin-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Secondary / Hover Accent</span>
+                    <span style={{ fontFamily: 'monospace', color: 'var(--color-admin-dim)' }}>{secondaryColor}</span>
+                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <input
+                      type="color"
+                      value={secondaryColor}
+                      onChange={e => setSecondaryColor(e.target.value)}
+                      style={{ width: '42px', height: '42px', padding: 0, border: 'none', cursor: 'pointer', borderRadius: '8px' }}
+                    />
+                    <input
+                      type="text"
+                      className="admin-input"
+                      value={secondaryColor}
+                      onChange={e => setSecondaryColor(e.target.value)}
+                      style={{ flex: 1, fontFamily: 'monospace' }}
+                    />
+                  </div>
+                </div>
+
+                {/* Accent Color */}
+                <div className="form-group">
+                  <label className="admin-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Sale / Flash Deal Accent</span>
+                    <span style={{ fontFamily: 'monospace', color: 'var(--color-admin-dim)' }}>{accentColor}</span>
+                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <input
+                      type="color"
+                      value={accentColor}
+                      onChange={e => setAccentColor(e.target.value)}
+                      style={{ width: '42px', height: '42px', padding: 0, border: 'none', cursor: 'pointer', borderRadius: '8px' }}
+                    />
+                    <input
+                      type="text"
+                      className="admin-input"
+                      value={accentColor}
+                      onChange={e => setAccentColor(e.target.value)}
+                      style={{ flex: 1, fontFamily: 'monospace' }}
+                    />
+                  </div>
+                </div>
+
+                {/* Background & Text Colors */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div className="form-group">
+                    <label className="admin-label">Page Background</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <input
+                        type="color"
+                        value={colorBg}
+                        onChange={e => setColorBg(e.target.value)}
+                        style={{ width: '36px', height: '36px', padding: 0, border: 'none', cursor: 'pointer', borderRadius: '6px' }}
+                      />
+                      <input
+                        type="text"
+                        className="admin-input"
+                        value={colorBg}
+                        onChange={e => setColorBg(e.target.value)}
+                        style={{ flex: 1, fontSize: '12px', fontFamily: 'monospace' }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="admin-label">Text Color</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <input
+                        type="color"
+                        value={colorText}
+                        onChange={e => setColorText(e.target.value)}
+                        style={{ width: '36px', height: '36px', padding: 0, border: 'none', cursor: 'pointer', borderRadius: '6px' }}
+                      />
+                      <input
+                        type="text"
+                        className="admin-input"
+                        value={colorText}
+                        onChange={e => setColorText(e.target.value)}
+                        style={{ flex: 1, fontSize: '12px', fontFamily: 'monospace' }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column: Real-Time Live Preview Widget */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-admin-text)' }}>
+                    👁️ Live Storefront Preview
+                  </span>
+                  <span style={{ fontSize: '11px', color: 'var(--color-admin-dim)' }}>Updates in real-time</span>
+                </div>
+
+                {/* Simulated Storefront Card */}
+                <div
+                  style={{
+                    borderRadius: '12px',
+                    border: '1px solid var(--color-admin-border)',
+                    background: colorBg,
+                    color: colorText,
+                    padding: '16px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '14px',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
+                  }}
+                >
+                  {/* Mock Header */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(0,0,0,0.08)', paddingBottom: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {logoUrl ? (
+                        <img
+                          src={logoUrl}
+                          alt="Logo Preview"
+                          style={{ height: '24px', maxWidth: '80px', objectFit: 'contain' }}
+                          onError={(e) => {
+                            (e.currentTarget as HTMLElement).style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <div style={{ width: '20px', height: '20px', borderRadius: '4px', background: primaryColor }} />
+                      )}
+                      <span style={{ fontWeight: 800, fontSize: '15px', color: primaryColor }}>
+                        {storeName || 'Your Store'}
+                      </span>
+                    </div>
+
+                    <span style={{ fontSize: '10px', background: accentColor, color: '#fff', padding: '3px 8px', borderRadius: '12px', fontWeight: 700 }}>
+                      ⚡ FLASH SALE
+                    </span>
+                  </div>
+
+                  {/* Mock Slogan */}
+                  <p style={{ fontSize: '12px', opacity: 0.8, margin: 0, fontStyle: 'italic' }}>
+                    &ldquo;{tagline || 'Your store tagline appears here.'}&rdquo;
+                  </p>
+
+                  {/* Mock Product Card */}
+                  <div style={{ background: '#fff', borderRadius: '8px', padding: '12px', border: '1px solid rgba(0,0,0,0.06)', display: 'flex', gap: '12px', alignItems: 'center' }}>
+                    <div style={{ width: '48px', height: '48px', borderRadius: '6px', background: 'rgba(0,0,0,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>
+                      🛍️
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: '13px', fontWeight: 700, color: colorText }}>Sample Product Title</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                        <span style={{ fontSize: '13px', fontWeight: 800, color: primaryColor }}>৳1,450</span>
+                        <span style={{ fontSize: '11px', textDecoration: 'line-through', opacity: 0.5 }}>৳1,850</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Mock Button & Badge */}
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      type="button"
+                      style={{
+                        flex: 1,
+                        background: primaryColor,
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '6px',
+                        padding: '8px 12px',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Add To Cart
+                    </button>
+                    <button
+                      type="button"
+                      style={{
+                        background: secondaryColor,
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '6px',
+                        padding: '8px 12px',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Buy Now
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
