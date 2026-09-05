@@ -115,6 +115,15 @@ async function _fetchStoreSettings(): Promise<StorefrontCustomSettings> {
       explore_title: settingsMap['explore_title'] || DEFAULT_STOREFRONT_SETTINGS.explore_title,
       explore_departments_title: settingsMap['explore_departments_title'] || DEFAULT_STOREFRONT_SETTINGS.explore_departments_title,
       explore_trending_tags: settingsMap['explore_trending_tags'] || DEFAULT_STOREFRONT_SETTINGS.explore_trending_tags,
+
+      social_facebook: settingsMap['social_facebook'] ?? DEFAULT_STOREFRONT_SETTINGS.social_facebook,
+      social_instagram: settingsMap['social_instagram'] ?? DEFAULT_STOREFRONT_SETTINGS.social_instagram,
+      social_youtube: settingsMap['social_youtube'] ?? DEFAULT_STOREFRONT_SETTINGS.social_youtube,
+      social_tiktok: settingsMap['social_tiktok'] ?? DEFAULT_STOREFRONT_SETTINGS.social_tiktok,
+      social_whatsapp: settingsMap['social_whatsapp'] ?? DEFAULT_STOREFRONT_SETTINGS.social_whatsapp,
+      social_telegram: settingsMap['social_telegram'] ?? DEFAULT_STOREFRONT_SETTINGS.social_telegram,
+      social_twitter: settingsMap['social_twitter'] ?? DEFAULT_STOREFRONT_SETTINGS.social_twitter,
+      social_linkedin: settingsMap['social_linkedin'] ?? DEFAULT_STOREFRONT_SETTINGS.social_linkedin,
     };
   } catch {
     return DEFAULT_STOREFRONT_SETTINGS;

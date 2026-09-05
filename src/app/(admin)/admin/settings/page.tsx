@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/components/shared/ToastProvider';
 import { STORE_CONFIG } from '@/lib/store-config';
-import { Sliders, Palette, Phone, ShieldCheck, Send, CreditCard, Eye, EyeOff, CheckCircle2, AlertCircle, Zap } from 'lucide-react';
+import { Sliders, Palette, Phone, ShieldCheck, Send, CreditCard, Eye, EyeOff, CheckCircle2, AlertCircle, Zap, Share2, Globe } from 'lucide-react';
 import { DEFAULT_PAYMENT_SETTINGS, getMergedPaymentSettings, PaymentSettings, PaymentMethodConfig } from '@/lib/utils/payment-config';
 
 export default function AdminSettingsPage() {
@@ -17,6 +17,16 @@ export default function AdminSettingsPage() {
   const [insideDhakaFee, setInsideDhakaFee] = useState<number | string>(STORE_CONFIG.shipping.insideDhaka);
   const [outsideDhakaFee, setOutsideDhakaFee] = useState<number | string>(STORE_CONFIG.shipping.outsideDhaka);
   const [freeAbove, setFreeAbove] = useState<number | string>(STORE_CONFIG.shipping.freeAbove);
+
+  // Social Media Links (Admin Controllable)
+  const [socialFacebook, setSocialFacebook] = useState<string>(STORE_CONFIG.social.facebook || '');
+  const [socialInstagram, setSocialInstagram] = useState<string>(STORE_CONFIG.social.instagram || '');
+  const [socialYoutube, setSocialYoutube] = useState<string>(STORE_CONFIG.social.youtube || '');
+  const [socialTiktok, setSocialTiktok] = useState<string>('');
+  const [socialWhatsapp, setSocialWhatsapp] = useState<string>(STORE_CONFIG.contact.whatsapp ? `https://wa.me/${STORE_CONFIG.contact.whatsapp.replace(/[^0-9]/g, '')}` : '');
+  const [socialTelegram, setSocialTelegram] = useState<string>(STORE_CONFIG.social.telegram || '');
+  const [socialTwitter, setSocialTwitter] = useState<string>('');
+  const [socialLinkedin, setSocialLinkedin] = useState<string>('');
 
   // Flash Sale Synchronization State
   const [flashSaleEnabled, setFlashSaleEnabled] = useState(true);
@@ -48,6 +58,16 @@ export default function AdminSettingsPage() {
           if (s.shipping_inside_dhaka) setInsideDhakaFee(s.shipping_inside_dhaka);
           if (s.shipping_outside_dhaka) setOutsideDhakaFee(s.shipping_outside_dhaka);
           if (s.free_shipping_above) setFreeAbove(s.free_shipping_above);
+
+          // Hydrate Social Media Links
+          if (s.social_facebook !== undefined) setSocialFacebook(s.social_facebook);
+          if (s.social_instagram !== undefined) setSocialInstagram(s.social_instagram);
+          if (s.social_youtube !== undefined) setSocialYoutube(s.social_youtube);
+          if (s.social_tiktok !== undefined) setSocialTiktok(s.social_tiktok);
+          if (s.social_whatsapp !== undefined) setSocialWhatsapp(s.social_whatsapp);
+          if (s.social_telegram !== undefined) setSocialTelegram(s.social_telegram);
+          if (s.social_twitter !== undefined) setSocialTwitter(s.social_twitter);
+          if (s.social_linkedin !== undefined) setSocialLinkedin(s.social_linkedin);
 
           if (s.payment_methods) {
             setPaymentSettings(getMergedPaymentSettings(s.payment_methods));
@@ -109,6 +129,15 @@ export default function AdminSettingsPage() {
         shipping_outside_dhaka: Number(outsideDhakaFee),
         free_shipping_above: Number(freeAbove),
         payment_methods: paymentSettings,
+        // Social Media Links
+        social_facebook: socialFacebook,
+        social_instagram: socialInstagram,
+        social_youtube: socialYoutube,
+        social_tiktok: socialTiktok,
+        social_whatsapp: socialWhatsapp,
+        social_telegram: socialTelegram,
+        social_twitter: socialTwitter,
+        social_linkedin: socialLinkedin,
         // Legacy fallback support
         bkash_number: paymentSettings.bkash.number,
         nagad_number: paymentSettings.nagad.number,
@@ -150,7 +179,7 @@ export default function AdminSettingsPage() {
         <div>
           <h1 className="admin-page-title">Global Store Settings & Payment Methods</h1>
           <p style={{ color: 'var(--color-admin-muted)', fontSize: '14px', marginTop: '4px' }}>
-            Customize payment methods (Hide / Unhide with 1 click), delivery rates, and brand identities.
+            Customize payment methods (Hide / Unhide with 1 click), delivery rates, social links, and brand identities.
           </p>
         </div>
 
@@ -558,6 +587,151 @@ export default function AdminSettingsPage() {
         </div>
 
         {/* ────────────────────────────────────────────────────────────
+           SOCIAL MEDIA PROFILES & FOOTER LINKS (NEW)
+           ──────────────────────────────────────────────────────────── */}
+        <div className="admin-card">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Share2 size={20} color="var(--color-primary)" />
+              <div>
+                <h2 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--color-admin-text)' }}>
+                  Social Media Profiles & Footer Icons / সোশ্যাল মিডিয়া লিঙ্ক
+                </h2>
+                <p style={{ fontSize: '12px', color: 'var(--color-admin-muted)', marginTop: '2px' }}>
+                  Manage links to your social channels. Icons will dynamically appear in the storefront footer. Leave empty to hide any icon.
+                </p>
+              </div>
+            </div>
+
+            <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-primary)' }}>
+              {[socialFacebook, socialInstagram, socialYoutube, socialTiktok, socialWhatsapp, socialTelegram, socialTwitter, socialLinkedin].filter(Boolean).length} Active Profiles
+            </span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px' }}>
+            {/* Facebook */}
+            <div className="form-group">
+              <label className="admin-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#1877f2' }} />
+                <span>Facebook Page / Group URL</span>
+              </label>
+              <input
+                type="url"
+                className="admin-input"
+                placeholder="https://facebook.com/yourbrand"
+                value={socialFacebook}
+                onChange={e => setSocialFacebook(e.target.value)}
+              />
+            </div>
+
+            {/* Instagram */}
+            <div className="form-group">
+              <label className="admin-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#e1306c' }} />
+                <span>Instagram Profile URL</span>
+              </label>
+              <input
+                type="url"
+                className="admin-input"
+                placeholder="https://instagram.com/yourbrand"
+                value={socialInstagram}
+                onChange={e => setSocialInstagram(e.target.value)}
+              />
+            </div>
+
+            {/* YouTube */}
+            <div className="form-group">
+              <label className="admin-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ff0000' }} />
+                <span>YouTube Channel URL</span>
+              </label>
+              <input
+                type="url"
+                className="admin-input"
+                placeholder="https://youtube.com/@yourchannel"
+                value={socialYoutube}
+                onChange={e => setSocialYoutube(e.target.value)}
+              />
+            </div>
+
+            {/* TikTok */}
+            <div className="form-group">
+              <label className="admin-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#00f2fe' }} />
+                <span>TikTok Profile URL</span>
+              </label>
+              <input
+                type="url"
+                className="admin-input"
+                placeholder="https://tiktok.com/@yourbrand"
+                value={socialTiktok}
+                onChange={e => setSocialTiktok(e.target.value)}
+              />
+            </div>
+
+            {/* WhatsApp */}
+            <div className="form-group">
+              <label className="admin-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#25d366' }} />
+                <span>WhatsApp Chat Link / wa.me</span>
+              </label>
+              <input
+                type="text"
+                className="admin-input"
+                placeholder="https://wa.me/8801700000000"
+                value={socialWhatsapp}
+                onChange={e => setSocialWhatsapp(e.target.value)}
+              />
+            </div>
+
+            {/* Telegram */}
+            <div className="form-group">
+              <label className="admin-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#229ed9' }} />
+                <span>Telegram Channel / Group Link</span>
+              </label>
+              <input
+                type="text"
+                className="admin-input"
+                placeholder="https://t.me/yourbrand"
+                value={socialTelegram}
+                onChange={e => setSocialTelegram(e.target.value)}
+              />
+            </div>
+
+            {/* Twitter / X */}
+            <div className="form-group">
+              <label className="admin-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#111827' }} />
+                <span>X / Twitter URL</span>
+              </label>
+              <input
+                type="url"
+                className="admin-input"
+                placeholder="https://x.com/yourbrand"
+                value={socialTwitter}
+                onChange={e => setSocialTwitter(e.target.value)}
+              />
+            </div>
+
+            {/* LinkedIn */}
+            <div className="form-group">
+              <label className="admin-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#0a66c2' }} />
+                <span>LinkedIn Page URL</span>
+              </label>
+              <input
+                type="url"
+                className="admin-input"
+                placeholder="https://linkedin.com/company/yourbrand"
+                value={socialLinkedin}
+                onChange={e => setSocialLinkedin(e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* ────────────────────────────────────────────────────────────
            GENERAL STORE IDENTITY & DELIVERY CHARGES
            ──────────────────────────────────────────────────────────── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
@@ -733,3 +907,4 @@ export default function AdminSettingsPage() {
     </div>
   );
 }
+

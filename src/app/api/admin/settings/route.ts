@@ -25,6 +25,8 @@ const ALLOWED_SETTING_KEYS = new Set([
   'deals_hero_title', 'deals_hero_subtitle', 'deals_badge_text', 'deals_timer_hours',
   'deals_banner_ids',
   'explore_title', 'explore_departments_title', 'explore_trending_tags',
+  'social_facebook', 'social_instagram', 'social_youtube', 'social_tiktok',
+  'social_whatsapp', 'social_telegram', 'social_twitter', 'social_linkedin',
   'payment_methods', 'bkash_number', 'nagad_number',
   'telegram_bot_token', 'telegram_chat_id', 'telegram_orders_topic_id', 'telegram_messages_topic_id',
 ]);

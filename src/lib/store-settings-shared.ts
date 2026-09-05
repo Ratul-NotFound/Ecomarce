@@ -59,6 +59,16 @@ export interface StorefrontCustomSettings {
   explore_title: string;
   explore_departments_title: string;
   explore_trending_tags: string;
+
+  // Social Media Links (Admin Configurable)
+  social_facebook?: string;
+  social_instagram?: string;
+  social_youtube?: string;
+  social_tiktok?: string;
+  social_whatsapp?: string;
+  social_telegram?: string;
+  social_twitter?: string;
+  social_linkedin?: string;
 }
 
 export const DEFAULT_HOMEPAGE_SECTIONS = [
@@ -89,6 +99,16 @@ export const DEFAULT_STOREFRONT_SETTINGS: StorefrontCustomSettings = {
 
   store_phone: STORE_CONFIG.contact.phone,
   store_whatsapp: STORE_CONFIG.contact.whatsapp,
+
+  // Social Media Defaults
+  social_facebook: STORE_CONFIG.social.facebook,
+  social_instagram: STORE_CONFIG.social.instagram,
+  social_youtube: STORE_CONFIG.social.youtube || '',
+  social_tiktok: '',
+  social_whatsapp: STORE_CONFIG.contact.whatsapp ? `https://wa.me/${STORE_CONFIG.contact.whatsapp.replace(/[^0-9]/g, '')}` : '',
+  social_telegram: STORE_CONFIG.social.telegram,
+  social_twitter: '',
+  social_linkedin: '',
 
   homepage_flash_sale_enabled: true,
   homepage_flash_sale_title: '⚡ Flash Deals & Steals',

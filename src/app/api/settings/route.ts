@@ -61,6 +61,14 @@ export async function GET(request: NextRequest) {
         primary_color: storefrontSettings.primary_color,
         deals_timer_hours: storefrontSettings.deals_timer_hours,
         payment_methods: paymentSettings,
+        social_facebook: storefrontSettings.social_facebook,
+        social_instagram: storefrontSettings.social_instagram,
+        social_youtube: storefrontSettings.social_youtube,
+        social_tiktok: storefrontSettings.social_tiktok,
+        social_whatsapp: storefrontSettings.social_whatsapp,
+        social_telegram: storefrontSettings.social_telegram,
+        social_twitter: storefrontSettings.social_twitter,
+        social_linkedin: storefrontSettings.social_linkedin,
       },
     });
   } catch (err: any) {
