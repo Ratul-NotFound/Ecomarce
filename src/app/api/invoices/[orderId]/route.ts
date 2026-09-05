@@ -87,13 +87,28 @@ export async function GET(
     const { getStoreSettings } = await import('@/lib/store-settings');
     const settings = await getStoreSettings();
 
+    const { searchParams } = new URL(request.url);
+    const docType = searchParams.get('type') || 'standard';
+    const layout = (searchParams.get('layout') || '6-up') as '4-up' | '6-up' | '9-up' | 'thermal';
+
     const invoiceService = new InvoiceService();
-    const html = invoiceService.generateInvoiceHtml(
-      order as Order,
-      settings.store_name,
-      settings.contact_phone,
-      settings.contact_email
-    );
+    let html = '';
+
+    if (docType === 'tag' || docType === 'tags') {
+      html = invoiceService.generateShippingTagsHtml(
+        [order as Order],
+        layout,
+        settings.store_name,
+        settings.contact_phone
+      );
+    } else {
+      html = invoiceService.generateInvoiceHtml(
+        order as Order,
+        settings.store_name,
+        settings.contact_phone,
+        settings.contact_email
+      );
+    }
 
     return new NextResponse(html, {
       headers: {

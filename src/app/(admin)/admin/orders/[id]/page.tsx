@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { formatCurrency, formatDate, getStatusLabel } from '@/lib/utils/format';
-import { ArrowLeft, FileText, Phone, MapPin, User, ShieldCheck, CreditCard } from 'lucide-react';
+import { ArrowLeft, FileText, Phone, MapPin, User, ShieldCheck, CreditCard, Tag, Printer } from 'lucide-react';
 import AdminOrderDetailClient from './AdminOrderDetailClient';
 import type { Order } from '@/types';
 
@@ -39,8 +39,8 @@ export default async function AdminOrderDetailPage({ params }: AdminOrderDetailP
 
   return (
     <div>
-      {/* Header navigation & invoice print button */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+      {/* Header navigation & multi-format print action buttons */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
         <Link
           href="/admin/orders"
           style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--color-primary-light)', fontWeight: 600 }}
@@ -49,16 +49,43 @@ export default async function AdminOrderDetailPage({ params }: AdminOrderDetailP
           <span>Back to All Orders</span>
         </Link>
 
-        <a
-          href={`/api/invoices/${order.id}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="btn btn-secondary btn-sm"
-          style={{ background: 'var(--color-admin-surface-2)', color: 'var(--color-admin-text)', borderColor: 'var(--color-admin-border)' }}
-        >
-          <FileText size={14} />
-          <span>Print / Export Invoice</span>
-        </a>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          {/* Shipping Tag (6-Up Format) */}
+          <a
+            href={`/api/invoices/${order.id}?type=tag&layout=6-up`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-secondary btn-sm"
+            style={{ background: 'var(--color-admin-surface-2)', color: 'var(--color-admin-text)', borderColor: 'var(--color-admin-border)', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+          >
+            <Tag size={14} color="#059669" />
+            <span>🏷️ Shipping Tag</span>
+          </a>
+
+          {/* Thermal Label (4x6) */}
+          <a
+            href={`/api/invoices/${order.id}?type=tag&layout=thermal`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-secondary btn-sm"
+            style={{ background: 'var(--color-admin-surface-2)', color: 'var(--color-admin-text)', borderColor: 'var(--color-admin-border)', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+          >
+            <Printer size={14} color="#64748b" />
+            <span>Thermal (4x6)</span>
+          </a>
+
+          {/* Full A4 Invoice */}
+          <a
+            href={`/api/invoices/${order.id}?type=standard`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-primary btn-sm"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+          >
+            <FileText size={14} />
+            <span>📄 Print A4 Invoice</span>
+          </a>
+        </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
