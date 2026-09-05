@@ -1,97 +1,231 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
+import { Download, X, Smartphone, Sparkles, CheckCircle2 } from 'lucide-react';
 import { haptics } from '@/lib/haptics';
 import '@/styles/pwa-install.css';
 
-const INSTALL_KEY = 'pwa_install_dismissed_v1';
+const DISMISS_KEY = 'pwa_install_dismissed_v2';
+const INSTALLED_KEY = 'pwa_app_installed';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
 }
 
 function isIOS() {
   if (typeof navigator === 'undefined') return false;
-  return /iphone|ipad|ipod/i.test(navigator.userAgent);
+  return /iphone|ipad|ipod/i.test(navigator.userAgent) && !(window as any).MSStream;
 }
+
 function isStandalone() {
   if (typeof window === 'undefined') return false;
-  return window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone === true;
+  return (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    window.matchMedia('(display-mode: fullscreen)').matches ||
+    window.matchMedia('(display-mode: minimal-ui)').matches ||
+    (navigator as any).standalone === true ||
+    document.referrer.includes('android-app://')
+  );
 }
 
 export default function PWAInstallPrompt() {
   const [deferred, setDeferred]       = useState<BeforeInstallPromptEvent | null>(null);
-  const [showAndroid, setShowAndroid] = useState(false);
+  const [showPrompt, setShowPrompt]   = useState(false);
   const [showIOS, setShowIOS]         = useState(false);
   const [visible, setVisible]         = useState(false);
-  const [storeName, setStoreName]     = useState('This App');
+  const [installed, setInstalled]     = useState(false);
+  const [storeName, setStoreName]     = useState('ShopBD');
 
   useEffect(() => {
-    if (isStandalone()) return;
-    if (typeof localStorage !== 'undefined' && localStorage.getItem(INSTALL_KEY)) return;
+    // 1. If already running as installed Standalone PWA, DO NOTHING
+    if (isStandalone()) {
+      setInstalled(true);
+      return;
+    }
 
-    // Try to get store name from meta tag if available
+    // 2. Check if user already marked as installed
+    if (typeof localStorage !== 'undefined' && localStorage.getItem(INSTALLED_KEY)) {
+      setInstalled(true);
+      return;
+    }
+
+    // Read application title
     const titleEl = document.querySelector('meta[name="application-name"]');
-    if (titleEl) setStoreName(titleEl.getAttribute('content') || 'This App');
+    if (titleEl) {
+      setStoreName(titleEl.getAttribute('content') || 'ShopBD');
+    }
 
-    const handler = (e: BeforeInstallPromptEvent) => {
+    // 3. Android & Desktop Chrome native install prompt listener
+    const handleBeforeInstall = (e: Event) => {
       e.preventDefault();
-      setDeferred(e);
-      setTimeout(() => { setShowAndroid(true); setTimeout(() => setVisible(true), 50); }, 30_000);
-    };
-    window.addEventListener('beforeinstallprompt', handler as EventListener);
+      const installEvent = e as BeforeInstallPromptEvent;
+      setDeferred(installEvent);
 
+      // Show install prompt quickly (1.5 seconds) if not recently dismissed
+      const dismissed = typeof localStorage !== 'undefined' && localStorage.getItem(DISMISS_KEY);
+      if (!dismissed) {
+        setTimeout(() => {
+          setShowPrompt(true);
+          setTimeout(() => setVisible(true), 50);
+        }, 1500);
+      }
+    };
+
+    // 4. Listen for successful install
+    const handleAppInstalled = () => {
+      setInstalled(true);
+      setShowPrompt(false);
+      setShowIOS(false);
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(INSTALLED_KEY, '1');
+      }
+      haptics.success();
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    // 5. iOS Safari fallback helper (if not standalone)
     let iosTimer: ReturnType<typeof setTimeout> | undefined;
     if (isIOS()) {
-      iosTimer = setTimeout(() => setShowIOS(true), 20_000);
+      const dismissed = typeof localStorage !== 'undefined' && localStorage.getItem(DISMISS_KEY);
+      if (!dismissed) {
+        iosTimer = setTimeout(() => {
+          setShowIOS(true);
+          setTimeout(() => setVisible(true), 50);
+        }, 3000);
+      }
     }
+
     return () => {
-      window.removeEventListener('beforeinstallprompt', handler as EventListener);
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+      window.removeEventListener('appinstalled', handleAppInstalled);
       if (iosTimer) clearTimeout(iosTimer);
     };
   }, []);
 
-  const handleInstall = async () => {
+  const handleInstallClick = async () => {
     if (!deferred) return;
     haptics.heavy();
+    
+    // Trigger the real native OS app install dialog
     await deferred.prompt();
     const { outcome } = await deferred.userChoice;
-    if (outcome === 'accepted') haptics.success();
-    setVisible(false); setDeferred(null);
-    setTimeout(() => setShowAndroid(false), 400);
+
+    if (outcome === 'accepted') {
+      haptics.success();
+      setInstalled(true);
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(INSTALLED_KEY, '1');
+      }
+    }
+
+    setVisible(false);
+    setDeferred(null);
+    setTimeout(() => setShowPrompt(false), 400);
   };
 
   const handleDismiss = () => {
     setVisible(false);
-    localStorage.setItem(INSTALL_KEY, '1');
-    setTimeout(() => { setShowAndroid(false); setShowIOS(false); }, 400);
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(DISMISS_KEY, Date.now().toString());
+    }
+    setTimeout(() => {
+      setShowPrompt(false);
+      setShowIOS(false);
+    }, 400);
   };
 
-  if (showAndroid) {
+  // If already installed as PWA standalone, render NOTHING
+  if (installed || isStandalone()) {
+    return null;
+  }
+
+  // Android & Desktop Chrome native install popup
+  if (showPrompt && deferred) {
     return (
-      <div className={`pwa-install ${visible ? 'pwa-install--visible' : ''}`} role="dialog">
+      <aside
+        className={`pwa-install ${visible ? 'pwa-install--visible' : ''}`}
+        role="dialog"
+        aria-label="Install App"
+      >
+        <button
+          type="button"
+          className="pwa-install__close"
+          onClick={handleDismiss}
+          aria-label="Close"
+        >
+          <X size={15} />
+        </button>
+
         <div className="pwa-install__header">
-          <img src="/icons/icon-192.png" alt={storeName} className="pwa-install__icon" />
+          <img
+            src="/icons/icon-192.png"
+            alt={storeName}
+            className="pwa-install__icon"
+          />
           <div>
             <div className="pwa-install__name">{storeName}</div>
-            <div className="pwa-install__sub">Add to Home Screen</div>
+            <div className="pwa-install__sub" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <Sparkles size={11} color="#f59e0b" />
+              <span>Official Native App</span>
+            </div>
           </div>
         </div>
-        <p className="pwa-install__body">Install for instant access — no app store needed. Works like a native app!</p>
+
+        <p className="pwa-install__body">
+          Install the full app on your phone for faster loading, offline access, and instant order notifications!
+        </p>
+
         <div className="pwa-install__actions">
-          <button className="pwa-install__btn pwa-install__btn--install" onClick={handleInstall} id="pwa-install-btn">Install App</button>
-          <button className="pwa-install__btn pwa-install__btn--dismiss" onClick={handleDismiss} id="pwa-install-dismiss-btn">Later</button>
+          <button
+            type="button"
+            className="pwa-install__btn pwa-install__btn--install"
+            onClick={handleInstallClick}
+            id="pwa-install-btn"
+          >
+            <Download size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+            <span>Install App</span>
+          </button>
+          <button
+            type="button"
+            className="pwa-install__btn pwa-install__btn--dismiss"
+            onClick={handleDismiss}
+            id="pwa-install-dismiss-btn"
+          >
+            Later
+          </button>
         </div>
-      </div>
+      </aside>
     );
   }
 
+  // iOS Safari "Add to Home Screen" guide
   if (showIOS) {
     return (
-      <div className="pwa-ios-guide" role="dialog">
-        <p>📲 Install <strong>{storeName}</strong> — tap <strong>Share ↑</strong> then <strong>&ldquo;Add to Home Screen&rdquo;</strong>!</p>
-        <button onClick={handleDismiss} style={{ marginTop: 8, background: 'none', border: 'none', color: '#6366f1', fontWeight: 700, cursor: 'pointer', fontSize: 12 }}>Dismiss</button>
-      </div>
+      <aside
+        className={`pwa-ios-guide ${visible ? 'pwa-ios-guide--visible' : ''}`}
+        role="dialog"
+        aria-label="Install on iPhone"
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, color: '#ffffff', fontSize: '13px' }}>
+            <Smartphone size={15} color="var(--color-primary)" />
+            <span>Install {storeName} on iOS</span>
+          </div>
+          <button
+            type="button"
+            onClick={handleDismiss}
+            style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '2px' }}
+          >
+            <X size={14} />
+          </button>
+        </div>
+
+        <p style={{ margin: '0 0 6px', fontSize: '12px', lineHeight: 1.4, color: '#cbd5e1' }}>
+          Tap the <strong>Share</strong> button <span style={{ fontSize: '14px' }}>⎋</span> at the bottom of Safari, then scroll and select <strong>&ldquo;Add to Home Screen ⊞&rdquo;</strong>.
+        </p>
+      </aside>
     );
   }
 
