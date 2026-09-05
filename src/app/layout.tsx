@@ -66,6 +66,15 @@ export default function RootLayout({
   return (
     <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
+        {/* Early-capture beforeinstallprompt BEFORE React hydrates — prevents race condition */}
+        <script dangerouslySetInnerHTML={{ __html: `
+          window.__pwaInstall = null;
+          window.addEventListener('beforeinstallprompt', function(e) {
+            e.preventDefault();
+            window.__pwaInstall = e;
+            document.dispatchEvent(new CustomEvent('pwa-install-ready'));
+          });
+        ` }} />
         {/* Preconnect to Google Fonts for faster loading */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
