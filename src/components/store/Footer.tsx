@@ -184,7 +184,7 @@ export default function Footer({ settings }: FooterProps) {
           <div>
             <div className="footer-col-title">Payment & Trust</div>
             <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)', marginBottom: '14px', lineHeight: 1.5 }}>
-              We accept official mobile payments and Cash on Delivery across all 64 districts in Bangladesh.
+              We accept official mobile payments and secure online transactions across all 64 districts in Bangladesh.
             </p>
 
             {/* Official Payment Logos */}
@@ -223,20 +223,20 @@ export default function Footer({ settings }: FooterProps) {
                 <span style={{ fontSize: '12px', fontWeight: 800, color: '#f97316' }}>Nagad</span>
               </div>
 
-              {/* Cash on Delivery */}
+              {/* Secure Online Payment */}
               <div
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '6px',
-                  background: 'rgba(37, 99, 235, 0.08)',
-                  border: '1px solid rgba(37, 99, 235, 0.25)',
+                  background: 'rgba(16, 185, 129, 0.08)',
+                  border: '1px solid rgba(16, 185, 129, 0.25)',
                   borderRadius: 'var(--radius-md)',
                   padding: '6px 10px',
                 }}
               >
-                <Banknote size={16} color="var(--color-primary)" />
-                <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--color-primary)' }}>Cash on Delivery</span>
+                <ShieldCheck size={16} color="#059669" />
+                <span style={{ fontSize: '12px', fontWeight: 800, color: '#059669' }}>100% Secure Payment</span>
               </div>
             </div>
 

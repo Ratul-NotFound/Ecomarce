@@ -388,24 +388,86 @@
 }
 
 /* ────────────────────────────────────────────────────────────
-   TRUST BADGES
+   STORE TRUST BADGES (SYSTEM SYNCED)
    ──────────────────────────────────────────────────────────── */
 .trust-badges-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: var(--space-3);
-  margin: var(--space-6) 0;
-  background: var(--color-surface);
+  gap: 14px;
+  margin: 20px 0 32px 0;
+  background: var(--color-surface, #ffffff);
   padding: 16px 20px;
-  border-radius: var(--radius-xl);
-  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl, 18px);
+  border: 1px solid var(--color-border, #e2e8f0);
+  box-shadow: 0 2px 12px rgba(15, 23, 42, 0.03);
 }
 
-@media (min-width: 768px) {
+.trust-badge-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 10px;
+  border-radius: var(--radius-lg, 12px);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.trust-badge-item:hover {
+  background: var(--color-surface-hover, rgba(241, 245, 249, 0.5));
+  transform: translateY(-1.5px);
+}
+
+.trust-badge-icon-box {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.trust-badge-item:hover .trust-badge-icon-box {
+  transform: scale(1.05);
+}
+
+.trust-badge-title {
+  font-weight: 700;
+  font-size: 13.5px;
+  color: var(--color-text-main, #0f172a);
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+
+.trust-badge-desc {
+  font-size: 11.5px;
+  color: var(--color-text-muted, #64748b);
+  margin-top: 2px;
+  line-height: 1.35;
+}
+
+@media (min-width: 1024px) {
   .trust-badges-grid {
     grid-template-columns: repeat(4, 1fr);
-    gap: var(--space-4);
-    padding: 20px 24px;
+    gap: 0;
+    padding: 14px 20px;
+  }
+
+  .trust-badge-item {
+    padding: 8px 16px;
+    border-right: 1px solid rgba(226, 232, 240, 0.7);
+    border-radius: 0;
+  }
+
+  .trust-badge-item:first-child {
+    border-top-left-radius: 12px;
+    border-bottom-left-radius: 12px;
+  }
+
+  .trust-badge-item:last-child {
+    border-right: none;
+    border-top-right-radius: 12px;
+    border-bottom-right-radius: 12px;
   }
 }
 

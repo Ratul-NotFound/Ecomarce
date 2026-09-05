@@ -68,25 +68,29 @@ function AccountContent() {
     }
   }, [profile]);
 
-  // Fetch orders and addresses
+  // Fetch orders and addresses with Realtime updates
   useEffect(() => {
     if (!user) return;
     const supabase = createClient();
 
-    // 1. Orders
-    supabase
-      .from('orders')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .then(({ data, error }) => {
-        if (!error && data) {
-          setOrders(data as Order[]);
-        }
-        setOrdersLoading(false);
-      });
+    const fetchOrders = () => {
+      supabase
+        .from('orders')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .then(({ data, error }) => {
+          if (!error && data) {
+            setOrders(data as Order[]);
+          }
+          setOrdersLoading(false);
+        });
+    };
 
-    // 2. Addresses
+    // 1. Initial Orders Fetch
+    fetchOrders();
+
+    // 2. Addresses Fetch
     supabase
       .from('addresses')
       .select('*')
@@ -95,6 +99,27 @@ function AccountContent() {
       .then(({ data }) => {
         if (data) setAddresses(data as Address[]);
       });
+
+    // 3. Realtime subscription for customer's orders
+    const ordersChannel = supabase
+      .channel(`customer-orders-${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'orders',
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          fetchOrders();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(ordersChannel);
+    };
   }, [user?.id]);
 
   // Counts

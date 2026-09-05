@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Search, X, ArrowRight, Package, TrendingUp, Sparkles, Folder } from 'lucide-react';
+import { Search, X, ArrowRight, Package, TrendingUp, Folder } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils/format';
 import { getOptimizedImageUrl } from '@/lib/utils/images';
 
@@ -250,7 +250,7 @@ export default function SearchBar({
                         gap: '4px',
                       }}
                     >
-                      <Sparkles size={11} color="var(--color-primary)" />
+                      <Search size={11} color="var(--color-primary)" />
                       <span>{highlightMatch(sug, searchTerm)}</span>
                     </button>
                   ))}

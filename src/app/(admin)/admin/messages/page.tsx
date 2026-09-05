@@ -11,7 +11,6 @@ import {
   Shield,
   Bot,
   RefreshCw,
-  Sparkles,
   ArrowLeft,
   ChevronRight,
   Check,

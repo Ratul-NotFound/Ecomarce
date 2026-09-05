@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ChevronLeft, ChevronRight, Sparkles, ArrowRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Flame, ArrowRight } from 'lucide-react';
 import type { SpecialOffer } from '@/types';
 
 interface HeroBannerProps {
@@ -35,7 +35,7 @@ export default function HeroBanner({ banners = [] }: HeroBannerProps) {
       id: 'default-fashion',
       title_en: 'Bespoke Menswear & Urban Luxury',
       title_bn: 'প্রিমিয়াম আরবান ফ্যাশন ও স্যুট কালেকশন',
-      subtitle: '✨ DESIGNER STYLES · UP TO 40% OFF',
+      subtitle: '🔥 DESIGNER STYLES · UP TO 40% OFF',
       image_url: '/images/banners/hero-fashion.jpg',
       link_url: '/category/fashion',
       type: 'hero_banner',
@@ -61,7 +61,7 @@ export default function HeroBanner({ banners = [] }: HeroBannerProps) {
       id: 'default-gadgets',
       title_en: 'Magical Ambient Lights & Moon Decor',
       title_bn: 'ম্যাজিকাল ফেয়ারি লাইটস, মুন ল্যাম্পস ও গ্যালাক্সি প্রজেক্টর',
-      subtitle: '✨ MOON LAMPS & GADGETS · 30% OFF',
+      subtitle: '⭐ MOON LAMPS & GADGETS · 30% OFF',
       image_url: '/images/banners/hero-gadgets.jpg',
       link_url: '/category/electronics',
       type: 'hero_banner',
@@ -162,7 +162,7 @@ export default function HeroBanner({ banners = [] }: HeroBannerProps) {
       >
         {current.subtitle && (
           <div className="hero-badge">
-            <Sparkles size={11} color="#f59e0b" />
+            <Flame size={11} color="#f59e0b" />
             <span>{current.subtitle}</span>
           </div>
         )}
@@ -178,7 +178,7 @@ export default function HeroBanner({ banners = [] }: HeroBannerProps) {
         )}
 
         <p className="hero-desc">
-          Fast home delivery with Cash on Delivery or bKash across 64 districts in Bangladesh.
+          Fast home delivery with 100% authentic quality across all 64 districts in Bangladesh.
         </p>
 
         <div className="hero-cta-group">

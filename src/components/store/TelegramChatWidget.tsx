@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { MessageCircle, Send, X, Bot, ShieldCheck, Sparkles, User } from 'lucide-react';
+import { MessageCircle, Send, X, Bot, ShieldCheck, User } from 'lucide-react';
 import { STORE_CONFIG } from '@/lib/store-config';
 import { useAuth } from '@/hooks/useAuth';
 import { createClient } from '@/lib/supabase/client';

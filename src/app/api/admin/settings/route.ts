@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { requireAdminAuth } from '@/lib/auth/admin-guard';
+import { invalidateStoreSettingsCache } from '@/lib/store-settings';
 
 /**
  * Strictly whitelisted settings keys.
@@ -144,10 +145,16 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Invalidate Next.js cache so Homepage and Deals page update instantly
+    // Immediately bust the module-level TTL cache so storefront picks up new values right away
+    try {
+      invalidateStoreSettingsCache();
+    } catch {}
+
+    // Invalidate Next.js page cache so Homepage and Deals page rerender instantly
     try {
       revalidatePath('/', 'page');
       revalidatePath('/deals', 'page');
+      revalidatePath('/products', 'page');
     } catch {}
 
     return NextResponse.json({ success: true, message: 'Settings updated successfully' });

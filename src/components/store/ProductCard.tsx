@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -25,6 +25,24 @@ export default function ProductCard({ product }: ProductCardProps) {
   const { showToast } = useToast();
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [addedAnim, setAddedAnim] = useState(false);
+
+  // Hydrate wishlist state from DB on mount (not just local React state)
+  useEffect(() => {
+    if (!user) {
+      setIsWishlisted(false);
+      return;
+    }
+    const supabase = createClient();
+    supabase
+      .from('wishlists')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('product_id', product.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        setIsWishlisted(!!data);
+      });
+  }, [user?.id, product.id]);
 
   const effectivePrice = product.sale_price ?? product.base_price;
   const hasDiscount = product.sale_price && product.sale_price < product.base_price;

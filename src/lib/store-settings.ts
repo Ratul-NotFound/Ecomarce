@@ -58,7 +58,7 @@ async function _fetchStoreSettings(): Promise<StorefrontCustomSettings> {
     }
 
     const freeAbove = Number(settingsMap['free_shipping_above']) || DEFAULT_STOREFRONT_SETTINGS.free_shipping_above;
-    let announcementText = settingsMap['announcement_bar_text'] || `⚡ Super Flash Offers: Cash on Delivery Nationwide & Free Delivery Over ৳${freeAbove}!`;
+    let announcementText = settingsMap['announcement_bar_text'] || `⚡ Super Flash Offers: 100% Genuine Products & Free Delivery Over ৳${freeAbove}!`;
     // If text references legacy ৳1,500 and free shipping threshold is different, dynamically update it
     if (announcementText.includes('৳1,500') && freeAbove !== 1500) {
       announcementText = announcementText.replace('৳1,500', `৳${freeAbove.toLocaleString()}`);
@@ -144,3 +144,13 @@ export const getStoreSettings = cache(async (): Promise<StorefrontCustomSettings
   _settingsCacheExpiry = now + 60_000; // 60-second TTL
   return fresh;
 });
+
+/**
+ * Immediately busts the module-level settings cache.
+ * Call this from the admin settings save API route after persisting changes
+ * so the next storefront request picks up fresh values without waiting 60s.
+ */
+export function invalidateStoreSettingsCache(): void {
+  _settingsCache = null;
+  _settingsCacheExpiry = 0;
+}

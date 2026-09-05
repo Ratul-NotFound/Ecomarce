@@ -19,7 +19,7 @@ export default async function AdminDashboardPage() {
     const [ordersRes, profilesRes, productsRes] = await Promise.all([
       dbClient
         .from('orders')
-        .select('id, order_number, customer_name, customer_phone, customer_email, total, status, payment_status, payment_method, shipping_address, created_at')
+        .select('*')
         .order('created_at', { ascending: false })
         .limit(250),
       dbClient
@@ -27,15 +27,19 @@ export default async function AdminDashboardPage() {
         .select('id', { count: 'exact', head: true }),
       dbClient
         .from('products')
-        .select('id, name_en, slug, stock_quantity, low_stock_threshold, base_price, sale_price, images')
-        .lte('stock_quantity', 5)
+        .select('id, name_en, slug, sku, stock_quantity, low_stock_threshold, base_price, sale_price, images')
         .order('stock_quantity', { ascending: true })
-        .limit(20),
+        .limit(50),
     ]);
 
     orders = (ordersRes.data as unknown as Order[]) || [];
     totalCustomersCount = profilesRes.count || 0;
-    lowStockProducts = (productsRes.data as Product[]) || [];
+    
+    // Dynamically filter products at or below their custom low_stock_threshold (fallback: 5)
+    const allProducts = (productsRes.data as Product[]) || [];
+    lowStockProducts = allProducts.filter(
+      p => (p.stock_quantity ?? 0) <= (p.low_stock_threshold ?? 5)
+    ).slice(0, 20);
   } catch (err) {
     console.error('Failed to load admin metrics:', err);
   }

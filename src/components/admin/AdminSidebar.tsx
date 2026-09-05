@@ -11,7 +11,7 @@ import {
   Users,
   MessageSquare,
   BarChart3,
-  Sparkles,
+  Palette,
   Ticket,
   Sliders,
   Store,
@@ -41,7 +41,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
     { label: 'Customers Directory', href: '/admin/customers', icon: Users, minRole: 'moderator' },
     { label: 'Analytics & Traffic', href: '/admin/analytics', icon: BarChart3, minRole: 'admin' },
     { label: 'Coupons & Deals', href: '/admin/coupons', icon: Ticket, minRole: 'admin' },
-    { label: 'Storefront Design', href: '/admin/customize', icon: Sparkles, minRole: 'admin' },
+    { label: 'Storefront Design', href: '/admin/customize', icon: Palette, minRole: 'admin' },
     { label: 'Store Settings', href: '/admin/settings', icon: Sliders, minRole: 'admin' },
   ];
 

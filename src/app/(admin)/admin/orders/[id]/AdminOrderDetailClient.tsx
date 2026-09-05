@@ -206,14 +206,91 @@ export default function AdminOrderDetailClient({ order }: AdminOrderDetailClient
 
       {/* 2. Status & Delivery Tracking Update Form */}
       <div className="admin-card">
-        <h2 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--color-admin-text)', marginBottom: '16px' }}>
-          Update Order Fulfillment Status
-        </h2>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
+          <h2 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--color-admin-text)' }}>
+            Order Fulfillment Pipeline
+          </h2>
+          <span
+            style={{
+              fontSize: '12px',
+              fontWeight: 800,
+              padding: '3px 10px',
+              borderRadius: 'var(--radius-full)',
+              background: 'var(--color-primary-10)',
+              color: 'var(--color-primary)',
+              textTransform: 'uppercase',
+            }}
+          >
+            Current: {status}
+          </span>
+        </div>
+
+        {/* 1-Click Quick Action Stepper */}
+        <div style={{ marginBottom: '20px', padding: '14px', background: 'var(--color-admin-surface-2)', borderRadius: 'var(--radius-lg)' }}>
+          <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-admin-muted)', marginBottom: '10px' }}>
+            ⚡ 1-Click Status Advancement:
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+            {[
+              { val: 'confirmed' as OrderStatus, label: '✓ Confirmed', color: '#0284c7' },
+              { val: 'processing' as OrderStatus, label: '📦 Processing', color: '#7c3aed' },
+              { val: 'shipped' as OrderStatus, label: '🚚 Shipped', color: '#2563eb' },
+              { val: 'out_for_delivery' as OrderStatus, label: '🛵 Out for Delivery', color: '#ea580c' },
+              { val: 'delivered' as OrderStatus, label: '🎉 Delivered', color: '#16a34a' },
+            ].map(step => {
+              const isCurrent = status === step.val;
+              return (
+                <button
+                  key={step.val}
+                  type="button"
+                  disabled={isProcessing || isCurrent}
+                  onClick={async () => {
+                    try {
+                      setIsProcessing(true);
+                      setStatus(step.val);
+                      const res = await fetch(`/api/admin/orders/${order.id}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          action: 'update_status',
+                          status: step.val,
+                          message: `Order status advanced to ${step.val}.`,
+                          location: location.trim() || undefined,
+                        }),
+                      });
+                      const data = await res.json();
+                      if (!res.ok) throw new Error(data.error || 'Failed to update status');
+
+                      showToast(`Order status updated to "${step.val.toUpperCase()}"!`, 'success');
+                      router.refresh();
+                    } catch (err: any) {
+                      showToast(err.message || 'Error updating status', 'error');
+                    } finally {
+                      setIsProcessing(false);
+                    }
+                  }}
+                  className="btn btn-sm"
+                  style={{
+                    background: isCurrent ? step.color : '#ffffff',
+                    color: isCurrent ? '#ffffff' : 'var(--color-admin-text)',
+                    borderColor: isCurrent ? step.color : 'var(--color-admin-border)',
+                    fontWeight: 700,
+                    fontSize: '12px',
+                    padding: '6px 12px',
+                    opacity: isCurrent ? 1 : 0.9,
+                  }}
+                >
+                  {step.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
         <form onSubmit={handleUpdateStatus} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
             <div className="form-group">
-              <label className="admin-label" htmlFor="order-status-select">Fulfillment State</label>
+              <label className="admin-label" htmlFor="order-status-select">Manual Status Override</label>
               <select
                 id="order-status-select"
                 className="admin-input"

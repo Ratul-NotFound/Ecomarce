@@ -6,7 +6,7 @@ import { getStoreSettings } from '@/lib/store-settings';
 import DealCouponClaim from '@/components/store/DealCouponClaim';
 import DealProductCard from '@/components/store/DealProductCard';
 import DealsHeroBanner from '@/components/store/DealsHeroBanner';
-import { Zap, Flame, Sparkles } from 'lucide-react';
+import { Zap, Flame, Percent } from 'lucide-react';
 import { STORE_CONFIG } from '@/lib/store-config';
 import { resolveFlashSaleEndTime } from '@/lib/flash-sale-utils';
 import type { SpecialOffer } from '@/types';
@@ -174,7 +174,7 @@ export default async function DealsPage({ searchParams }: DealsPageProps) {
             href="/deals?tier=big_discount"
             className={`deal-tab-btn ${tier === 'big_discount' ? 'deal-tab-btn--active' : ''}`}
           >
-            <Sparkles size={14} />
+            <Percent size={14} />
             <span>25%+ Mega Off</span>
           </Link>
 

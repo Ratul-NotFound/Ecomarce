@@ -47,10 +47,10 @@ interface ExtendedCoupon extends Coupon {
 
 const SECTION_METADATA: Record<string, { name: string; desc: string; icon: string }> = {
   hero: { name: 'Hero Carousel Banner', desc: 'Promotional slides, headlines, and call-to-actions', icon: '🎠' },
-  trust_badges: { name: 'Customer Trust Badges', desc: 'Guarantees: Cash on delivery, fast shipping, returns', icon: '🛡️' },
+  trust_badges: { name: 'Customer Trust Badges', desc: 'Guarantees: 100% Authentic, fast shipping, quality assurance', icon: '🛡️' },
   categories: { name: 'Explore Categories Grid', desc: 'Department cards for visual category navigation', icon: '🗂️' },
   flash_sale: { name: 'Flash Sale Showcase', desc: 'Time-limited flash deals with urgent countdown timer', icon: '⚡' },
-  featured: { name: 'Featured Products Showcase', desc: 'Curated handpicked top products for customers', icon: '✨' },
+  featured: { name: 'Featured Products Showcase', desc: 'Curated handpicked top products for customers', icon: '⭐' },
   new_arrivals: { name: 'New Arrivals Showcase', desc: 'Fresh catalog additions and latest inventory', icon: '🚀' },
 };
 
@@ -668,6 +668,16 @@ export default function AdminCustomizePage() {
     p.name_en.toLowerCase().includes(productSearch.toLowerCase())
   );
 
+  const selectSectionAndScroll = (secKey: string) => {
+    setExpandedSection(secKey);
+    setTimeout(() => {
+      const studioEl = document.getElementById('customizer-editor-studio');
+      if (studioEl) {
+        studioEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 40);
+  };
+
   return (
     <div>
       {/* ────────────────────────────────────────────────────────────
@@ -714,609 +724,746 @@ export default function AdminCustomizePage() {
       </div>
 
       {/* ────────────────────────────────────────────────────────────
-         MAIN NAVIGATION TABS
+         MAIN NAVIGATION TABS (TOUCH OPTIMIZED, ZERO CLUNKY SCROLLBAR)
          ──────────────────────────────────────────────────────────── */}
       <div
+        className="no-scrollbar"
         style={{
           display: 'flex',
-          gap: '8px',
+          gap: '10px',
           borderBottom: '1px solid var(--color-admin-border)',
-          paddingBottom: '12px',
+          paddingBottom: '14px',
           marginBottom: '24px',
           overflowX: 'auto',
+          alignItems: 'center',
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
+          WebkitOverflowScrolling: 'touch',
         }}
       >
-        <button
-          type="button"
-          onClick={() => setActiveTab('homepage')}
-          className={`btn btn-sm ${activeTab === 'homepage' ? 'btn-primary' : 'btn-secondary'}`}
-          style={{ display: 'flex', alignItems: 'center', gap: '6px', borderRadius: 'var(--radius-full)', whiteSpace: 'nowrap' }}
-        >
-          <Layout size={15} />
-          <span>🏠 Homepage Builder</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('announcement')}
-          className={`btn btn-sm ${activeTab === 'announcement' ? 'btn-primary' : 'btn-secondary'}`}
-          style={{ display: 'flex', alignItems: 'center', gap: '6px', borderRadius: 'var(--radius-full)', whiteSpace: 'nowrap' }}
-        >
-          <Megaphone size={15} />
-          <span>📢 Header & Announcement</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('deals')}
-          className={`btn btn-sm ${activeTab === 'deals' ? 'btn-primary' : 'btn-secondary'}`}
-          style={{ display: 'flex', alignItems: 'center', gap: '6px', borderRadius: 'var(--radius-full)', whiteSpace: 'nowrap' }}
-        >
-          <Zap size={15} />
-          <span>⚡ Deals Hub</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('explore')}
-          className={`btn btn-sm ${activeTab === 'explore' ? 'btn-primary' : 'btn-secondary'}`}
-          style={{ display: 'flex', alignItems: 'center', gap: '6px', borderRadius: 'var(--radius-full)', whiteSpace: 'nowrap' }}
-        >
-          <Compass size={15} />
-          <span>🧭 Explore Page</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('categories')}
-          className={`btn btn-sm ${activeTab === 'categories' ? 'btn-primary' : 'btn-secondary'}`}
-          style={{ display: 'flex', alignItems: 'center', gap: '6px', borderRadius: 'var(--radius-full)', whiteSpace: 'nowrap' }}
-        >
-          <Layers size={15} />
-          <span>🗂️ Categories Sequence</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('products')}
-          className={`btn btn-sm ${activeTab === 'products' ? 'btn-primary' : 'btn-secondary'}`}
-          style={{ display: 'flex', alignItems: 'center', gap: '6px', borderRadius: 'var(--radius-full)', whiteSpace: 'nowrap' }}
-        >
-          <Package size={15} />
-          <span>⭐ Products Sequence</span>
-        </button>
+        {[
+          { id: 'homepage' as const, label: 'Homepage Builder', icon: Layout, count: `${settings.homepage_sections_order.length} Blocks` },
+          { id: 'announcement' as const, label: 'Header & Announcement', icon: Megaphone, count: settings.announcement_bar_enabled ? 'Active' : 'Muted' },
+          { id: 'deals' as const, label: 'Deals Hub', icon: Zap, count: `${banners.filter(b => b.type === 'deals_banner').length} Banners` },
+          { id: 'explore' as const, label: 'Explore & Search Hub', icon: Compass, count: `${currentTags.length} Tags` },
+          { id: 'categories' as const, label: 'Categories Sequence', icon: Layers, count: `${categories.length} Items` },
+          { id: 'products' as const, label: 'Products Sequence', icon: Package, count: `${products.length} Items` },
+        ].map(tab => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className="btn btn-sm"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                borderRadius: 'var(--radius-full)',
+                whiteSpace: 'nowrap',
+                padding: '8px 16px',
+                fontSize: '13px',
+                fontWeight: 700,
+                background: isActive ? 'var(--color-primary)' : '#ffffff',
+                color: isActive ? '#ffffff' : 'var(--color-admin-text)',
+                border: `1px solid ${isActive ? 'var(--color-primary)' : 'var(--color-admin-border)'}`,
+                boxShadow: isActive ? '0 4px 12px var(--color-primary-20)' : '0 1px 2px rgba(0, 0, 0, 0.05)',
+                transition: 'all var(--transition-fast)',
+                flexShrink: 0,
+              }}
+            >
+              <Icon size={16} color={isActive ? '#ffffff' : 'var(--color-primary)'} />
+              <span>{tab.label}</span>
+              <span
+                style={{
+                  fontSize: '10px',
+                  fontWeight: 800,
+                  padding: '2px 7px',
+                  borderRadius: 'var(--radius-full)',
+                  background: isActive ? 'rgba(255, 255, 255, 0.25)' : 'var(--color-admin-surface-2)',
+                  color: isActive ? '#ffffff' : 'var(--color-admin-muted)',
+                }}
+              >
+                {tab.count}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       {/* ────────────────────────────────────────────────────────────
-         TAB 1: HOMEPAGE MODULAR SECTION BUILDER
+         TAB 1: HOMEPAGE MODULAR SECTION BUILDER (SQUARE MATRIX & STUDIO)
          ──────────────────────────────────────────────────────────── */}
       {activeTab === 'homepage' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '820px' }}>
-          <div style={{ background: 'var(--color-admin-surface-2)', padding: '12px 16px', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-admin-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '13px', color: 'var(--color-admin-muted)' }}>
-              Click on any section to configure its titles, slides, or contents. Use arrows to reorder.
-            </span>
-            <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-primary-light)' }}>
-              {settings.homepage_sections_order.length} Sections Configured
-            </span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {/* Top Instruction & Blueprint Bar */}
+          <div
+            style={{
+              background: 'linear-gradient(135deg, #ffffff 0%, var(--color-admin-surface-2) 100%)',
+              padding: '14px 18px',
+              borderRadius: 'var(--radius-xl)',
+              border: '1px solid var(--color-admin-border)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '12px',
+            }}
+          >
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Compass size={18} color="var(--color-primary)" />
+                <h3 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--color-admin-text)' }}>
+                  Homepage Modular Blueprint (6 Section Blocks)
+                </h3>
+              </div>
+              <p style={{ fontSize: '12px', color: 'var(--color-admin-muted)', marginTop: '2px' }}>
+                Tap any square block to instantly jump to its settings studio below. Reorder with ↑ / ↓ arrows.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <Link
+                href="/"
+                target="_blank"
+                className="btn btn-secondary btn-sm"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}
+              >
+                <ExternalLink size={14} />
+                <span>Preview Storefront</span>
+              </Link>
+              <button
+                type="button"
+                onClick={() => {
+                  if (confirm('Reset homepage sections to standard default order?')) {
+                    updateSetting({
+                      homepage_sections_order: DEFAULT_HOMEPAGE_SECTIONS,
+                      homepage_section_visibility: {
+                        hero: true,
+                        trust_badges: true,
+                        categories: true,
+                        flash_sale: true,
+                        featured: true,
+                        new_arrivals: true,
+                      },
+                    });
+                    showToast('Reset to default section layout', 'info');
+                  }
+                }}
+                className="btn btn-secondary btn-sm"
+                style={{ fontSize: '11px', color: 'var(--color-admin-muted)' }}
+              >
+                ↺ Reset Default
+              </button>
+            </div>
           </div>
 
-          {settings.homepage_sections_order.map((secKey, idx) => {
-            const meta = SECTION_METADATA[secKey] || { name: secKey, desc: '', icon: '📦' };
-            const isVisible = settings.homepage_section_visibility?.[secKey] !== false;
-            const isExpanded = expandedSection === secKey;
+          {/* Sleek Horizontal Sequence Pipeline */}
+          <div className="customizer-pipeline-grid">
+            {settings.homepage_sections_order.map((secKey, idx) => {
+              const meta = SECTION_METADATA[secKey] || { name: secKey, desc: '', icon: '📦' };
+              const isVisible = settings.homepage_section_visibility?.[secKey] !== false;
+              const isSelected = expandedSection === secKey;
 
-            return (
-              <div
-                key={secKey}
-                style={{
-                  background: isVisible ? 'var(--color-admin-surface)' : 'rgba(0,0,0,0.3)',
-                  border: `1px solid ${isExpanded ? 'var(--color-primary)' : isVisible ? 'var(--color-admin-border)' : 'rgba(239,68,68,0.2)'}`,
-                  borderRadius: 'var(--radius-xl)',
-                  overflow: 'hidden',
-                  transition: 'all 0.2s ease',
-                }}
-              >
-                {/* Section Block Header */}
+              return (
                 <div
-                  style={{
-                    padding: '14px 18px',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    background: isExpanded ? 'var(--color-admin-surface-2)' : 'transparent',
-                    cursor: 'pointer',
-                    userSelect: 'none',
-                  }}
-                  onClick={() => setExpandedSection(isExpanded ? null : secKey)}
+                  key={secKey}
+                  className={`customizer-pipeline-pill ${isSelected ? 'customizer-pipeline-pill--selected' : ''} ${!isVisible ? 'customizer-pipeline-pill--inactive' : ''}`}
+                  onClick={() => selectSectionAndScroll(secKey)}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--color-primary-light)', minWidth: '22px' }}>
+                  {/* Top Row: Position & Reorder Arrows */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                    <span
+                      style={{
+                        fontSize: '10px',
+                        fontWeight: 800,
+                        color: isSelected ? '#ffffff' : isVisible ? 'var(--color-primary)' : 'var(--color-admin-muted)',
+                        background: isSelected ? 'var(--color-primary)' : isVisible ? 'var(--color-primary-10)' : 'var(--color-admin-surface-2)',
+                        padding: '2px 7px',
+                        borderRadius: 'var(--radius-full)',
+                      }}
+                    >
                       #{idx + 1}
                     </span>
-                    <span style={{ fontSize: '18px' }}>{meta.icon}</span>
-                    <div>
-                      <div style={{ fontWeight: 800, fontSize: '14px', color: 'var(--color-admin-text)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span>{meta.name}</span>
-                        <span
-                          style={{
-                            fontSize: '10px',
-                            fontWeight: 800,
-                            padding: '1px 6px',
-                            borderRadius: 'var(--radius-full)',
-                            background: isVisible ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                            color: isVisible ? 'var(--color-success)' : 'var(--color-danger)',
-                          }}
-                        >
-                          {isVisible ? 'ACTIVE' : 'OFF'}
-                        </span>
-                      </div>
-                      <div style={{ fontSize: '11px', color: 'var(--color-admin-muted)' }}>
-                        {meta.desc}
-                      </div>
+
+                    {/* Left / Right Shift Arrows */}
+                    <div style={{ display: 'flex', gap: '3px' }} onClick={e => e.stopPropagation()}>
+                      <button
+                        type="button"
+                        disabled={idx === 0}
+                        onClick={() => handleMoveSection(idx, 'up')}
+                        className="customizer-pipeline-arrow-btn"
+                        title="Move Left / Up"
+                      >
+                        <ArrowUp size={11} style={{ transform: 'rotate(-90deg)' }} />
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={idx === settings.homepage_sections_order.length - 1}
+                        onClick={() => handleMoveSection(idx, 'down')}
+                        className="customizer-pipeline-arrow-btn"
+                        title="Move Right / Down"
+                      >
+                        <ArrowDown size={11} style={{ transform: 'rotate(-90deg)' }} />
+                      </button>
                     </div>
                   </div>
 
-                  {/* Actions Row */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }} onClick={e => e.stopPropagation()}>
-                    {/* ON / OFF Switch */}
+                  {/* Center Visual: Icon & Clean Title */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '4px 0', gap: '4px' }}>
+                    <span style={{ fontSize: '24px', lineHeight: 1 }}>{meta.icon}</span>
+                    <strong style={{ fontSize: '12.5px', fontWeight: 800, color: 'var(--color-admin-text)', lineHeight: 1.25 }}>
+                      {meta.name.replace(' Showcase', '').replace(' Carousel', '').replace(' Grid', '')}
+                    </strong>
+                  </div>
+
+                  {/* Bottom Row: Quick Visibility Toggle & Edit State */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      width: '100%',
+                      paddingTop: '6px',
+                      borderTop: '1px solid var(--color-admin-border)',
+                      gap: '4px',
+                    }}
+                    onClick={e => e.stopPropagation()}
+                  >
                     <button
                       type="button"
                       onClick={() => handleToggleSectionVisibility(secKey)}
-                      className={`btn btn-sm ${isVisible ? 'btn-secondary' : 'btn-primary'}`}
-                      style={{ padding: '4px 10px', height: '30px', fontSize: '11px', fontWeight: 700 }}
-                    >
-                      {isVisible ? 'Turn OFF' : 'Turn ON'}
-                    </button>
-
-                    {/* Up Arrow */}
-                    <button
-                      type="button"
-                      disabled={idx === 0}
-                      onClick={() => handleMoveSection(idx, 'up')}
                       style={{
-                        background: idx === 0 ? 'var(--color-admin-surface-2)' : '#ffffff',
-                        border: '1px solid var(--color-admin-border)',
-                        color: idx === 0 ? '#cbd5e1' : 'var(--color-admin-text)',
-                        padding: '4px 8px',
-                        borderRadius: 'var(--radius-md)',
-                        cursor: idx === 0 ? 'not-allowed' : 'pointer',
-                        height: '30px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
+                        background: isVisible ? 'rgba(34, 197, 94, 0.12)' : 'rgba(239, 68, 68, 0.12)',
+                        color: isVisible ? 'var(--color-success)' : 'var(--color-danger)',
+                        border: 'none',
+                        borderRadius: 'var(--radius-full)',
+                        fontSize: '9.5px',
+                        fontWeight: 800,
+                        padding: '2px 7px',
+                        cursor: 'pointer',
                       }}
-                      title="Move Up"
+                      title={isVisible ? 'Click to Hide Section' : 'Click to Show Section'}
                     >
-                      <ArrowUp size={14} />
+                      {isVisible ? '● Active' : '○ Hidden'}
                     </button>
 
-                    {/* Down Arrow */}
                     <button
                       type="button"
-                      disabled={idx === settings.homepage_sections_order.length - 1}
-                      onClick={() => handleMoveSection(idx, 'down')}
-                      style={{
-                        background: idx === settings.homepage_sections_order.length - 1 ? 'var(--color-admin-surface-2)' : '#ffffff',
-                        border: '1px solid var(--color-admin-border)',
-                        color: idx === settings.homepage_sections_order.length - 1 ? '#cbd5e1' : 'var(--color-admin-text)',
-                        padding: '4px 8px',
-                        borderRadius: 'var(--radius-md)',
-                        cursor: idx === settings.homepage_sections_order.length - 1 ? 'not-allowed' : 'pointer',
-                        height: '30px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                      title="Move Down"
+                      onClick={() => selectSectionAndScroll(secKey)}
+                      className={`btn btn-sm ${isSelected ? 'btn-primary' : 'btn-secondary'}`}
+                      style={{ padding: '2px 8px', height: '22px', fontSize: '10px', fontWeight: 800, borderRadius: 'var(--radius-md)' }}
                     >
-                      <ArrowDown size={14} />
-                    </button>
-
-                    {/* Expand/Collapse Icon */}
-                    <button
-                      type="button"
-                      onClick={() => setExpandedSection(isExpanded ? null : secKey)}
-                      style={{ background: 'none', border: 'none', color: 'var(--color-admin-muted)', padding: '4px' }}
-                    >
-                      {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                      {isSelected ? 'Editing' : 'Edit ➔'}
                     </button>
                   </div>
                 </div>
+              );
+            })}
+          </div>
 
-                {/* ────────────────────────────────────────────────────────────
-                   EXPANDED CONTENT BLOCK
-                   ──────────────────────────────────────────────────────────── */}
-                {isExpanded && (
-                  <div style={{ padding: '20px 24px', borderTop: '1px solid var(--color-admin-border)', background: 'var(--color-admin-surface)' }}>
-                    {/* HERO CAROUSEL BLOCK */}
-                    {secKey === 'hero' && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <h3 style={{ fontSize: '14px', fontWeight: 800, color: 'var(--color-admin-text)' }}>
-                            Carousel Slides ({banners.filter(b => b.type === 'hero_banner' || !b.type).length})
-                          </h3>
-                        </div>
+          {/* Dedicated Focused Section Editor Studio Canvas */}
+          {expandedSection && (
+            <div
+              id="customizer-editor-studio"
+              className="admin-card"
+              style={{
+                padding: '24px',
+                background: '#ffffff',
+                borderRadius: 'var(--radius-xl)',
+                border: '1.5px solid var(--color-primary)',
+                boxShadow: '0 8px 30px rgba(37, 99, 235, 0.08)',
+                marginTop: '4px',
+                scrollMarginTop: '20px',
+              }}
+            >
+              {/* Studio Canvas Header */}
+              {(() => {
+                const secMeta = SECTION_METADATA[expandedSection] || { name: expandedSection, desc: '', icon: '📦' };
+                const secIdx = settings.homepage_sections_order.indexOf(expandedSection);
+                const isSecVisible = settings.homepage_section_visibility?.[expandedSection] !== false;
 
-                        {/* Existing Slides */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                          {banners.filter(b => b.type === 'hero_banner' || !b.type).map(b => (
-                            <div
-                              key={b.id}
+                return (
+                  <div
+                    style={{
+                      marginBottom: '20px',
+                      paddingBottom: '16px',
+                      borderBottom: '1px solid var(--color-admin-border)',
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        flexWrap: 'wrap',
+                        gap: '12px',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <span style={{ fontSize: '26px' }}>{secMeta.icon}</span>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                            <h2 style={{ fontSize: '17px', fontWeight: 800, color: 'var(--color-admin-text)' }}>
+                              {secMeta.name} — Studio Editor
+                            </h2>
+                            <span
                               style={{
-                                background: 'var(--color-admin-surface-2)',
-                                border: '1px solid var(--color-admin-border)',
-                                borderRadius: 'var(--radius-lg)',
-                                padding: '10px 14px',
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
+                                fontSize: '11px',
+                                fontWeight: 800,
+                                padding: '2px 8px',
+                                borderRadius: 'var(--radius-full)',
+                                background: 'var(--color-primary-10)',
+                                color: 'var(--color-primary)',
                               }}
                             >
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                {b.image_url && (
-                                  <div style={{ position: 'relative', width: '54px', height: '36px', borderRadius: 'var(--radius-sm)', overflow: 'hidden', flexShrink: 0, background: '#f1f5f9' }}>
-                                    <Image src={b.image_url} alt={b.title_en} fill style={{ objectFit: 'cover' }} />
-                                  </div>
-                                )}
-                                <div>
-                                  <strong style={{ fontSize: '13px', color: 'var(--color-admin-text)' }}>{b.title_en}</strong>
-                                  <div style={{ fontSize: '11px', color: 'var(--color-admin-muted)' }}>
-                                    {b.subtitle} • {b.link_url}
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <button
-                                  type="button"
-                                  onClick={() => handleToggleSlideActive(b)}
-                                  className={`btn btn-sm ${b.is_active ? 'btn-secondary' : 'btn-primary'}`}
-                                  style={{ padding: '2px 8px', height: '26px', fontSize: '11px' }}
-                                >
-                                  {b.is_active ? 'ON' : 'OFF'}
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => openEditSlideModal(b)}
-                                  style={{ background: '#ffffff', border: '1px solid var(--color-admin-border)', color: 'var(--color-admin-text)', padding: '4px 6px', borderRadius: '4px', cursor: 'pointer' }}
-                                  title="Edit Slide"
-                                >
-                                  <Edit3 size={13} />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeleteBanner(b.id)}
-                                  style={{ background: 'none', border: 'none', color: 'var(--color-danger)', padding: '4px', cursor: 'pointer' }}
-                                  title="Delete Slide"
-                                >
-                                  <Trash2 size={14} />
-                                </button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-
-                        {/* Quick Add Slide */}
-                        <div style={{ background: 'var(--color-admin-surface-2)', padding: '16px', borderRadius: 'var(--radius-lg)', border: '1px dashed var(--color-admin-border)' }}>
-                          <h4 style={{ fontSize: '13px', fontWeight: 800, color: 'var(--color-admin-text)', marginBottom: '12px' }}>
-                            + Add New Slide to Hero Carousel
-                          </h4>
-                          <form onSubmit={handleCreateBanner} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                              <input
-                                type="text"
-                                className="admin-input"
-                                placeholder="Headline (e.g. Eid Mega Offer 2026)"
-                                value={bannerTitleEn}
-                                onChange={e => setBannerTitleEn(e.target.value)}
-                                required
-                              />
-                              <input
-                                type="text"
-                                className="admin-input"
-                                placeholder="Subtitle (e.g. FLAT 30% OFF)"
-                                value={bannerSubtitle}
-                                onChange={e => setBannerSubtitle(e.target.value)}
-                              />
-                            </div>
-                            <input
-                              type="text"
-                              className="admin-input"
-                              placeholder="Link URL (e.g. /deals)"
-                              value={bannerLink}
-                              onChange={e => setBannerLink(e.target.value)}
-                            />
-                            <ImageUploader images={bannerImages} onChange={setBannerImages} />
-                            <button
-                              type="submit"
-                              disabled={isCreatingBanner}
-                              className="btn btn-primary btn-sm"
-                              style={{ alignSelf: 'flex-start', marginTop: '4px' }}
-                            >
-                              <Plus size={14} />
-                              <span>{isCreatingBanner ? 'Publishing...' : 'Add Slide'}</span>
-                            </button>
-                          </form>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* TRUST BADGES BLOCK */}
-                    {secKey === 'trust_badges' && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                        <p style={{ fontSize: '12px', color: 'var(--color-admin-muted)' }}>
-                          Customize the 4 customer guarantees displayed directly below the hero banner.
-                        </p>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '12px' }}>
-                          <div style={{ background: 'var(--color-admin-surface-2)', padding: '12px', borderRadius: 'var(--radius-md)' }}>
-                            <label className="admin-label">Badge 1 (Shipping/Payment)</label>
-                            <input
-                              type="text"
-                              className="admin-input"
-                              value={settings.trust_badge_1_title}
-                              onChange={e => updateSetting({ trust_badge_1_title: e.target.value })}
-                              placeholder="Title"
-                              style={{ marginBottom: '6px' }}
-                            />
-                            <input
-                              type="text"
-                              className="admin-input"
-                              value={settings.trust_badge_1_desc}
-                              onChange={e => updateSetting({ trust_badge_1_desc: e.target.value })}
-                              placeholder="Subtitle"
-                            />
-                          </div>
-
-                          <div style={{ background: 'var(--color-admin-surface-2)', padding: '12px', borderRadius: 'var(--radius-md)' }}>
-                            <label className="admin-label">Badge 2 (Delivery Speed)</label>
-                            <input
-                              type="text"
-                              className="admin-input"
-                              value={settings.trust_badge_2_title}
-                              onChange={e => updateSetting({ trust_badge_2_title: e.target.value })}
-                              placeholder="Title"
-                              style={{ marginBottom: '6px' }}
-                            />
-                            <input
-                              type="text"
-                              className="admin-input"
-                              value={settings.trust_badge_2_desc}
-                              onChange={e => updateSetting({ trust_badge_2_desc: e.target.value })}
-                              placeholder="Subtitle"
-                            />
-                          </div>
-
-                          <div style={{ background: 'var(--color-admin-surface-2)', padding: '12px', borderRadius: 'var(--radius-md)' }}>
-                            <label className="admin-label">Badge 3 (Returns Guarantee)</label>
-                            <input
-                              type="text"
-                              className="admin-input"
-                              value={settings.trust_badge_3_title}
-                              onChange={e => updateSetting({ trust_badge_3_title: e.target.value })}
-                              placeholder="Title"
-                              style={{ marginBottom: '6px' }}
-                            />
-                            <input
-                              type="text"
-                              className="admin-input"
-                              value={settings.trust_badge_3_desc}
-                              onChange={e => updateSetting({ trust_badge_3_desc: e.target.value })}
-                              placeholder="Subtitle"
-                            />
-                          </div>
-
-                          <div style={{ background: 'var(--color-admin-surface-2)', padding: '12px', borderRadius: 'var(--radius-md)' }}>
-                            <label className="admin-label">Badge 4 (Support Assistance)</label>
-                            <input
-                              type="text"
-                              className="admin-input"
-                              value={settings.trust_badge_4_title}
-                              onChange={e => updateSetting({ trust_badge_4_title: e.target.value })}
-                              placeholder="Title"
-                              style={{ marginBottom: '6px' }}
-                            />
-                            <input
-                              type="text"
-                              className="admin-input"
-                              value={settings.trust_badge_4_desc}
-                              onChange={e => updateSetting({ trust_badge_4_desc: e.target.value })}
-                              placeholder="Subtitle"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* CATEGORIES BLOCK */}
-                    {secKey === 'categories' && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                        <p style={{ fontSize: '13px', color: 'var(--color-admin-muted)' }}>
-                          This section showcases top category department cards. To reorder which categories appear first, click the tab &quot;🗂️ Categories Sequence&quot; above or click below:
-                        </p>
-                        <button
-                          type="button"
-                          onClick={() => setActiveTab('categories')}
-                          className="btn btn-secondary btn-sm"
-                          style={{ alignSelf: 'flex-start' }}
-                        >
-                          <span>Manage Category Sequence ➔</span>
-                        </button>
-                      </div>
-                    )}
-
-                    {/* FLASH SALE BLOCK */}
-                    {secKey === 'flash_sale' && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '540px' }}>
-                        <div className="form-group">
-                          <label className="admin-label">Flash Sale Section Heading</label>
-                          <input
-                            type="text"
-                            className="admin-input"
-                            value={settings.homepage_flash_sale_title}
-                            onChange={e => updateSetting({ homepage_flash_sale_title: e.target.value })}
-                            placeholder="e.g. ⚡ Flash Deals & Steals"
-                          />
-                        </div>
-
-                        <div className="form-group">
-                          <label className="admin-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span>Flash Sale Campaign End Time (Global Sync)</span>
-                            <span style={{ fontSize: '11px', color: settings.homepage_flash_sale_end ? 'var(--color-primary-light)' : 'var(--color-success)' }}>
-                              {settings.homepage_flash_sale_end ? '● Manual Fixed Target' : '● Auto Daily Midnight'}
+                              Position #{secIdx + 1}
                             </span>
-                          </label>
+                          </div>
+                          <p style={{ fontSize: '12px', color: 'var(--color-admin-muted)', marginTop: '2px' }}>
+                            {secMeta.desc}
+                          </p>
+                        </div>
+                      </div>
 
-                          <input
-                            type="datetime-local"
-                            className="admin-input"
-                            value={
-                              settings.homepage_flash_sale_end
-                                ? (() => {
-                                    try {
-                                      const d = new Date(settings.homepage_flash_sale_end);
-                                      return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-                                    } catch {
-                                      return '';
-                                    }
-                                  })()
-                                : ''
-                            }
-                            onChange={e => {
-                              const val = e.target.value;
-                              if (!val) {
-                                updateSetting({ homepage_flash_sale_end: null });
-                              } else {
-                                updateSetting({ homepage_flash_sale_end: new Date(val).toISOString() });
-                              }
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <button
+                          type="button"
+                          onClick={() => handleToggleSectionVisibility(expandedSection)}
+                          className={`btn btn-sm ${isSecVisible ? 'btn-secondary' : 'btn-primary'}`}
+                          style={{ fontWeight: 700 }}
+                        >
+                          {isSecVisible ? 'Section is Visible (Turn OFF)' : 'Section is Hidden (Turn ON)'}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Quick Section Switcher Bar (1-Click Switch Without Scrolling) */}
+                    <div
+                      className="customizer-studio-pills"
+                      style={{
+                        marginTop: '14px',
+                        paddingTop: '12px',
+                        borderTop: '1px solid var(--color-admin-border)',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--color-admin-muted)', whiteSpace: 'nowrap', marginRight: '4px' }}>
+                        Switch Section:
+                      </span>
+                      {settings.homepage_sections_order.map((sec, i) => {
+                        const m = SECTION_METADATA[sec] || { name: sec, icon: '📦' };
+                        const isAct = expandedSection === sec;
+                        return (
+                          <button
+                            key={sec}
+                            type="button"
+                            onClick={() => selectSectionAndScroll(sec)}
+                            className="btn btn-sm"
+                            style={{
+                              padding: '4px 10px',
+                              fontSize: '11.5px',
+                              fontWeight: isAct ? 800 : 600,
+                              borderRadius: 'var(--radius-full)',
+                              background: isAct ? 'var(--color-primary)' : 'var(--color-admin-surface-2)',
+                              color: isAct ? '#ffffff' : 'var(--color-admin-text)',
+                              border: `1px solid ${isAct ? 'var(--color-primary)' : 'var(--color-admin-border)'}`,
+                              whiteSpace: 'nowrap',
+                              flexShrink: 0,
                             }}
-                          />
+                          >
+                            <span>#{i + 1} {m.icon} {m.name.split(' ')[0]}</span>
+                          </button>
+                        );
+                      })}
 
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
-                            <button
-                              type="button"
-                              className="btn btn-secondary btn-sm"
-                              style={{ fontSize: '11px', padding: '3px 8px' }}
-                              onClick={() => {
-                                updateSetting({ homepage_flash_sale_end: null });
-                                showToast('Set to Auto Daily Midnight (Zero Drift)', 'info');
-                              }}
-                            >
-                              ⚡ Auto Daily Midnight
-                            </button>
-                            <button
-                              type="button"
-                              className="btn btn-secondary btn-sm"
-                              style={{ fontSize: '11px', padding: '3px 8px' }}
-                              onClick={() => {
-                                const t = new Date(Date.now() + 6 * 3600 * 1000).toISOString();
-                                updateSetting({ homepage_flash_sale_end: t });
-                                showToast('Set to +6 Hours from now', 'info');
-                              }}
-                            >
-                              +6 Hours
-                            </button>
-                            <button
-                              type="button"
-                              className="btn btn-secondary btn-sm"
-                              style={{ fontSize: '11px', padding: '3px 8px' }}
-                              onClick={() => {
-                                const t = new Date(Date.now() + 12 * 3600 * 1000).toISOString();
-                                updateSetting({ homepage_flash_sale_end: t });
-                                showToast('Set to +12 Hours from now', 'info');
-                              }}
-                            >
-                              +12 Hours
-                            </button>
-                            <button
-                              type="button"
-                              className="btn btn-secondary btn-sm"
-                              style={{ fontSize: '11px', padding: '3px 8px' }}
-                              onClick={() => {
-                                const t = new Date(Date.now() + 24 * 3600 * 1000).toISOString();
-                                updateSetting({ homepage_flash_sale_end: t });
-                                showToast('Set to +24 Hours from now', 'info');
-                              }}
-                            >
-                              +24 Hours
-                            </button>
-                            <button
-                              type="button"
-                              className="btn btn-secondary btn-sm"
-                              style={{ fontSize: '11px', padding: '3px 8px' }}
-                              onClick={() => {
-                                const t = new Date(Date.now() + 48 * 3600 * 1000).toISOString();
-                                updateSetting({ homepage_flash_sale_end: t });
-                                showToast('Set to +48 Hours from now', 'info');
-                              }}
-                            >
-                              +48 Hours
-                            </button>
-                            <button
-                              type="button"
-                              className="btn btn-secondary btn-sm"
-                              style={{ fontSize: '11px', padding: '3px 8px' }}
-                              onClick={() => {
-                                const t = new Date(Date.now() + 7 * 86400 * 1000).toISOString();
-                                updateSetting({ homepage_flash_sale_end: t });
-                                showToast('Set to +7 Days from now', 'info');
-                              }}
-                            >
-                              +7 Days
-                            </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        className="btn btn-secondary btn-sm"
+                        style={{ fontSize: '11px', padding: '3px 8px', borderRadius: 'var(--radius-full)', flexShrink: 0, marginLeft: 'auto' }}
+                      >
+                        ↑ Top Grid
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* ────────────────────────────────────────────────────────────
+                 HERO CAROUSEL BLOCK
+                 ──────────────────────────────────────────────────────────── */}
+              {expandedSection === 'hero' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h3 style={{ fontSize: '14px', fontWeight: 800, color: 'var(--color-admin-text)' }}>
+                      Active Hero Slides ({banners.filter(b => b.type === 'hero_banner' || !b.type).length})
+                    </h3>
+                  </div>
+
+                  {/* Existing Slides Grid */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '12px' }}>
+                    {banners.filter(b => b.type === 'hero_banner' || !b.type).map(b => (
+                      <div
+                        key={b.id}
+                        style={{
+                          background: 'var(--color-admin-surface-2)',
+                          border: '1px solid var(--color-admin-border)',
+                          borderRadius: 'var(--radius-lg)',
+                          padding: '12px 14px',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          gap: '12px',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+                          {b.image_url && (
+                            <div style={{ position: 'relative', width: '64px', height: '42px', borderRadius: 'var(--radius-sm)', overflow: 'hidden', flexShrink: 0, background: '#f1f5f9' }}>
+                              <Image src={b.image_url} alt={b.title_en} fill style={{ objectFit: 'cover' }} />
+                            </div>
+                          )}
+                          <div style={{ minWidth: 0 }}>
+                            <strong style={{ fontSize: '13px', color: 'var(--color-admin-text)', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {b.title_en}
+                            </strong>
+                            <div style={{ fontSize: '11px', color: 'var(--color-admin-muted)' }}>
+                              {b.subtitle || 'No subtitle'} • {b.link_url}
+                            </div>
                           </div>
                         </div>
 
-                        <div style={{ background: 'var(--color-admin-surface-2)', padding: '10px 14px', borderRadius: 'var(--radius-md)', fontSize: '12px', color: 'var(--color-admin-muted)', lineHeight: '1.5' }}>
-                          💡 <strong>Zero-Drift Synchronization:</strong> Both the Homepage and Deals page (<code style={{ color: 'var(--color-primary-light)' }}>/deals</code>) will synchronize to this exact timestamp. If set to Auto Daily Midnight, every visitor sees the same synchronized countdown ending at 23:59:59 Bangladesh Standard Time.
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                          <button
+                            type="button"
+                            onClick={() => handleToggleSlideActive(b)}
+                            className={`btn btn-sm ${b.is_active ? 'btn-secondary' : 'btn-primary'}`}
+                            style={{ fontSize: '11px', padding: '2px 8px', height: '26px' }}
+                          >
+                            {b.is_active ? 'Active' : 'Off'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => openEditSlideModal(b)}
+                            style={{ background: 'none', border: 'none', color: 'var(--color-primary)', padding: '4px', cursor: 'pointer' }}
+                            title="Edit Slide"
+                          >
+                            <Edit3 size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteBanner(b.id)}
+                            style={{ background: 'none', border: 'none', color: 'var(--color-danger)', padding: '4px', cursor: 'pointer' }}
+                            title="Delete Slide"
+                          >
+                            <Trash2 size={14} />
+                          </button>
                         </div>
                       </div>
-                    )}
-
-                    {/* FEATURED PRODUCTS BLOCK */}
-                    {secKey === 'featured' && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', maxWidth: '500px' }}>
-                        <div className="form-group">
-                          <label className="admin-label">Featured Products Section Heading</label>
-                          <input
-                            type="text"
-                            className="admin-input"
-                            value={settings.homepage_featured_title}
-                            onChange={e => updateSetting({ homepage_featured_title: e.target.value })}
-                            placeholder="e.g. ✨ Handpicked For You"
-                          />
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setActiveTab('products')}
-                          className="btn btn-secondary btn-sm"
-                          style={{ alignSelf: 'flex-start' }}
-                        >
-                          <span>Manage Featured Products Sequence ➔</span>
-                        </button>
-                      </div>
-                    )}
-
-                    {/* NEW ARRIVALS BLOCK */}
-                    {secKey === 'new_arrivals' && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', maxWidth: '500px' }}>
-                        <div className="form-group">
-                          <label className="admin-label">New Arrivals Section Heading</label>
-                          <input
-                            type="text"
-                            className="admin-input"
-                            value={settings.homepage_new_arrivals_title}
-                            onChange={e => updateSetting({ homepage_new_arrivals_title: e.target.value })}
-                            placeholder="e.g. 🚀 New Arrivals / নতুন কালেকশন"
-                          />
-                        </div>
-                      </div>
-                    )}
+                    ))}
                   </div>
-                )}
-              </div>
-            );
-          })}
+
+                  {/* Add New Slide Form */}
+                  <div style={{ background: 'var(--color-admin-surface-2)', padding: '18px', borderRadius: 'var(--radius-lg)', border: '1px dashed var(--color-admin-border)', marginTop: '8px' }}>
+                    <h4 style={{ fontSize: '13.5px', fontWeight: 800, color: 'var(--color-admin-text)', marginBottom: '12px' }}>
+                      + Add New Slide to Hero Carousel
+                    </h4>
+                    <form onSubmit={handleCreateBanner} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '12px' }}>
+                        <div>
+                          <label className="admin-label">Slide Headline Title *</label>
+                          <input
+                            type="text"
+                            className="admin-input"
+                            placeholder="e.g. Eid Mega Offer 2026"
+                            value={bannerTitleEn}
+                            onChange={e => setBannerTitleEn(e.target.value)}
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="admin-label">Subtitle / Discount Pill</label>
+                          <input
+                            type="text"
+                            className="admin-input"
+                            placeholder="e.g. FLAT 30% OFF ALL ITEMS"
+                            value={bannerSubtitle}
+                            onChange={e => setBannerSubtitle(e.target.value)}
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="admin-label">Call-to-Action Target Link</label>
+                        <input
+                          type="text"
+                          className="admin-input"
+                          placeholder="e.g. /deals or /search?category=electronics"
+                          value={bannerLink}
+                          onChange={e => setBannerLink(e.target.value)}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="admin-label">Slide Banner Image</label>
+                        <ImageUploader images={bannerImages} onChange={setBannerImages} />
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={isCreatingBanner}
+                        className="btn btn-primary btn-sm"
+                        style={{ alignSelf: 'flex-start', marginTop: '4px', fontWeight: 700 }}
+                      >
+                        <Plus size={14} />
+                        <span>{isCreatingBanner ? 'Publishing Slide...' : 'Add Slide to Hero'}</span>
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              )}
+
+              {/* ────────────────────────────────────────────────────────────
+                 TRUST BADGES BLOCK
+                 ──────────────────────────────────────────────────────────── */}
+              {expandedSection === 'trust_badges' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <p style={{ fontSize: '12.5px', color: 'var(--color-admin-muted)' }}>
+                    Customize the 4 customer guarantees displayed directly below the hero banner.
+                  </p>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px' }}>
+                    <div style={{ background: 'var(--color-admin-surface-2)', padding: '14px', borderRadius: 'var(--radius-lg)' }}>
+                      <label className="admin-label">Badge 1 (Authenticity Guarantee)</label>
+                      <input
+                        type="text"
+                        className="admin-input"
+                        value={settings.trust_badge_1_title}
+                        onChange={e => updateSetting({ trust_badge_1_title: e.target.value })}
+                        placeholder="Title"
+                        style={{ marginBottom: '8px' }}
+                      />
+                      <input
+                        type="text"
+                        className="admin-input"
+                        value={settings.trust_badge_1_desc}
+                        onChange={e => updateSetting({ trust_badge_1_desc: e.target.value })}
+                        placeholder="Subtitle"
+                      />
+                    </div>
+
+                    <div style={{ background: 'var(--color-admin-surface-2)', padding: '14px', borderRadius: 'var(--radius-lg)' }}>
+                      <label className="admin-label">Badge 2 (Delivery Speed Guarantee)</label>
+                      <input
+                        type="text"
+                        className="admin-input"
+                        value={settings.trust_badge_2_title}
+                        onChange={e => updateSetting({ trust_badge_2_title: e.target.value })}
+                        placeholder="Title"
+                        style={{ marginBottom: '8px' }}
+                      />
+                      <input
+                        type="text"
+                        className="admin-input"
+                        value={settings.trust_badge_2_desc}
+                        onChange={e => updateSetting({ trust_badge_2_desc: e.target.value })}
+                        placeholder="Subtitle"
+                      />
+                    </div>
+
+                    <div style={{ background: 'var(--color-admin-surface-2)', padding: '14px', borderRadius: 'var(--radius-lg)' }}>
+                      <label className="admin-label">Badge 3 (Quality & Defect Replacement)</label>
+                      <input
+                        type="text"
+                        className="admin-input"
+                        value={settings.trust_badge_3_title}
+                        onChange={e => updateSetting({ trust_badge_3_title: e.target.value })}
+                        placeholder="Title"
+                        style={{ marginBottom: '8px' }}
+                      />
+                      <input
+                        type="text"
+                        className="admin-input"
+                        value={settings.trust_badge_3_desc}
+                        onChange={e => updateSetting({ trust_badge_3_desc: e.target.value })}
+                        placeholder="Subtitle"
+                      />
+                    </div>
+
+                    <div style={{ background: 'var(--color-admin-surface-2)', padding: '14px', borderRadius: 'var(--radius-lg)' }}>
+                      <label className="admin-label">Badge 4 (Customer Support Assistance)</label>
+                      <input
+                        type="text"
+                        className="admin-input"
+                        value={settings.trust_badge_4_title}
+                        onChange={e => updateSetting({ trust_badge_4_title: e.target.value })}
+                        placeholder="Title"
+                        style={{ marginBottom: '8px' }}
+                      />
+                      <input
+                        type="text"
+                        className="admin-input"
+                        value={settings.trust_badge_4_desc}
+                        onChange={e => updateSetting({ trust_badge_4_desc: e.target.value })}
+                        placeholder="Subtitle"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ────────────────────────────────────────────────────────────
+                 CATEGORIES BLOCK
+                 ──────────────────────────────────────────────────────────── */}
+              {expandedSection === 'categories' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  <p style={{ fontSize: '13px', color: 'var(--color-admin-muted)' }}>
+                    This section showcases top department cards on your homepage. You have <strong>{categories.length} categories</strong> in your store.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('categories')}
+                    className="btn btn-primary btn-sm"
+                    style={{ alignSelf: 'flex-start', fontWeight: 700 }}
+                  >
+                    <span>Open Categories Sequence Studio ➔</span>
+                  </button>
+                </div>
+              )}
+
+              {/* ────────────────────────────────────────────────────────────
+                 FLASH SALE BLOCK
+                 ──────────────────────────────────────────────────────────── */}
+              {expandedSection === 'flash_sale' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '600px' }}>
+                  <div className="form-group">
+                    <label className="admin-label">Flash Sale Section Heading</label>
+                    <input
+                      type="text"
+                      className="admin-input"
+                      value={settings.homepage_flash_sale_title}
+                      onChange={e => updateSetting({ homepage_flash_sale_title: e.target.value })}
+                      placeholder="e.g. ⚡ Flash Deals & Steals"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="admin-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>Flash Sale Campaign End Time (Global Sync)</span>
+                      <span style={{ fontSize: '11px', color: settings.homepage_flash_sale_end ? 'var(--color-primary-light)' : 'var(--color-success)' }}>
+                        {settings.homepage_flash_sale_end ? '● Manual Target Active' : '● Auto Daily Midnight'}
+                      </span>
+                    </label>
+
+                    <input
+                      type="datetime-local"
+                      className="admin-input"
+                      value={
+                        settings.homepage_flash_sale_end
+                          ? (() => {
+                              try {
+                                const d = new Date(settings.homepage_flash_sale_end);
+                                return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+                              } catch {
+                                return '';
+                              }
+                            })()
+                          : ''
+                      }
+                      onChange={e => {
+                        const val = e.target.value ? new Date(e.target.value).toISOString() : null;
+                        updateSetting({ homepage_flash_sale_end: val });
+                      }}
+                    />
+                    <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const midnight = new Date();
+                          midnight.setHours(23, 59, 59, 999);
+                          updateSetting({ homepage_flash_sale_end: midnight.toISOString() });
+                        }}
+                        className="btn btn-secondary btn-sm"
+                        style={{ fontSize: '11px' }}
+                      >
+                        Set to Today Midnight
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => updateSetting({ homepage_flash_sale_end: null })}
+                        className="btn btn-secondary btn-sm"
+                        style={{ fontSize: '11px', color: 'var(--color-admin-muted)' }}
+                      >
+                        Clear (Use Default Daily Loop)
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ────────────────────────────────────────────────────────────
+                 FEATURED PRODUCTS BLOCK
+                 ──────────────────────────────────────────────────────────── */}
+              {expandedSection === 'featured' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '600px' }}>
+                  <div className="form-group">
+                    <label className="admin-label">Featured Showcase Title</label>
+                    <input
+                      type="text"
+                      className="admin-input"
+                      value={settings.homepage_featured_title}
+                      onChange={e => updateSetting({ homepage_featured_title: e.target.value })}
+                      placeholder="e.g. ⭐ Featured Handpicked Products"
+                    />
+                  </div>
+                  <p style={{ fontSize: '13px', color: 'var(--color-admin-muted)' }}>
+                    Products marked as <code>is_featured = true</code> or top items in your inventory catalog will be displayed here.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('products')}
+                    className="btn btn-primary btn-sm"
+                    style={{ alignSelf: 'flex-start', fontWeight: 700 }}
+                  >
+                    <span>Manage Products Sequence ➔</span>
+                  </button>
+                </div>
+              )}
+
+              {/* ────────────────────────────────────────────────────────────
+                 NEW ARRIVALS BLOCK
+                 ──────────────────────────────────────────────────────────── */}
+              {expandedSection === 'new_arrivals' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '600px' }}>
+                  <div className="form-group">
+                    <label className="admin-label">New Arrivals Showcase Title</label>
+                    <input
+                      type="text"
+                      className="admin-input"
+                      value={settings.homepage_new_arrivals_title}
+                      onChange={e => updateSetting({ homepage_new_arrivals_title: e.target.value })}
+                      placeholder="e.g. 🚀 Brand New Arrivals"
+                    />
+                  </div>
+                  <p style={{ fontSize: '13px', color: 'var(--color-admin-muted)' }}>
+                    Displays the newest products added to your catalog sorted dynamically by creation date.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('products')}
+                    className="btn btn-primary btn-sm"
+                    style={{ alignSelf: 'flex-start', fontWeight: 700 }}
+                  >
+                    <span>View Product Catalog ➔</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -2592,6 +2739,70 @@ export default function AdminCustomizePage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ────────────────────────────────────────────────────────────
+         FLOATING QUICK SAVE BAR (TRIGGERED WHEN CHANGES PENDING)
+         ──────────────────────────────────────────────────────────── */}
+      {hasUnsavedChanges && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: '24px',
+            right: '24px',
+            zIndex: 90,
+            background: '#0f172a',
+            color: '#ffffff',
+            padding: '12px 20px',
+            borderRadius: 'var(--radius-xl)',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '16px',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            animation: 'fadeInUp 0.3s ease',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span
+              style={{
+                width: '10px',
+                height: '10px',
+                borderRadius: '50%',
+                background: '#38bdf8',
+                boxShadow: '0 0 8px #38bdf8',
+                display: 'inline-block',
+              }}
+            />
+            <span style={{ fontSize: '13px', fontWeight: 700 }}>
+              You have unsaved storefront customizations
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              type="button"
+              onClick={() => handleSaveSettings()}
+              disabled={isSavingSettings}
+              className="btn btn-primary btn-sm"
+              style={{
+                background: 'var(--color-primary)',
+                color: '#ffffff',
+                fontWeight: 800,
+                fontSize: '12px',
+                padding: '8px 16px',
+                borderRadius: 'var(--radius-lg)',
+                border: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+            >
+              <Save size={14} />
+              <span>{isSavingSettings ? 'Publishing...' : 'Save & Publish Now'}</span>
+            </button>
           </div>
         </div>
       )}

@@ -366,3 +366,186 @@
   to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
+/* ────────────────────────────────────────────────────────────
+   STOREFRONT CUSTOMIZER RESPONSIVE SYSTEM
+   ──────────────────────────────────────────────────────────── */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.customizer-container {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.customizer-grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+@media (max-width: 1100px) {
+  .customizer-grid-2col {
+    grid-template-columns: 1fr;
+  }
+}
+
+.customizer-section-card {
+  background: #ffffff;
+  border: 1px solid var(--color-admin-border);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  transition: all 0.2s ease;
+  overflow: hidden;
+}
+
+.customizer-section-card:hover {
+  border-color: #94a3b8;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+}
+
+.customizer-section-card--active {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px var(--color-primary), 0 4px 12px var(--color-primary-10);
+}
+
+.customizer-section-header {
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+  background: #ffffff;
+  transition: background 0.15s ease;
+}
+
+.customizer-section-header:hover {
+  background: #f8fafc;
+}
+
+.customizer-section-body {
+  padding: 20px;
+  border-top: 1px solid var(--color-admin-border);
+  background: #fcfdfd;
+}
+
+@media (max-width: 640px) {
+  .customizer-section-header {
+    padding: 12px 14px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .customizer-section-controls {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+/* ────────────────────────────────────────────────────────────
+   SLEEK HORIZONTAL SEQUENCE PIPELINE (CUSTOMIZER)
+   ──────────────────────────────────────────────────────────── */
+.customizer-pipeline-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 22px;
+}
+
+@media (max-width: 1200px) {
+  .customizer-pipeline-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+  }
+}
+
+@media (max-width: 640px) {
+  .customizer-pipeline-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+}
+
+.customizer-pipeline-pill {
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: var(--radius-xl, 16px);
+  padding: 12px 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 125px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.customizer-pipeline-pill:hover {
+  border-color: #cbd5e1;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+}
+
+.customizer-pipeline-pill--selected {
+  border: 2px solid var(--color-primary) !important;
+  background: linear-gradient(180deg, rgba(37, 99, 235, 0.03) 0%, rgba(37, 99, 235, 0.08) 100%) !important;
+  box-shadow: 0 0 0 3px var(--color-primary-10), 0 8px 20px rgba(37, 99, 235, 0.12) !important;
+}
+
+.customizer-pipeline-pill--inactive {
+  background: #f8fafc;
+  opacity: 0.75;
+  border-style: dashed;
+}
+
+.customizer-pipeline-arrow-btn {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.15s ease;
+}
+
+.customizer-pipeline-arrow-btn:hover:not(:disabled) {
+  background: var(--color-primary);
+  color: #ffffff;
+  border-color: var(--color-primary);
+}
+
+.customizer-pipeline-arrow-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* Quick Section Switcher in Studio */
+.customizer-studio-pills {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+}
+
+.customizer-studio-pills::-webkit-scrollbar {
+  display: none;
+}
+
+
+

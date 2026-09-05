@@ -1,10 +1,12 @@
 import React from 'react';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { formatCurrency, formatDate, getStatusLabel } from '@/lib/utils/format';
-import { ArrowLeft, FileText, Phone, MapPin, User, ShieldCheck, CreditCard, Tag, Printer } from 'lucide-react';
+import { getOptimizedImageUrl } from '@/lib/utils/images';
+import { ArrowLeft, FileText, Phone, MapPin, User, ShieldCheck, CreditCard, Tag, Printer, Package } from 'lucide-react';
 import AdminOrderDetailClient from './AdminOrderDetailClient';
 import type { Order } from '@/types';
 
@@ -129,19 +131,65 @@ export default async function AdminOrderDetailPage({ params }: AdminOrderDetailP
 
             {/* Items table */}
             <h3 style={{ fontSize: '14px', fontWeight: 800, color: 'var(--color-admin-text)', marginBottom: '12px', textTransform: 'uppercase' }}>
-              Items Ordered
+              Items Ordered ({order.items_snapshot?.length || 0})
             </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', borderBottom: '1px solid var(--color-admin-border)', paddingBottom: '16px', marginBottom: '16px' }}>
-              {(order.items_snapshot || []).map((item, idx) => (
-                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: 'var(--color-admin-text)' }}>
-                  <div>
-                    <strong>{item.quantity}x</strong> {item.name_snapshot}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', borderBottom: '1px solid var(--color-admin-border)', paddingBottom: '16px', marginBottom: '16px' }}>
+              {(order.items_snapshot || []).map((item, idx) => {
+                const img = item.image_snapshot ? getOptimizedImageUrl(item.image_snapshot, 'thumb') : null;
+                return (
+                  <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', fontSize: '13px', color: 'var(--color-admin-text)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+                      <div
+                        style={{
+                          width: '44px',
+                          height: '44px',
+                          borderRadius: 'var(--radius-md)',
+                          background: 'var(--color-admin-surface-2)',
+                          overflow: 'hidden',
+                          position: 'relative',
+                          flexShrink: 0,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          border: '1px solid var(--color-admin-border)',
+                        }}
+                      >
+                        {img ? (
+                          <Image
+                            src={img}
+                            alt={item.name_snapshot}
+                            fill
+                            style={{ objectFit: 'cover' }}
+                            sizes="44px"
+                          />
+                        ) : (
+                          <Package size={18} color="var(--color-admin-muted)" />
+                        )}
+                      </div>
+
+                      <div style={{ minWidth: 0 }}>
+                        {item.product_id ? (
+                          <Link
+                            href={`/admin/products/${item.product_id}`}
+                            style={{ fontWeight: 700, color: 'var(--color-admin-text)', textDecoration: 'none' }}
+                          >
+                            {item.name_snapshot}
+                          </Link>
+                        ) : (
+                          <div style={{ fontWeight: 700 }}>{item.name_snapshot}</div>
+                        )}
+                        <div style={{ fontSize: '12px', color: 'var(--color-admin-muted)', marginTop: '2px' }}>
+                          Qty: <strong>{item.quantity}</strong> × {formatCurrency(item.unit_price)}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ fontWeight: 800, color: 'var(--color-admin-text)', flexShrink: 0 }}>
+                      {formatCurrency(item.total_price)}
+                    </div>
                   </div>
-                  <div style={{ fontWeight: 700 }}>
-                    {formatCurrency(item.total_price)}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Financial Totals */}

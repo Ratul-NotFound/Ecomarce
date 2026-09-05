@@ -7,7 +7,7 @@ import HeroBanner from '@/components/store/HeroBanner';
 import CategoryGrid from '@/components/store/CategoryGrid';
 import FlashSale from '@/components/store/FlashSale';
 import ProductGrid from '@/components/store/ProductGrid';
-import { Sparkles, TrendingUp, ShieldCheck, Truck, RotateCcw, Headphones } from 'lucide-react';
+import { CashOnDelivery3DIcon, FastDelivery3DIcon, EasyReturns3DIcon, Support2473DIcon } from '@/components/store/TrustBadgeIcons';
 import type { SpecialOffer, Product } from '@/types';
 import { resolveFlashSaleEndTime } from '@/lib/flash-sale-utils';
 
@@ -111,7 +111,7 @@ export default async function HomePage() {
         flash_sale_ends_at: null,
         display_order: 2,
         total_sold: 89,
-        total_views: 940,
+        total_views: 950,
         meta_title: null,
         meta_description: null,
         created_at: STATIC_DEMO_DATE,
@@ -119,21 +119,21 @@ export default async function HomePage() {
       },
       {
         id: 'p3',
-        name_en: 'Minimalist Leather Chrono Watch',
-        name_bn: 'লেদার ক্রোনো ওয়াচ',
-        slug: 'minimalist-leather-chrono-watch',
-        description_en: 'Sapphire crystal glass, genuine full-grain leather strap.',
+        name_en: 'Minimalist Chronograph Quartz Watch',
+        name_bn: 'মিনিমালিস্ট ক্রনোগ্রাফ কোয়ার্টজ ঘড়ি',
+        slug: 'minimalist-chronograph-watch',
+        description_en: 'Genuine leather strap, Japanese quartz movement, 3ATM water resistant.',
         description_bn: null,
         category_id: null,
-        brand: 'Aethel',
+        brand: 'Chronos',
         sku: 'WATCH-003',
-        base_price: 2950,
-        sale_price: null,
-        discount_percent: null,
+        base_price: 3200,
+        sale_price: 2490,
+        discount_percent: 22,
         stock_quantity: 15,
         low_stock_threshold: 4,
         images: ['https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&q=80'],
-        tags: ['lifestyle', 'accessories', 'watch'],
+        tags: ['watches', 'accessories'],
         has_variants: false,
         weight_grams: 180,
         is_active: true,
@@ -141,8 +141,8 @@ export default async function HomePage() {
         is_flash_sale: true,
         flash_sale_ends_at: STATIC_FLASH_DATE,
         display_order: 3,
-        total_sold: 63,
-        total_views: 650,
+        total_sold: 67,
+        total_views: 810,
         meta_title: null,
         meta_description: null,
         created_at: STATIC_DEMO_DATE,
@@ -150,23 +150,23 @@ export default async function HomePage() {
       },
       {
         id: 'p4',
-        name_en: 'Everyday Water-Resistant Urban Backpack',
-        name_bn: 'ওয়াটার রেজিস্ট্যান্ট ব্যাকপ্যাক',
-        slug: 'water-resistant-urban-backpack',
-        description_en: 'Dedicated 16-inch laptop compartment with USB charging port.',
+        name_en: 'Ergonomic Mechanical Gaming Keyboard',
+        name_bn: 'মেকানিক্যাল গেমিং কীবোর্ড',
+        slug: 'ergonomic-mechanical-keyboard',
+        description_en: 'RGB backlit, hot-swappable switches, PBT double-shot keycaps.',
         description_bn: null,
         category_id: null,
-        brand: 'PackCraft',
-        sku: 'BAG-004',
-        base_price: 2400,
-        sale_price: 1990,
-        discount_percent: 17,
-        stock_quantity: 32,
+        brand: 'KeyCraft',
+        sku: 'KEY-004',
+        base_price: 5500,
+        sale_price: 4600,
+        discount_percent: 16,
+        stock_quantity: 30,
         low_stock_threshold: 5,
-        images: ['https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=600&q=80'],
-        tags: ['lifestyle', 'bags'],
-        has_variants: false,
-        weight_grams: 600,
+        images: ['https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=600&q=80'],
+        tags: ['gaming', 'computers', 'accessories'],
+        has_variants: true,
+        weight_grams: 850,
         is_active: true,
         is_featured: true,
         is_flash_sale: false,
@@ -185,50 +185,98 @@ export default async function HomePage() {
     flashSaleProducts = demoSampleProducts.filter(p => p.is_flash_sale);
   }
 
+  // Dynamic midnight target calculation
   const flashSaleEndTime = resolveFlashSaleEndTime(settings);
 
   // Dynamic Section Map for Sequence Customization
   const sectionMap: Record<string, React.ReactNode> = {
-    hero: <HeroBanner key="hero" banners={banners} />,
+    hero: banners.length > 0 ? <HeroBanner key="hero" banners={banners} /> : null,
     trust_badges: (
-      <div key="trust_badges" className="trust-badges-grid">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ padding: '10px', background: 'var(--color-primary-10)', color: 'var(--color-primary)', borderRadius: 'var(--radius-lg)' }}>
-            <Truck size={22} />
+      <div
+        key="trust_badges"
+        className="trust-badges-grid"
+      >
+        {/* 1. Cash on Delivery */}
+        <div className="trust-badge-item">
+          <div
+            className="trust-badge-icon-box"
+            style={{
+              background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(16, 185, 129, 0.04) 100%)',
+              border: '1px solid rgba(16, 185, 129, 0.22)',
+            }}
+          >
+            <CashOnDelivery3DIcon size={30} />
           </div>
           <div>
-            <div style={{ fontWeight: 700, fontSize: '13px' }}>{settings.trust_badge_1_title}</div>
-            <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>{settings.trust_badge_1_desc}</div>
+            <div className="trust-badge-title">
+              {settings.trust_badge_1_title}
+            </div>
+            <div className="trust-badge-desc">
+              {settings.trust_badge_1_desc}
+            </div>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ padding: '10px', background: 'var(--color-success-light)', color: 'var(--color-success)', borderRadius: 'var(--radius-lg)' }}>
-            <ShieldCheck size={22} />
+        {/* 2. Fast Delivery */}
+        <div className="trust-badge-item">
+          <div
+            className="trust-badge-icon-box"
+            style={{
+              background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.12) 0%, rgba(37, 99, 235, 0.04) 100%)',
+              border: '1px solid rgba(37, 99, 235, 0.22)',
+            }}
+          >
+            <FastDelivery3DIcon size={30} />
           </div>
           <div>
-            <div style={{ fontWeight: 700, fontSize: '13px' }}>{settings.trust_badge_2_title}</div>
-            <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>{settings.trust_badge_2_desc}</div>
+            <div className="trust-badge-title">
+              {settings.trust_badge_2_title}
+            </div>
+            <div className="trust-badge-desc">
+              {settings.trust_badge_2_desc}
+            </div>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ padding: '10px', background: 'rgba(245, 158, 11, 0.12)', color: '#f59e0b', borderRadius: 'var(--radius-lg)' }}>
-            <RotateCcw size={22} />
+        {/* 3. Easy Returns */}
+        <div className="trust-badge-item">
+          <div
+            className="trust-badge-icon-box"
+            style={{
+              background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(245, 158, 11, 0.04) 100%)',
+              border: '1px solid rgba(245, 158, 11, 0.22)',
+            }}
+          >
+            <EasyReturns3DIcon size={30} />
           </div>
           <div>
-            <div style={{ fontWeight: 700, fontSize: '13px' }}>{settings.trust_badge_3_title}</div>
-            <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>{settings.trust_badge_3_desc}</div>
+            <div className="trust-badge-title">
+              {settings.trust_badge_3_title}
+            </div>
+            <div className="trust-badge-desc">
+              {settings.trust_badge_3_desc}
+            </div>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ padding: '10px', background: 'rgba(147, 51, 234, 0.12)', color: '#9333ea', borderRadius: 'var(--radius-lg)' }}>
-            <Headphones size={22} />
+        {/* 4. 24/7 Support */}
+        <div className="trust-badge-item">
+          <div
+            className="trust-badge-icon-box"
+            style={{
+              background: 'linear-gradient(135deg, rgba(147, 51, 234, 0.12) 0%, rgba(147, 51, 234, 0.04) 100%)',
+              border: '1px solid rgba(147, 51, 234, 0.22)',
+            }}
+          >
+            <Support2473DIcon size={30} />
           </div>
           <div>
-            <div style={{ fontWeight: 700, fontSize: '13px' }}>{settings.trust_badge_4_title}</div>
-            <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>{settings.trust_badge_4_desc}</div>
+            <div className="trust-badge-title">
+              {settings.trust_badge_4_title}
+            </div>
+            <div className="trust-badge-desc">
+              {settings.trust_badge_4_desc}
+            </div>
           </div>
         </div>
       </div>
@@ -240,10 +288,7 @@ export default async function HomePage() {
     featured: (
       <section key="featured" style={{ margin: '40px 0' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Sparkles size={22} color="var(--color-primary)" />
-            <h2>{settings.homepage_featured_title}</h2>
-          </div>
+          <h2>{(settings.homepage_featured_title || 'Handpicked For You').replace(/^[^\w\s\u0980-\u09FF]+/, '').trim()}</h2>
           <span style={{ fontSize: '14px', color: 'var(--color-primary)', fontWeight: 600 }}>Curated Top Picks</span>
         </div>
         <ProductGrid products={featuredProducts} />
@@ -252,10 +297,7 @@ export default async function HomePage() {
     new_arrivals: (
       <section key="new_arrivals" style={{ margin: '40px 0' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <TrendingUp size={22} color="var(--color-success)" />
-            <h2>New Arrivals / নতুন কালেকশন</h2>
-          </div>
+          <h2>{(settings.homepage_new_arrivals_title || 'New Arrivals / নতুন কালেকশন').replace(/^[^\w\s\u0980-\u09FF]+/, '').trim()}</h2>
           <span style={{ fontSize: '14px', color: 'var(--color-text-secondary)', fontWeight: 600 }}>Fresh in stock</span>
         </div>
         <ProductGrid products={newArrivals} />

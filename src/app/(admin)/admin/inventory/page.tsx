@@ -2,7 +2,9 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { formatCurrency } from '@/lib/utils/format';
+import { getOptimizedImageUrl } from '@/lib/utils/images';
 import {
   getProductCostPrice,
   calculateProfitMetrics,
@@ -46,7 +48,6 @@ export default function AdminInventoryPage() {
   const { showToast } = useToast();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isSyncing, setIsSyncing] = useState(false);
   const [search, setSearch] = useState('');
   const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
 
@@ -545,25 +546,6 @@ export default function AdminInventoryPage() {
     }
   };
 
-  // Full Database Inventory Sync & Reconciliation
-  const handleSyncAllInventory = async () => {
-    setIsSyncing(true);
-    try {
-      const res = await fetch('/api/admin/inventory/sync', {
-        method: 'POST',
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to sync inventory');
-
-      showToast(data.message || 'Inventory reconciled successfully!', 'success');
-      loadProducts();
-    } catch (err: any) {
-      showToast(err.message || 'Failed to sync inventory', 'error');
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
   const filteredProducts = products.filter(p => {
     if (!search.trim()) return true;
     const q = search.toLowerCase();
@@ -590,33 +572,10 @@ export default function AdminInventoryPage() {
           </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <button
-            type="button"
-            onClick={handleSyncAllInventory}
-            disabled={isSyncing}
-            className="btn btn-secondary btn-sm"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontWeight: 600,
-            }}
-          >
-            <RefreshCw
-              size={15}
-              style={{
-                animation: isSyncing ? 'spin 1s linear infinite' : 'none',
-              }}
-            />
-            <span>{isSyncing ? 'Syncing...' : 'Sync & Reconcile Stocks'}</span>
-          </button>
-
-          <Link href="/admin/products/new" className="btn btn-primary btn-sm">
-            <Plus size={16} />
-            <span>Add New Product</span>
-          </Link>
-        </div>
+        <Link href="/admin/products/new" className="btn btn-primary btn-sm">
+          <Plus size={16} />
+          <span>Add New Product</span>
+        </Link>
       </div>
 
       {/* Financial Valuation KPI Cards */}
@@ -834,47 +793,88 @@ export default function AdminInventoryPage() {
                     <React.Fragment key={product.id}>
                       <tr>
                         <td>
-                          <strong style={{ color: 'var(--color-admin-text)', fontSize: '14px' }}>{product.name_en}</strong>
-                          <div style={{ marginTop: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <button
-                              type="button"
-                              onClick={() => setExpandedIds(prev => ({ ...prev, [product.id]: !prev[product.id] }))}
-                              style={{
-                                background: hasVariants ? 'rgba(59, 130, 246, 0.08)' : 'rgba(100, 116, 139, 0.08)',
-                                border: `1px solid ${hasVariants ? 'rgba(59, 130, 246, 0.25)' : 'rgba(100, 116, 139, 0.2)'}`,
-                                color: hasVariants ? 'var(--color-primary)' : 'var(--color-admin-muted)',
-                                borderRadius: '4px',
-                                padding: '2px 8px',
-                                fontSize: '11px',
-                                fontWeight: 700,
-                                cursor: 'pointer',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '4px',
-                              }}
-                            >
-                              {expandedIds[product.id] ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                              <span>{variantCount > 0 ? `${variantCount} Variants` : '+ Add First Variant'}</span>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => openHistoryModal(product)}
-                              style={{
-                                background: 'none',
-                                border: 'none',
-                                color: 'var(--color-admin-muted)',
-                                cursor: 'pointer',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '3px',
-                                fontSize: '11px',
-                              }}
-                              title="View stock history"
-                            >
-                              <History size={11} />
-                              <span>History</span>
-                            </button>
-                          </div>
+                          {(() => {
+                            const imgUrl = product.images?.[0] ? getOptimizedImageUrl(product.images[0], 'thumb') : null;
+                            return (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <div
+                                  style={{
+                                    width: '38px',
+                                    height: '38px',
+                                    borderRadius: 'var(--radius-md)',
+                                    background: 'var(--color-admin-surface-2)',
+                                    border: '1px solid var(--color-admin-border)',
+                                    position: 'relative',
+                                    overflow: 'hidden',
+                                    flexShrink: 0,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                  }}
+                                >
+                                  {imgUrl ? (
+                                    <Image
+                                      src={imgUrl}
+                                      alt={product.name_en}
+                                      fill
+                                      style={{ objectFit: 'cover' }}
+                                      sizes="38px"
+                                    />
+                                  ) : (
+                                    <Package size={16} color="var(--color-admin-muted)" />
+                                  )}
+                                </div>
+                                <div style={{ minWidth: 0 }}>
+                                  <Link
+                                    href={`/admin/products/${product.id}`}
+                                    style={{ color: 'var(--color-admin-text)', fontSize: '13.5px', fontWeight: 700, textDecoration: 'none' }}
+                                  >
+                                    {product.name_en}
+                                  </Link>
+                                  <div style={{ marginTop: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <button
+                                      type="button"
+                                      onClick={() => setExpandedIds(prev => ({ ...prev, [product.id]: !prev[product.id] }))}
+                                      style={{
+                                        background: hasVariants ? 'rgba(59, 130, 246, 0.08)' : 'rgba(100, 116, 139, 0.08)',
+                                        border: `1px solid ${hasVariants ? 'rgba(59, 130, 246, 0.25)' : 'rgba(100, 116, 139, 0.2)'}`,
+                                        color: hasVariants ? 'var(--color-primary)' : 'var(--color-admin-muted)',
+                                        borderRadius: '4px',
+                                        padding: '2px 8px',
+                                        fontSize: '11px',
+                                        fontWeight: 700,
+                                        cursor: 'pointer',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                      }}
+                                    >
+                                      {expandedIds[product.id] ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                                      <span>{variantCount > 0 ? `${variantCount} Variants` : '+ Add First Variant'}</span>
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => openHistoryModal(product)}
+                                      style={{
+                                        background: 'none',
+                                        border: 'none',
+                                        color: 'var(--color-admin-muted)',
+                                        cursor: 'pointer',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '3px',
+                                        fontSize: '11px',
+                                      }}
+                                      title="View stock history"
+                                    >
+                                      <History size={11} />
+                                      <span>History</span>
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })()}
                         </td>
                         <td>
                           <code style={{ fontSize: '12px', color: 'var(--color-admin-muted)' }}>{product.sku}</code>

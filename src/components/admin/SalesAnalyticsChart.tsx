@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { formatCurrency } from '@/lib/utils/format';
-import { BarChart3, LineChart, DollarSign, ShoppingBag, Sparkles } from 'lucide-react';
+import { BarChart3, LineChart, DollarSign, ShoppingBag } from 'lucide-react';
 import type { Order } from '@/types';
 
 interface SalesAnalyticsChartProps {

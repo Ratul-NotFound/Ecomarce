@@ -29,7 +29,7 @@ import {
   TrendingUp,
   Percent,
   Tag,
-  Sparkles,
+  Boxes,
   Layers,
   Box,
   Copy,
@@ -452,10 +452,6 @@ export default function ProductForm({ initialProduct, categories = [] }: Product
       const finalTags = syncVideoToTags(withFinancialTags, videoUrl.trim() || null);
 
       const effectiveBase = Number(salePrice || basePrice || 0);
-      const isVariantProduct = Boolean(hasVariants && variants.length > 0);
-      const totalVariantStock = isVariantProduct
-        ? variants.reduce((sum, v) => sum + Math.max(0, Number(v.stock_quantity) || 0), 0)
-        : Math.max(0, Number(stockQuantity) || 0);
 
       const payload = {
         name_en: nameEn.trim(),
@@ -469,7 +465,7 @@ export default function ProductForm({ initialProduct, categories = [] }: Product
         cost_price: costPrice ? Number(costPrice) : null,
         video_url: videoUrl.trim() || null,
         tags: finalTags,
-        stock_quantity: totalVariantStock,
+        stock_quantity: Number(stockQuantity) || 0,
         total_sold: Number(totalSold) || 0,
         low_stock_threshold: Number(lowStockThreshold) || 5,
         description_en: descriptionEn.trim() || null,
@@ -482,7 +478,7 @@ export default function ProductForm({ initialProduct, categories = [] }: Product
               : new Date(Date.now() + 7 * 86400000).toISOString())
           : null,
         display_order: Number(displayOrder) || 0,
-        has_variants: isVariantProduct,
+        has_variants: hasVariants && variants.length > 0,
         variants: (hasVariants && variants.length > 0)
           ? variants.map((v, idx) => {
               const numSell = Number(v.sale_price || v.regular_price || 0);
@@ -679,7 +675,7 @@ export default function ProductForm({ initialProduct, categories = [] }: Product
                   }}
                   title="Generate combinations in bulk"
                 >
-                  <Sparkles size={14} />
+                  <Boxes size={14} />
                   <span>{showGenerator ? 'Close Generator' : 'Bulk Generator'}</span>
                 </button>
 
@@ -708,7 +704,7 @@ export default function ProductForm({ initialProduct, categories = [] }: Product
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Sparkles size={16} color="var(--color-primary-light)" />
+                    <Boxes size={16} color="var(--color-primary-light)" />
                     <strong style={{ fontSize: '14px', color: 'var(--color-admin-text)' }}>
                       Universal Multi-Option Permutation Generator
                     </strong>
@@ -731,7 +727,7 @@ export default function ProductForm({ initialProduct, categories = [] }: Product
                     { id: 'eyewear', label: '🕶️ Eyewear' },
                     { id: 'gadgets', label: '📱 Gadgets' },
                     { id: 'volume', label: '🧴 Groceries / Volume' },
-                    { id: 'custom', label: '✨ Custom' },
+                    { id: 'custom', label: '⚙️ Custom' },
                   ].map(p => (
                     <button
                       key={p.id}
@@ -929,7 +925,7 @@ export default function ProductForm({ initialProduct, categories = [] }: Product
                   className="btn btn-secondary btn-sm"
                   style={{ background: 'var(--color-admin-surface)', color: 'var(--color-admin-text)', borderColor: 'var(--color-admin-border)' }}
                 >
-                  <Sparkles size={14} />
+                  <Boxes size={14} />
                   <span>Open Option Permutations Generator</span>
                 </button>
               </div>

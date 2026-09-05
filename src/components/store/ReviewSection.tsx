@@ -14,7 +14,6 @@ import {
   Truck,
   Edit3,
   Clock,
-  Sparkles,
 } from 'lucide-react';
 import type { ProductReview } from '@/types';
 import { formatDate } from '@/lib/utils/format';
@@ -612,7 +611,7 @@ export default function ReviewSection({ productId, reviews = [] }: ReviewSection
               border: '1px dashed var(--color-border)',
             }}
           >
-            <Sparkles size={28} color="var(--color-text-muted)" style={{ margin: '0 auto 8px', opacity: 0.6 }} />
+            <Star size={28} color="var(--color-text-muted)" style={{ margin: '0 auto 8px', opacity: 0.6 }} />
             <p style={{ color: 'var(--color-text-muted)', fontSize: '14px', margin: 0 }}>
               No reviews yet for this product. Customers who have received their delivery will have their genuine reviews displayed here!
             </p>

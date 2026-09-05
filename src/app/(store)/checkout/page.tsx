@@ -21,7 +21,6 @@ import {
   Banknote, 
   Hash, 
   Phone, 
-  Sparkles, 
   Tag, 
   Trash2, 
   Plus, 
@@ -546,7 +545,7 @@ function CheckoutContent() {
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(34, 197, 94, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Sparkles size={18} color="var(--color-success)" />
+                  <CheckCircle2 size={18} color="var(--color-success)" />
                 </div>
                 <div>
                   <div style={{ fontWeight: 800, color: 'var(--color-success)', letterSpacing: '0.5px' }}>

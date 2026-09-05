@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import {
   ShoppingBag,
@@ -20,8 +20,10 @@ import {
   ChevronDown,
   CheckCircle2,
   Clock,
+  Bell,
 } from 'lucide-react';
 import { formatCurrency, formatDate, getStatusLabel } from '@/lib/utils/format';
+import { createClient } from '@/lib/supabase/client';
 import type { Order } from '@/types';
 
 interface AdminOrdersManagerProps {
@@ -29,7 +31,9 @@ interface AdminOrdersManagerProps {
 }
 
 export default function AdminOrdersManager({ initialOrders }: AdminOrdersManagerProps) {
-  const [orders] = useState<Order[]>(initialOrders);
+  const [orders, setOrders] = useState<Order[]>(initialOrders);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [newOrderCount, setNewOrderCount] = useState(0);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [timeRange, setTimeRange] = useState<
@@ -55,11 +59,67 @@ export default function AdminOrdersManager({ initialOrders }: AdminOrdersManager
   const [hubLoading, setHubLoading] = useState(false);
   const [hubSummary, setHubSummary] = useState<any>(null);
 
+  // --- Real-time Order Refresh ---
+  const fetchOrders = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(500);
+      if (!error && data) {
+        setOrders(data as Order[]);
+        setNewOrderCount(0);
+      }
+    } catch {}
+    setIsRefreshing(false);
+  }, []);
+
+  // Supabase Realtime: listen for new/updated orders
+  useEffect(() => {
+    const supabase = createClient();
+    const channel = supabase
+      .channel('admin-orders-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'orders' },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            // Prepend new order and show badge
+            setOrders(prev => [payload.new as Order, ...prev]);
+            setNewOrderCount(prev => prev + 1);
+          } else if (payload.eventType === 'UPDATE') {
+            setOrders(prev =>
+              prev.map(o => (o.id === (payload.new as Order).id ? (payload.new as Order) : o))
+            );
+          } else if (payload.eventType === 'DELETE') {
+            setOrders(prev => prev.filter(o => o.id !== (payload.old as any).id));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   // Filter & Sort Logic
   const filteredOrders = useMemo(() => {
-    const now = new Date().getTime();
+    const now = new Date();
+    const nowMs = now.getTime();
     const oneHourMs = 60 * 60 * 1000;
     const oneDayMs = 24 * 60 * 60 * 1000;
+
+    // Midnight of today (local time) — for proper "today" filter
+    const midnightToday = new Date(now);
+    midnightToday.setHours(0, 0, 0, 0);
+    const midnightTodayMs = midnightToday.getTime();
+
+    // Midnight of yesterday (local time)
+    const midnightYesterdayMs = midnightTodayMs - oneDayMs;
 
     return orders
       .filter(o => {
@@ -89,19 +149,21 @@ export default function AdminOrdersManager({ initialOrders }: AdminOrdersManager
         }
 
         // Time Range / Custom Timestamp Filtering
-        const orderDate = new Date(o.created_at).getTime();
+        const orderDateMs = new Date(o.created_at).getTime();
 
         if (timeRange === 'custom') {
-          if (customFrom && orderDate < new Date(customFrom).getTime()) return false;
-          if (customTo && orderDate > new Date(customTo).getTime()) return false;
+          if (customFrom && orderDateMs < new Date(customFrom).getTime()) return false;
+          if (customTo && orderDateMs > new Date(customTo).getTime()) return false;
         } else if (timeRange !== 'all') {
-          const diffMs = now - orderDate;
+          const diffMs = nowMs - orderDateMs;
 
           if (timeRange === '1h' && diffMs > 1 * oneHourMs) return false;
           if (timeRange === '2h' && diffMs > 2 * oneHourMs) return false;
           if (timeRange === '6h' && diffMs > 6 * oneHourMs) return false;
-          if (timeRange === 'today' && diffMs > oneDayMs) return false;
-          if (timeRange === 'yesterday' && diffMs > 2 * oneDayMs) return false;
+          // FIX: "today" = since midnight local time (not rolling 24h)
+          if (timeRange === 'today' && orderDateMs < midnightTodayMs) return false;
+          // FIX: "yesterday" = orders placed between yesterday midnight and today midnight
+          if (timeRange === 'yesterday' && (orderDateMs < midnightYesterdayMs || orderDateMs >= midnightTodayMs)) return false;
           if (timeRange === 'week' && diffMs > 7 * oneDayMs) return false;
           if (timeRange === 'month' && diffMs > 30 * oneDayMs) return false;
           if (timeRange === 'quarter' && diffMs > 90 * oneDayMs) return false;
@@ -157,12 +219,17 @@ export default function AdminOrdersManager({ initialOrders }: AdminOrdersManager
   useEffect(() => {
     if (!isHubOpen) return;
 
+    // Clear stale summary immediately when timeframe changes
+    setHubSummary(null);
     setHubLoading(true);
+
     let url = `/api/admin/orders/summary?timeframe=${hubTimeframe}`;
     if (hubTimeframe === 'selected' && selectedIds.size > 0) {
       url = `/api/admin/orders/summary?ids=${Array.from(selectedIds).join(',')}`;
     } else if (hubTimeframe === 'custom') {
-      url = `/api/admin/orders/summary?timeframe=custom${hubFrom ? `&from=${encodeURIComponent(hubFrom)}` : ''}${hubTo ? `&to=${encodeURIComponent(hubTo)}` : ''}`;
+      const fromParam = hubFrom ? `&from=${encodeURIComponent(hubFrom)}` : '';
+      const toParam = hubTo ? `&to=${encodeURIComponent(hubTo)}` : '';
+      url = `/api/admin/orders/summary?timeframe=custom${fromParam}${toParam}`;
     }
 
     fetch(url)
@@ -185,18 +252,44 @@ export default function AdminOrdersManager({ initialOrders }: AdminOrdersManager
     cancelled: 'badge-danger',
   };
 
-  // Helper for batch print URLs
+  // Helper for batch print URLs — no empty params sent
   const getBatchPrintUrl = (type: 'standard' | 'tags' | 'manifest', layout: string = '6-up') => {
+    const params = new URLSearchParams();
+    params.set('type', type);
+    params.set('layout', layout);
+
     if (selectedIds.size > 0) {
-      const ids = Array.from(selectedIds).join(',');
-      return `/api/invoices/batch?ids=${ids}&type=${type}&layout=${layout}`;
+      params.set('ids', Array.from(selectedIds).join(','));
+    } else if (timeRange === 'custom') {
+      params.set('timeframe', 'custom');
+      if (customFrom) params.set('from', customFrom);
+      if (customTo) params.set('to', customTo);
+      if (statusFilter !== 'all') params.set('status', statusFilter);
+    } else {
+      params.set('timeframe', timeRange === 'all' ? 'today' : timeRange);
+      if (statusFilter !== 'all') params.set('status', statusFilter);
     }
 
-    if (timeRange === 'custom' && (customFrom || customTo)) {
-      return `/api/invoices/batch?timeframe=custom&from=${encodeURIComponent(customFrom)}&to=${encodeURIComponent(customTo)}&type=${type}&layout=${layout}&status=${statusFilter}`;
+    return `/api/invoices/batch?${params.toString()}`;
+  };
+
+  // Helper for hub modal print URLs — no empty params
+  const getHubPrintUrl = (type: 'standard' | 'tags' | 'manifest', layout: string = '6-up') => {
+    const params = new URLSearchParams();
+    params.set('type', type);
+    params.set('layout', layout);
+
+    if (hubTimeframe === 'selected' && selectedIds.size > 0) {
+      params.set('ids', Array.from(selectedIds).join(','));
+    } else if (hubTimeframe === 'custom') {
+      params.set('timeframe', 'custom');
+      if (hubFrom) params.set('from', hubFrom);
+      if (hubTo) params.set('to', hubTo);
+    } else {
+      params.set('timeframe', hubTimeframe);
     }
 
-    return `/api/invoices/batch?timeframe=${timeRange === 'all' ? 'today' : timeRange}&type=${type}&layout=${layout}&status=${statusFilter}`;
+    return `/api/invoices/batch?${params.toString()}`;
   };
 
   return (
@@ -211,7 +304,8 @@ export default function AdminOrdersManager({ initialOrders }: AdminOrdersManager
           {[
             { label: 'All Time', value: 'all' },
             { label: 'Last 1 Hour', value: '1h' },
-            { label: 'Today (24h)', value: 'today' },
+            { label: 'Today (since midnight)', value: 'today' },
+            { label: 'Yesterday', value: 'yesterday' },
             { label: 'Last 7 Days', value: 'week' },
             { label: 'This Month', value: 'month' },
             { label: '📅 Custom Range', value: 'custom' },
@@ -239,28 +333,82 @@ export default function AdminOrdersManager({ initialOrders }: AdminOrdersManager
           ))}
         </div>
 
-        {/* Fulfillment & Picking Hub Trigger Button */}
-        <button
-          type="button"
-          onClick={() => {
-            if (selectedIds.size > 0) setHubTimeframe('selected');
-            setIsHubOpen(true);
-          }}
-          className="btn btn-primary btn-sm"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '8px 16px',
-            fontSize: '13px',
-            fontWeight: 800,
-            background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
-            boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)',
-          }}
-        >
-          <Package size={16} />
-          <span>Order Processing & Picking Hub / প্যাকিং হাব</span>
-        </button>
+        {/* Right side action buttons */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          {/* Real-time Refresh Button */}
+          <div style={{ position: 'relative' }}>
+            <button
+              type="button"
+              onClick={fetchOrders}
+              disabled={isRefreshing}
+              className="btn btn-sm"
+              title="Refresh orders from database"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '7px 12px',
+                fontSize: '12px',
+                fontWeight: 700,
+                background: '#f8fafc',
+                color: 'var(--color-admin-text)',
+                border: '1px solid var(--color-admin-border)',
+                opacity: isRefreshing ? 0.7 : 1,
+              }}
+            >
+              <RefreshCw size={13} style={{ animation: isRefreshing ? 'spin 0.8s linear infinite' : 'none' }} />
+              <span>{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
+            </button>
+            {newOrderCount > 0 && (
+              <span
+                style={{
+                  position: 'absolute',
+                  top: '-7px',
+                  right: '-7px',
+                  background: '#ef4444',
+                  color: '#ffffff',
+                  borderRadius: '9999px',
+                  fontSize: '10px',
+                  fontWeight: 900,
+                  minWidth: '18px',
+                  height: '18px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '0 4px',
+                  boxShadow: '0 0 0 2px #fff',
+                  animation: 'pulse 1.5s ease-in-out infinite',
+                }}
+                title={`${newOrderCount} new order${newOrderCount > 1 ? 's' : ''} received`}
+              >
+                {newOrderCount > 9 ? '9+' : newOrderCount}
+              </span>
+            )}
+          </div>
+
+          {/* Fulfillment & Picking Hub Trigger Button */}
+          <button
+            type="button"
+            onClick={() => {
+              if (selectedIds.size > 0) setHubTimeframe('selected');
+              setIsHubOpen(true);
+            }}
+            className="btn btn-primary btn-sm"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '8px 16px',
+              fontSize: '13px',
+              fontWeight: 800,
+              background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+              boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)',
+            }}
+          >
+            <Package size={16} />
+            <span>Order Processing & Picking Hub / প্যাকিং হাব</span>
+          </button>
+        </div>
       </div>
 
       {/* Custom Date & Time Range Filter Card */}
@@ -960,7 +1108,7 @@ export default function AdminOrdersManager({ initialOrders }: AdminOrdersManager
 
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 <a
-                  href={`/api/invoices/batch?timeframe=${hubTimeframe === 'selected' ? '' : hubTimeframe}&ids=${hubTimeframe === 'selected' ? Array.from(selectedIds).join(',') : ''}&from=${encodeURIComponent(hubFrom)}&to=${encodeURIComponent(hubTo)}&type=manifest`}
+                  href={getHubPrintUrl('manifest')}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn btn-sm"
@@ -980,7 +1128,7 @@ export default function AdminOrdersManager({ initialOrders }: AdminOrdersManager
                 </a>
 
                 <a
-                  href={`/api/invoices/batch?timeframe=${hubTimeframe === 'selected' ? '' : hubTimeframe}&ids=${hubTimeframe === 'selected' ? Array.from(selectedIds).join(',') : ''}&from=${encodeURIComponent(hubFrom)}&to=${encodeURIComponent(hubTo)}&type=tags&layout=6-up`}
+                  href={getHubPrintUrl('tags', '6-up')}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn btn-sm"
@@ -1000,7 +1148,7 @@ export default function AdminOrdersManager({ initialOrders }: AdminOrdersManager
                 </a>
 
                 <a
-                  href={`/api/invoices/batch?timeframe=${hubTimeframe === 'selected' ? '' : hubTimeframe}&ids=${hubTimeframe === 'selected' ? Array.from(selectedIds).join(',') : ''}&from=${encodeURIComponent(hubFrom)}&to=${encodeURIComponent(hubTo)}&type=tags&layout=9-up`}
+                  href={getHubPrintUrl('tags', '9-up')}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn btn-sm"
@@ -1020,7 +1168,7 @@ export default function AdminOrdersManager({ initialOrders }: AdminOrdersManager
                 </a>
 
                 <a
-                  href={`/api/invoices/batch?timeframe=${hubTimeframe === 'selected' ? '' : hubTimeframe}&ids=${hubTimeframe === 'selected' ? Array.from(selectedIds).join(',') : ''}&from=${encodeURIComponent(hubFrom)}&to=${encodeURIComponent(hubTo)}&type=standard`}
+                  href={getHubPrintUrl('standard')}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn btn-sm"

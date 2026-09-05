@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ChevronLeft, ChevronRight, Zap, ArrowRight, Sparkles } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Zap, ArrowRight, Flame } from 'lucide-react';
 import DealCountdownTimer from '@/components/store/DealCountdownTimer';
 import type { SpecialOffer } from '@/types';
 
@@ -194,7 +194,7 @@ export default function DealsHeroBanner({
                         backdropFilter: 'blur(8px)',
                       }}
                     >
-                      <Sparkles size={13} fill="#f87171" />
+                      <Flame size={13} fill="#f87171" color="#f87171" />
                       <span>{banner.subtitle || settings.deals_badge_text || 'FEATURED FLASH PROMOTION'}</span>
                     </div>
 
