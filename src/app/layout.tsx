@@ -38,6 +38,7 @@ export const metadata: Metadata = {
     icon:  '/favicon.ico',
     apple: '/icons/icon-180.png',
   },
+  manifest: '/manifest.json',
   robots: {
     index:  true,
     follow: true,
@@ -66,13 +67,27 @@ export default function RootLayout({
   return (
     <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
+        {/* PWA Manifest & Icons */}
+        <link rel="manifest" href="/manifest.json" />
+        <link rel="apple-touch-icon" href="/icons/icon-180.png" />
+        <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192.png" />
+        <link rel="apple-touch-icon" sizes="512x512" href="/icons/icon-512.png" />
         {/* Early-capture beforeinstallprompt BEFORE React hydrates — prevents race condition */}
         <script dangerouslySetInnerHTML={{ __html: `
           window.__pwaInstall = null;
+          window.__pwaInstallPrompt = null;
           window.addEventListener('beforeinstallprompt', function(e) {
             e.preventDefault();
             window.__pwaInstall = e;
+            window.__pwaInstallPrompt = e;
+            window.dispatchEvent(new CustomEvent('pwa-install-ready'));
             document.dispatchEvent(new CustomEvent('pwa-install-ready'));
+          });
+          window.addEventListener('appinstalled', function() {
+            window.__pwaInstall = null;
+            window.__pwaInstallPrompt = null;
+            window.dispatchEvent(new CustomEvent('pwa-installed'));
+            document.dispatchEvent(new CustomEvent('pwa-installed'));
           });
         ` }} />
         {/* Preconnect to Google Fonts for faster loading */}

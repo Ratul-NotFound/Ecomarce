@@ -4,10 +4,11 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
-import { ShoppingBag, Heart, User, Search, ShieldCheck, Package } from 'lucide-react';
+import { ShoppingBag, Heart, User, Search, ShieldCheck, Package, Download } from 'lucide-react';
 import { STORE_CONFIG } from '@/lib/store-config';
 import { useCart } from '@/hooks/useCart';
 import { useAuth, extractAvatarUrl } from '@/hooks/useAuth';
+import { usePWAInstall } from '@/hooks/usePWAInstall';
 import NotificationBell from '@/components/store/NotificationBell';
 import SearchBar from '@/components/store/SearchBar';
 
@@ -29,6 +30,7 @@ export default function Header({ categories = [], storeName, storeLogo, announce
   const [logoError, setLogoError] = useState(false);
   const { itemCount } = useCart();
   const { user, profile, isAdmin, isModerator } = useAuth();
+  const { isInstalled, installApp } = usePWAInstall();
   const userAvatar = profile?.avatar_url || extractAvatarUrl(user);
 
   const hasLogo = Boolean(storeLogo && storeLogo !== '/logo.svg' && !logoError);
@@ -73,6 +75,33 @@ export default function Header({ categories = [], storeName, storeLogo, announce
 
           {/* Action Buttons */}
           <div className="store-header__actions">
+            {/* Direct PWA Install Action (Shown only when not installed) */}
+            {!isInstalled && (
+              <>
+                <button
+                  type="button"
+                  onClick={installApp}
+                  className="header-install-pill"
+                  title="Install ShopBD App"
+                  id="header-install-app-pill"
+                  aria-label="Install App"
+                >
+                  <Download size={14} />
+                  <span>Install App</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={installApp}
+                  className="header-install-btn-mobile"
+                  title="Install ShopBD App"
+                  id="header-install-app-mobile"
+                  aria-label="Install App"
+                >
+                  <Download size={16} />
+                </button>
+              </>
+            )}
+
             {/* Admin Portal Shortcut if Admin (Desktop only) */}
             {(isAdmin || isModerator) && (
               <Link
