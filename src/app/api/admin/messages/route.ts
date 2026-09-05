@@ -68,6 +68,24 @@ export async function POST(request: NextRequest) {
 
     if (error) throw error;
 
+    // Send Web Push notification to customer device if registered
+    if (target_user_id) {
+      try {
+        const { sendPushToUser } = await import('@/lib/push-notifications');
+        const preview = message.trim().length > 80 ? message.trim().slice(0, 77) + '…' : message.trim();
+        await sendPushToUser(target_user_id, {
+          title:   '💬 New Reply from Support',
+          body:    preview,
+          url:     '/?chat=open',
+          tag:     'chat-reply',
+          vibrate: [150, 75, 150],
+          actions: [{ action: 'reply', title: '💬 View Message' }],
+        });
+      } catch (pushErr) {
+        console.warn('[push] Admin chat reply push failed (non-fatal):', pushErr);
+      }
+    }
+
     // Also notify Telegram so other moderators see the reply
     try {
       const { data: settingsData } = await dbClient

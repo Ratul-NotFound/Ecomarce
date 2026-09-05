@@ -42,12 +42,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Save message to chat_messages table
-    await dbClient.from('chat_messages').insert({
-      user_id: cleanUserId || null,
-      user_name: cleanUserName,
-      message: cleanMessage,
-      direction: 'in',
-    });
+    const { data: insertedMsg } = await dbClient
+      .from('chat_messages')
+      .insert({
+        user_id: cleanUserId || null,
+        user_name: cleanUserName,
+        message: cleanMessage,
+        direction: 'in',
+      })
+      .select()
+      .single();
 
     // Forward to Telegram bot
     try {
@@ -73,7 +77,13 @@ export async function POST(request: NextRequest) {
 
       if (token && chatId) {
         const telegram = new TelegramService(token, chatId, undefined, messagesTopicId);
-        await telegram.forwardUserMessage(cleanUserName, cleanMessage, cleanUserId || undefined);
+        const teleRes = await telegram.forwardUserMessage(cleanUserName, cleanMessage, cleanUserId || undefined);
+        if (teleRes?.message_id && insertedMsg?.id) {
+          await dbClient
+            .from('chat_messages')
+            .update({ telegram_message_id: teleRes.message_id })
+            .eq('id', insertedMsg.id);
+        }
       }
     } catch (telegramErr) {
       console.warn('Telegram forward notice:', telegramErr);

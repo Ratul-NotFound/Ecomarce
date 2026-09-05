@@ -71,6 +71,9 @@ function looksLikeScanner(pathname: string, ua: string): boolean {
   for (const pattern of SCANNER_PATTERNS) {
     if (pattern.test(pathname)) return true;
   }
+  // Exempt Telegram Webhook from User-Agent length checks
+  if (pathname === '/api/telegram/webhook') return false;
+
   // Block empty or suspicious User-Agent strings on API routes
   if (pathname.startsWith('/api/') && (!ua || ua.length < 5)) return true;
   return false;
@@ -85,6 +88,7 @@ const CSRF_EXEMPT = new Set([
   '/api/orders/create',    // called by storefront JS
   '/api/chat/messages',    // storefront widget
   '/api/telegram/send',    // storefront widget
+  '/api/telegram/webhook', // Telegram bot webhook
   '/api/reviews/submit',   // storefront widget
   '/api/reviews/react',    // storefront widget
   '/api/reviews/check-purchase', // storefront query
