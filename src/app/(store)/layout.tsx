@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import Header from '@/components/store/Header';
 import Footer from '@/components/store/Footer';
 import MobileNav from '@/components/store/MobileNav';
@@ -56,10 +56,13 @@ export default async function StoreLayout({ children }: { children: React.ReactN
         <main style={{ flex: 1 }}>{children}</main>
         <Footer settings={settings} />
         <MobileNav />
-        <TelegramChatWidget />
+        <Suspense fallback={null}>
+          <TelegramChatWidget />
+        </Suspense>
         <PushNotificationPrompt />
         <PWAInstallPrompt />
       </div>
     </ToastProvider>
   );
 }
+

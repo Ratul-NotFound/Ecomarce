@@ -151,6 +151,61 @@ async function initAuthSingleton() {
       notify();
     }
   });
+
+  // 4. PWA & Cross-Window Realtime Auth Synchronization
+  // When user logs in via external browser tab/OAuth, this instantly updates
+  // the PWA standalone app via BroadcastChannel, storage events, and window focus.
+  const syncSessionFromStorage = async () => {
+    try {
+      const supabase = getSupabase();
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user ?? (await supabase.auth.getUser()).data.user ?? null;
+      const hadUser = !!state.user;
+      const hasUser = !!user;
+
+      if (hadUser !== hasUser || (user && user.id !== state.user?.id)) {
+        state = { ...state, user, loading: false };
+        if (user) {
+          notify();
+          fetchProfileSingleton(user.id, user);
+        } else {
+          state = { ...state, profile: null };
+          notify();
+        }
+      }
+    } catch (e) {
+      console.warn('PWA session sync check failed:', e);
+    }
+  };
+
+  if (typeof window !== 'undefined') {
+    // A. BroadcastChannel sync (ultra-fast cross-context messaging)
+    if ('BroadcastChannel' in window) {
+      try {
+        const authChannel = new BroadcastChannel('shopbd_auth_channel');
+        authChannel.onmessage = (event) => {
+          if (event.data?.type === 'AUTH_SUCCESS' || event.data?.type === 'AUTH_STATE_CHANGE') {
+            syncSessionFromStorage();
+          }
+        };
+      } catch (e) {}
+    }
+
+    // B. LocalStorage event listener (standard cross-tab/window fallback)
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'shopbd_auth_sync' || e.key?.startsWith('sb-')) {
+        syncSessionFromStorage();
+      }
+    });
+
+    // C. Window focus & PWA visibility change (when returning from external browser to PWA icon)
+    window.addEventListener('focus', syncSessionFromStorage);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        syncSessionFromStorage();
+      }
+    });
+  }
 }
 
 function subscribe(listener: () => void) {
@@ -194,8 +249,11 @@ const signOut = async (redirectTo: string = '/auth') => {
 };
 
 const signInWithGoogle = async (redirectTo?: string) => {
-  const origin = typeof window !== 'undefined' ? window.location.origin : '';
-  const callbackUrl = `${origin}/auth/callback${
+  const base =
+    process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') ||
+    (process.env.NEXT_PUBLIC_APP_URL && process.env.NEXT_PUBLIC_APP_URL.startsWith('http') ? process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, '') : null) ||
+    (typeof window !== 'undefined' ? window.location.origin : '');
+  const callbackUrl = `${base}/auth/callback${
     redirectTo ? `?redirect=${encodeURIComponent(redirectTo)}` : ''
   }`;
   return getSupabase().auth.signInWithOAuth({

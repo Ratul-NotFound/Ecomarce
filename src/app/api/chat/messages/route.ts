@@ -148,12 +148,8 @@ export async function POST(request: NextRequest) {
 
     // Broadcast in real-time to active admin dashboard and storefront
     try {
-      const channel = dbClient.channel('live_store_chat');
-      await channel.send({
-        type: 'broadcast',
-        event: 'new_chat_message',
-        payload: { message: insertedMsg },
-      });
+      const { broadcastRealtimeEvent } = await import('@/lib/supabase/realtime-broadcast');
+      await broadcastRealtimeEvent('live_store_chat', 'new_chat_message', { message: insertedMsg });
     } catch (bcErr) {
       console.warn('Realtime broadcast error:', bcErr);
     }

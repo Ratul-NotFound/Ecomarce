@@ -135,15 +135,12 @@ export async function POST(request: NextRequest) {
             }
           }
 
+          // Broadcast real-time event to Storefront Live Chat & Admin Dashboard
           try {
-            const channel = dbClient.channel('live_store_chat');
-            await channel.send({
-              type: 'broadcast',
-              event: 'new_chat_message',
-              payload: { message: insertedReply },
-            });
+            const { broadcastRealtimeEvent } = await import('@/lib/supabase/realtime-broadcast');
+            await broadcastRealtimeEvent('live_store_chat', 'new_chat_message', { message: insertedReply });
           } catch (bcErr) {
-            console.warn('Realtime broadcast error from telegram webhook:', bcErr);
+            console.warn('[webhook] Realtime broadcast failed (non-fatal):', bcErr);
           }
         }
       }

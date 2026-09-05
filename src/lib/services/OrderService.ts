@@ -5,6 +5,7 @@ import type { CartItem, Address, Order, OrderStatus, PaymentMethod } from '@/typ
 async function dispatchOrderPush(userId: string, orderId: string, status: string): Promise<void> {
   try {
     const { sendPushToUser } = await import('@/lib/push-notifications');
+    const { broadcastRealtimeEvent } = await import('@/lib/supabase/realtime-broadcast');
     const shortId = orderId.slice(0, 8).toUpperCase();
     const map: Record<string, { title: string; body: string }> = {
       confirmed:        { title: '✅ Order Confirmed',   body: `Your order #${shortId} is confirmed and being prepared.` },
@@ -17,12 +18,22 @@ async function dispatchOrderPush(userId: string, orderId: string, status: string
     };
     const entry = map[status];
     if (!entry) return;
+
+    // 1. Send Web Push to registered mobile/desktop device
     await sendPushToUser(userId, {
       ...entry,
-      url:     '/account/orders',
+      url:     `/orders/${orderId}`,
       tag:     `order-${orderId}`,
       vibrate: [200, 100, 200, 100, 400],
       actions: [{ action: 'track', title: '📦 Track Order' }],
+    });
+
+    // 2. Realtime broadcast to active customer in-app notification bell
+    await broadcastRealtimeEvent(`user_notifs_${userId}`, 'order_status_updated', {
+      orderId,
+      status,
+      title: entry.title,
+      message: entry.body,
     });
   } catch (err) {
     console.warn('[push] Order push failed (non-fatal):', err);

@@ -8,19 +8,29 @@ export async function GET(request: NextRequest) {
   const redirectParam = searchParams.get('next') || searchParams.get('redirect') || '/';
   const targetPath = redirectParam.startsWith('/') ? redirectParam : `/${redirectParam}`;
 
+  // Build canonical base URL with prioritized fallbacks
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL;
   const forwardedHost = request.headers.get('x-forwarded-host');
   const isLocalEnv = process.env.NODE_ENV === 'development';
-  const redirectUrl = isLocalEnv
-    ? `${origin}${targetPath}`
-    : forwardedHost
-    ? `https://${forwardedHost}${targetPath}`
-    : `${origin}${targetPath}`;
 
-  const response = NextResponse.redirect(redirectUrl);
+  let baseUrl: string;
+  if (siteUrl && siteUrl.startsWith('http')) {
+    baseUrl = siteUrl.replace(/\/$/, '');
+  } else if (isLocalEnv) {
+    baseUrl = origin;
+  } else if (forwardedHost) {
+    baseUrl = `https://${forwardedHost}`;
+  } else {
+    baseUrl = origin;
+  }
+
+  const redirectUrl = `${baseUrl}${targetPath}`;
 
   if (code) {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder-project.supabase.co';
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key';
+
+    const cookiesToSetList: Array<{ name: string; value: string; options?: any }> = [];
 
     const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
       cookies: {
@@ -30,7 +40,7 @@ export async function GET(request: NextRequest) {
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) => {
             request.cookies.set(name, value);
-            response.cookies.set(name, value, options);
+            cookiesToSetList.push({ name, value, options });
           });
         },
       },
@@ -41,10 +51,10 @@ export async function GET(request: NextRequest) {
 
       if (error) {
         console.error('Auth code exchange error:', error.message);
-        return NextResponse.redirect(`${origin}/auth?error=${encodeURIComponent(error.message)}`);
+        return NextResponse.redirect(`${baseUrl}/auth?error=${encodeURIComponent(error.message)}`);
       }
 
-      // Safety check: Ensure profile exists in profiles table and Google avatar is saved
+      // Profile upsert & Google avatar preservation
       if (data?.session?.user) {
         const user = data.session.user;
         const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -53,7 +63,6 @@ export async function GET(request: NextRequest) {
             auth: { autoRefreshToken: false, persistSession: false },
           });
 
-          // Extract avatar from all possible Google OIDC claims
           let googleAvatar: string | null = null;
           const meta = user.user_metadata || {};
           if (meta.avatar_url && typeof meta.avatar_url === 'string') googleAvatar = meta.avatar_url;
@@ -108,12 +117,86 @@ export async function GET(request: NextRequest) {
         }
       }
 
+      // Return an HTML bridge with full PWA cross-window sync
+      const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Authenticating...</title>
+  <meta http-equiv="refresh" content="2;url=${redirectUrl}">
+  <style>
+    body {
+      margin: 0;
+      background: #0f0f1a;
+      color: #ffffff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    .card {
+      text-align: center;
+      padding: 32px 24px;
+      max-width: 320px;
+    }
+    .spinner {
+      width: 44px;
+      height: 44px;
+      border: 3.5px solid rgba(99, 102, 241, 0.2);
+      border-top-color: #6366f1;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 20px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    h2 { font-size: 18px; margin: 0 0 8px; font-weight: 700; }
+    p { font-size: 13.5px; color: #94a3b8; margin: 0; line-height: 1.4; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="spinner"></div>
+    <h2>Signed In Successfully</h2>
+    <p>Returning you to ShopBD...</p>
+  </div>
+  <script>
+    try {
+      localStorage.setItem('shopbd_auth_sync', Date.now().toString());
+      if ('BroadcastChannel' in window) {
+        const channel = new BroadcastChannel('shopbd_auth_channel');
+        channel.postMessage({ type: 'AUTH_SUCCESS', timestamp: Date.now() });
+      }
+    } catch(e) {}
+    window.location.replace('${redirectUrl}');
+  </script>
+</body>
+</html>`;
+
+      const response = new NextResponse(html, {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/html; charset=utf-8',
+        },
+      });
+
+      // Apply all session cookies to the response
+      cookiesToSetList.forEach(({ name, value, options }) => {
+        response.cookies.set(name, value, {
+          path: '/',
+          sameSite: 'lax',
+          secure: process.env.NODE_ENV === 'production',
+          ...options,
+        });
+      });
+
       return response;
     } catch (err: any) {
       console.error('Callback error:', err);
-      return NextResponse.redirect(`${origin}/auth?error=${encodeURIComponent(err.message || 'auth_failed')}`);
+      return NextResponse.redirect(`${baseUrl}/auth?error=${encodeURIComponent(err.message || 'auth_failed')}`);
     }
   }
 
-  return response;
+  return NextResponse.redirect(redirectUrl);
 }

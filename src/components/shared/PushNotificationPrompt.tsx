@@ -4,7 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import '@/styles/push-prompt.css';
 
-const DISMISS_KEY = 'pwa_push_prompt_dismissed_v1';
+const DISMISS_KEY = 'pwa_push_prompt_dismissed_v2';
 
 export default function PushNotificationPrompt() {
   const { user } = useAuth();
@@ -14,16 +14,25 @@ export default function PushNotificationPrompt() {
 
   useEffect(() => {
     if (!user) return;
+
+    // If permission was already granted by the browser, auto-subscribe silently to ensure DB record exists
+    if (permission === 'granted' && !isSubscribed && !isLoading) {
+      subscribe().catch(() => {});
+      return;
+    }
+
     if (permission === 'granted' || permission === 'denied' || permission === 'unsupported') return;
     if (isSubscribed) return;
     if (typeof localStorage !== 'undefined' && localStorage.getItem(DISMISS_KEY)) return;
 
+    // Show prompt 2.5s after user is authenticated
     const timer = setTimeout(() => {
       setShown(true);
       setTimeout(() => setVisible(true), 50);
-    }, 10_000);
+    }, 2500);
+
     return () => clearTimeout(timer);
-  }, [user, permission, isSubscribed]);
+  }, [user, permission, isSubscribed, isLoading, subscribe]);
 
   if (!shown) return null;
 
@@ -32,9 +41,12 @@ export default function PushNotificationPrompt() {
     await subscribe();
     setTimeout(() => setShown(false), 500);
   };
+
   const handleDismiss = () => {
     setVisible(false);
-    localStorage.setItem(DISMISS_KEY, '1');
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(DISMISS_KEY, '1');
+    }
     setTimeout(() => setShown(false), 500);
   };
 
@@ -45,7 +57,7 @@ export default function PushNotificationPrompt() {
       <div className="push-prompt__content">
         <p className="push-prompt__title">Stay updated on your orders</p>
         <p className="push-prompt__body">
-          Get instant alerts when your order ships, arrives, or when support replies — even with the app closed.
+          Get instant alerts when your order status updates, or when customer support replies — even when the app is closed.
         </p>
         <div className="push-prompt__actions">
           <button className="push-prompt__btn push-prompt__btn--allow" onClick={handleAllow} disabled={isLoading} id="push-allow-btn">

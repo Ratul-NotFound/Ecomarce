@@ -87,8 +87,10 @@ const nextConfig: NextConfig = {
           { key: 'Strict-Transport-Security',  value: 'max-age=31536000; includeSubDomains; preload' },
           { key: 'X-DNS-Prefetch-Control',     value: 'off' },
           { key: 'X-Download-Options',         value: 'noopen' },
-          { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
-          { key: 'Cross-Origin-Resource-Policy', value: 'same-site' },
+          // NOTE: Cross-Origin-Opener-Policy is intentionally NOT set here.
+          // 'same-origin' breaks Google OAuth (both redirect and popup modes),
+          // and causes PWA auth to silently fail by preventing cross-origin
+          // window communication needed during OAuth code exchange.
         ],
       },
       {

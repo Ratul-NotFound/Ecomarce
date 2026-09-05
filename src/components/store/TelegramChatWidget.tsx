@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { MessageCircle, Send, X, Bot, ShieldCheck, User } from 'lucide-react';
 import { STORE_CONFIG } from '@/lib/store-config';
 import { useAuth } from '@/hooks/useAuth';
@@ -16,6 +17,7 @@ const QUICK_PROMPTS = [
 
 export default function TelegramChatWidget() {
   const { user, profile } = useAuth();
+  const searchParams = useSearchParams();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputVal, setInputVal] = useState('');
@@ -23,6 +25,8 @@ export default function TelegramChatWidget() {
   const [sessionId, setSessionId] = useState<string>('');
   const [unreadCount, setUnreadCount] = useState<number>(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  // Track all received message IDs to prevent duplicates across realtime + polling
+  const receivedIds = useRef<Set<string>>(new Set());
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -86,33 +90,49 @@ export default function TelegramChatWidget() {
     loadChatHistory();
   }, [loadChatHistory]);
 
+  // Auto-open chat when URL has ?chat=open (from push notification tap)
+  useEffect(() => {
+    if (searchParams.get('chat') === 'open') {
+      setIsOpen(true);
+    }
+  }, [searchParams]);
+
   // Realtime subscription to incoming support replies via Broadcast and Postgres changes
   useEffect(() => {
     const supabase = createClient();
     const channel = supabase.channel('live_store_chat', { config: { broadcast: { self: false } } });
 
     const handleIncoming = (newMsg: ChatMessage) => {
-      if (!newMsg) return;
-      const isTargetedToMe =
-        newMsg.direction === 'out' &&
-        ((user?.id && newMsg.user_id === user.id) ||
-          (sessionId && (
-            newMsg.user_name?.includes(sessionId) ||
-            newMsg.user_name?.includes(sessionId.slice(-5))
-          )));
+      if (!newMsg || !newMsg.id) return;
+      // Only show outbound (support replies) targeted at this user
+      if (newMsg.direction !== 'out') return;
 
-      if (isTargetedToMe) {
-        setMessages(prev => {
-          if (prev.some(m => m.id === newMsg.id)) return prev;
-          return [...prev, newMsg];
-        });
+      const isForMe =
+        // Authenticated user match by user_id
+        (user?.id && newMsg.user_id === user.id) ||
+        // Guest session match via user_name tag
+        (sessionId && (
+          newMsg.user_name?.includes(sessionId) ||
+          newMsg.user_name?.includes(sessionId.slice(-5))
+        ));
 
-        if (!isOpen) {
-          setUnreadCount(prev => prev + 1);
-        } else {
-          scrollToBottom();
-        }
-      }
+      if (!isForMe) return;
+
+      // Deduplicate: skip if already received (covers overlap between realtime + polling)
+      if (receivedIds.current.has(newMsg.id)) return;
+      receivedIds.current.add(newMsg.id);
+
+      setMessages(prev => {
+        if (prev.some(m => m.id === newMsg.id)) return prev;
+        return [...prev, newMsg];
+      });
+
+      // Always increment unread when chat is closed; scroll when open
+      setIsOpen(prev => {
+        if (!prev) setUnreadCount(c => c + 1);
+        return prev;
+      });
+      scrollToBottom();
     };
 
     channel
@@ -133,16 +153,25 @@ export default function TelegramChatWidget() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [isOpen, user?.id, sessionId]);
+  }, [user?.id, sessionId]);
 
-  // Silent adaptive background sync when chat widget is open (no manual refresh needed)
+  // Silent adaptive background sync when chat widget is open
   useEffect(() => {
     if (!isOpen) return;
+    // Sync immediately on open, then every 5 seconds
+    loadChatHistory();
     const interval = setInterval(() => {
       loadChatHistory();
-    }, 3500);
+    }, 5000);
     return () => clearInterval(interval);
   }, [isOpen, loadChatHistory]);
+
+  // When chat history reloads, sync receivedIds to prevent duplicates
+  useEffect(() => {
+    messages.forEach(m => {
+      if (m.id && m.id !== 'welcome-1') receivedIds.current.add(m.id);
+    });
+  }, [messages]);
 
   // Scroll to bottom when opening or messages change
   useEffect(() => {

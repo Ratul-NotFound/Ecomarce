@@ -29,13 +29,16 @@ function AuthForm() {
   const handleGoogleSignIn = async () => {
     try {
       setLoading(true);
-      const callbackUrl = `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(
-        redirect
-      )}`;
+      const base =
+        process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') ||
+        (process.env.NEXT_PUBLIC_APP_URL && process.env.NEXT_PUBLIC_APP_URL.startsWith('http') ? process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, '') : null) ||
+        window.location.origin;
+      const callbackUrl = `${base}/auth/callback?redirect=${encodeURIComponent(redirect)}`;
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: callbackUrl,
+          // skipBrowserRedirect: false ensures the browser navigates (required for PWA)
         },
       });
       if (error) throw error;

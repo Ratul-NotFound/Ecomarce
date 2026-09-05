@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { createClient } from '@/lib/supabase/client';
 import { formatRelativeTime } from '@/lib/utils/format';
 import {
@@ -15,11 +16,13 @@ import {
   X,
   ArrowRight,
   ShieldAlert,
+  MessageCircle,
+  BellRing,
 } from 'lucide-react';
 
 interface NotificationItem {
   id: string;
-  type: 'order' | 'deal' | 'reward' | 'system';
+  type: 'order' | 'deal' | 'reward' | 'system' | 'chat';
   title: string;
   message: string;
   time: string;
@@ -29,6 +32,7 @@ interface NotificationItem {
 
 export default function NotificationBell() {
   const { user } = useAuth();
+  const { permission, isSubscribed, isLoading: isPushLoading, subscribe: subscribePush } = usePushNotifications();
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [readIds, setReadIds] = useState<string[]>([]);
@@ -46,7 +50,7 @@ export default function NotificationBell() {
     }
   }, []);
 
-  // Fetch or generate customer notifications
+  // Fetch or generate customer notifications & subscribe to live updates
   useEffect(() => {
     const defaultDeals: NotificationItem[] = [
       {
@@ -74,8 +78,9 @@ export default function NotificationBell() {
       return;
     }
 
-    // Fetch user's recent orders to generate real order updates
     const supabase = createClient();
+
+    // Fetch user's recent orders to generate real order updates
     supabase
       .from('orders')
       .select('id, order_number, status, created_at, total')
@@ -102,6 +107,70 @@ export default function NotificationBell() {
 
         setNotifications([...orderNotifs, ...defaultDeals]);
       });
+
+    // Realtime channel for live customer alerts (support replies & order status updates)
+    const channel = supabase.channel(`user_notifs_${user.id}`);
+
+    channel
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'orders', filter: `user_id=eq.${user.id}` },
+        payload => {
+          const updated = payload.new as any;
+          if (!updated) return;
+          let statusDesc = `Your order status changed to ${updated.status}.`;
+          if (updated.status === 'processing') statusDesc = 'Your order is being packed at the fulfillment center.';
+          if (updated.status === 'shipped' || updated.status === 'out_for_delivery') statusDesc = 'Your package is in transit and on the way!';
+          if (updated.status === 'delivered') statusDesc = 'Your package has been safely delivered.';
+
+          const newNotif: NotificationItem = {
+            id: `order-${updated.id}-${updated.status}-${Date.now()}`,
+            type: 'order',
+            title: `Order #${updated.order_number} Update`,
+            message: statusDesc,
+            time: 'Just now',
+            link: `/orders/${updated.id}`,
+            read: false,
+          };
+
+          setNotifications(prev => [newNotif, ...prev.filter(n => !n.id.startsWith(`order-${updated.id}`))]);
+        }
+      )
+      .on('broadcast', { event: 'order_status_updated' }, payload => {
+        const p = payload?.payload;
+        if (p?.orderId) {
+          const newNotif: NotificationItem = {
+            id: `order-${p.orderId}-${p.status}-${Date.now()}`,
+            type: 'order',
+            title: p.title || 'Order Update',
+            message: p.message || `Order status updated to ${p.status}`,
+            time: 'Just now',
+            link: `/orders/${p.orderId}`,
+            read: false,
+          };
+          setNotifications(prev => [newNotif, ...prev.filter(n => !n.id.startsWith(`order-${p.orderId}`))]);
+        }
+      })
+      .on('broadcast', { event: 'new_chat_message' }, payload => {
+        const msg = payload?.payload?.message;
+        if (msg && msg.direction === 'out' && msg.user_id === user.id) {
+          const chatNotif: NotificationItem = {
+            id: `chat-${msg.id || Date.now()}`,
+            type: 'chat',
+            title: '💬 Support Reply',
+            message: msg.message?.length > 70 ? msg.message.slice(0, 67) + '…' : msg.message,
+            time: 'Just now',
+            link: '/?chat=open',
+            read: false,
+          };
+          setNotifications(prev => [chatNotif, ...prev.filter(n => n.id !== chatNotif.id)]);
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user]);
 
   // Close dropdown on outside click
@@ -152,6 +221,8 @@ export default function NotificationBell() {
         return <Zap size={15} color="#f59e0b" />;
       case 'reward':
         return <Gift size={15} color="#10b981" />;
+      case 'chat':
+        return <MessageCircle size={15} color="var(--color-primary)" />;
       default:
         return <Bell size={15} color="var(--color-text-secondary)" />;
     }
@@ -262,6 +333,48 @@ export default function NotificationBell() {
               </button>
             )}
           </div>
+
+          {/* Quick Push Notification Enable Banner */}
+          {user && !isSubscribed && permission !== 'denied' && permission !== 'unsupported' && (
+            <div
+              style={{
+                padding: '8px 14px',
+                background: 'rgba(99, 102, 241, 0.08)',
+                borderBottom: '1px solid var(--color-border)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '8px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <BellRing size={14} color="var(--color-primary)" />
+                <span style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                  Device Push Alerts
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  subscribePush();
+                }}
+                disabled={isPushLoading}
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  background: 'var(--color-primary)',
+                  color: '#ffffff',
+                  border: 'none',
+                  cursor: 'pointer',
+                }}
+              >
+                {isPushLoading ? 'Enabling…' : 'Enable'}
+              </button>
+            </div>
+          )}
 
           {/* List */}
           <div
