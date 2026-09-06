@@ -38,7 +38,7 @@ export const metadata: Metadata = {
     icon:  '/favicon.ico',
     apple: '/icons/icon-180.png',
   },
-  manifest: '/manifest.json',
+  // manifest is auto-generated from src/app/manifest.ts → /manifest.webmanifest
   robots: {
     index:  true,
     follow: true,

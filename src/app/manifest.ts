@@ -1,0 +1,69 @@
+// src/app/manifest.ts
+// Generates /manifest.webmanifest via Next.js App Router file convention.
+// This is the standard approach used for WebAPK minting in Chrome Android.
+import type { MetadataRoute } from 'next';
+
+export default function manifest(): MetadataRoute.Manifest {
+  return {
+    name: 'ShopBD — Online Shopping',
+    short_name: 'ShopBD',
+    description: 'Your Trusted Online Shop — Fast delivery across Bangladesh',
+    id: '/',
+    start_url: '/',
+    scope: '/',
+    display: 'standalone',
+    orientation: 'portrait-primary',
+    background_color: '#0f0f1a',
+    theme_color: '#6366f1',
+    lang: 'en-BD',
+    dir: 'ltr',
+    categories: ['shopping', 'lifestyle'],
+    prefer_related_applications: false,
+    icons: [
+      {
+        src: '/icons/icon-192.png',
+        sizes: '192x192',
+        type: 'image/png',
+        purpose: 'any',
+      },
+      {
+        src: '/icons/icon-192-maskable.png',
+        sizes: '192x192',
+        type: 'image/png',
+        purpose: 'maskable',
+      },
+      {
+        src: '/icons/icon-512.png',
+        sizes: '512x512',
+        type: 'image/png',
+        purpose: 'any',
+      },
+      {
+        src: '/icons/icon-512-maskable.png',
+        sizes: '512x512',
+        type: 'image/png',
+        purpose: 'maskable',
+      },
+    ],
+    shortcuts: [
+      {
+        name: 'My Orders',
+        short_name: 'Orders',
+        url: '/account?tab=orders',
+        icons: [{ src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' }],
+      },
+      {
+        name: 'Deals & Offers',
+        short_name: 'Deals',
+        url: '/deals',
+        icons: [{ src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' }],
+      },
+      {
+        name: 'Shopping Cart',
+        short_name: 'Cart',
+        url: '/cart',
+        icons: [{ src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' }],
+      },
+    ],
+  };
+}
