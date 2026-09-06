@@ -67,13 +67,14 @@ export default function RootLayout({
   return (
     <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
-        {/* PWA Manifest & Icons */}
-        <link rel="manifest" href="/manifest.json" />
-        <link rel="apple-touch-icon" href="/icons/icon-180.png" />
-        <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192.png" />
-        <link rel="apple-touch-icon" sizes="512x512" href="/icons/icon-512.png" />
-        {/* Early-capture beforeinstallprompt BEFORE React hydrates — prevents race condition */}
+        {/* PWA High-Res App Icons for WebAPK launcher */}
+        <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
+        <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png" />
+        {/* Early-capture beforeinstallprompt & register SW before React hydrates */}
         <script dangerouslySetInnerHTML={{ __html: `
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(function() {});
+          }
           window.__pwaInstall = null;
           window.__pwaInstallPrompt = null;
           window.addEventListener('beforeinstallprompt', function(e) {

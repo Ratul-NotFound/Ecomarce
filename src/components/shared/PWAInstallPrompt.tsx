@@ -15,6 +15,8 @@ export default function PWAInstallPrompt() {
     device,
     showGuide,
     setShowGuide,
+    androidHint,
+    setAndroidHint,
     installApp,
   } = usePWAInstall();
 
@@ -103,6 +105,13 @@ export default function PWAInstallPrompt() {
             <span className="pwa-install__feature">🔔 Order Alerts</span>
             <span className="pwa-install__feature">📦 Offline Access</span>
           </div>
+
+          {androidHint && (
+            <div className="pwa-install__hint">
+              <span className="pwa-install__hint-icon">💡</span>
+              <span>{androidHint}</span>
+            </div>
+          )}
 
           <div className="pwa-install__actions">
             <button

@@ -42,6 +42,7 @@ export function usePWAInstall() {
   const [hasNativePrompt, setHasNativePrompt] = useState<boolean>(false);
   const [isInstalling, setIsInstalling] = useState<boolean>(false);
   const [showGuide, setShowGuide] = useState<boolean>(false);
+  const [androidHint, setAndroidHint] = useState<string | null>(null);
   const [device, setDevice] = useState<'ios' | 'android' | 'desktop'>('desktop');
   const deferredPromptRef = useRef<BeforeInstallPromptEvent | null>(null);
 
@@ -76,6 +77,7 @@ export function usePWAInstall() {
       if (prompt) {
         deferredPromptRef.current = prompt;
         setHasNativePrompt(true);
+        setAndroidHint(null);
       }
     };
 
@@ -87,6 +89,7 @@ export function usePWAInstall() {
       window.__pwaInstall = pEvent;
       window.__pwaInstallPrompt = pEvent;
       setHasNativePrompt(true);
+      setAndroidHint(null);
     };
 
     // App installed listener (fired when installation completes)
@@ -97,6 +100,7 @@ export function usePWAInstall() {
       setIsInstalled(true);
       setHasNativePrompt(false);
       setShowGuide(false);
+      setAndroidHint(null);
       haptics.success();
     };
 
@@ -134,9 +138,10 @@ export function usePWAInstall() {
       return true;
     }
 
+    const currentDevice = getDeviceType();
     let promptEvent = deferredPromptRef.current || window.__pwaInstall || window.__pwaInstallPrompt;
 
-    // If prompt hasn't arrived yet, wait up to 2 seconds for beforeinstallprompt to fire
+    // If prompt hasn't arrived yet, wait up to 800ms for beforeinstallprompt to arrive
     if (!promptEvent && typeof window !== 'undefined') {
       setIsInstalling(true);
       promptEvent = await new Promise<BeforeInstallPromptEvent | null>((resolve) => {
@@ -148,7 +153,7 @@ export function usePWAInstall() {
         const timer = setTimeout(() => {
           cleanup();
           resolve(null);
-        }, 2000);
+        }, 800);
         const cleanup = () => {
           window.removeEventListener('pwa-install-ready', handler);
           window.removeEventListener('beforeinstallprompt', handler);
@@ -166,7 +171,7 @@ export function usePWAInstall() {
       try {
         await promptEvent.prompt();
         const choice = await promptEvent.userChoice;
-        if (choice.outcome === 'accepted') {
+        if (choice && choice.outcome === 'accepted') {
           haptics.success();
           setIsInstalled(true);
           deferredPromptRef.current = null;
@@ -174,19 +179,39 @@ export function usePWAInstall() {
           window.__pwaInstallPrompt = null;
           setHasNativePrompt(false);
           setShowGuide(false);
+          setAndroidHint(null);
           return true;
         }
         return false;
       } catch (err) {
         console.warn('[PWA] Prompt error:', err);
-        setShowGuide(true);
+        if (currentDevice === 'ios' || currentDevice === 'desktop') {
+          setShowGuide(true);
+        } else {
+          setAndroidHint('If you have an old 1×1 shortcut on your home screen, delete it and refresh the page so Chrome can install the full app.');
+        }
         return false;
       } finally {
         setIsInstalling(false);
       }
     }
 
-    // Only show guide if on iOS or desktop where native event is not supported
+    // If prompt not available, route according to device
+    if (currentDevice === 'ios') {
+      setShowGuide(true);
+      return false;
+    }
+
+    if (currentDevice === 'desktop') {
+      setShowGuide(true);
+      return false;
+    }
+
+    if (currentDevice === 'android') {
+      setAndroidHint('Please delete any previous 1×1 shortcut from your home screen and refresh this page. Chrome will then open the direct app installer.');
+      return false;
+    }
+
     setShowGuide(true);
     return false;
   }, []);
@@ -199,6 +224,8 @@ export function usePWAInstall() {
     device,
     showGuide,
     setShowGuide,
+    androidHint,
+    setAndroidHint,
     installApp,
   };
 }
