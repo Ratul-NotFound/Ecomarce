@@ -171,16 +171,31 @@ export function usePWAInstall() {
       try {
         await promptEvent.prompt();
         const choice = await promptEvent.userChoice;
+
         if (choice && choice.outcome === 'accepted') {
-          haptics.success();
-          setIsInstalled(true);
+          // Chrome sets platform='web' for true WebAPK installs.
+          // An empty string means Chrome fell back to ShortcutManager (1×1 widget).
+          const isWebAPK = choice.platform === 'web';
+
           deferredPromptRef.current = null;
           window.__pwaInstall = null;
           window.__pwaInstallPrompt = null;
           setHasNativePrompt(false);
-          setShowGuide(false);
-          setAndroidHint(null);
-          return true;
+
+          if (isWebAPK) {
+            haptics.success();
+            setIsInstalled(true);
+            setShowGuide(false);
+            setAndroidHint(null);
+            return true;
+          } else {
+            // Chrome installed a browser shortcut, NOT a WebAPK.
+            // Tell the user they need to visit the site a few more times.
+            setAndroidHint(
+              'Chrome added a browser shortcut — not the full app. Visit the site 2–3 more times over the next day, then tap Install again. Chrome will then install it as a real native app.'
+            );
+            return false;
+          }
         }
         return false;
       } catch (err) {

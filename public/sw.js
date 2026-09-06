@@ -1,5 +1,5 @@
 // public/sw.js — Robust Standalone Service Worker for ShopBD PWA & Push Notifications
-const CACHE_NAME = 'shopbd-pwa-v3';
+const CACHE_NAME = 'shopbd-pwa-v4';
 const OFFLINE_URL = '/offline';
 
 const PRECACHE_ASSETS = [
