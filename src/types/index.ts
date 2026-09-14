@@ -38,6 +38,8 @@ export type CouponType = 'percent' | 'fixed';
 
 export type MessageDirection = 'in' | 'out';
 
+export type SocialChannel = 'facebook' | 'whatsapp' | 'instagram' | 'phone' | 'other';
+
 // ────────────────────────────────────────────────────────────
 // DATABASE ROW TYPES
 // ────────────────────────────────────────────────────────────
@@ -228,6 +230,8 @@ export interface Order {
   coupon_code: string | null;
   affiliate_code: string | null;
   notes: string | null;
+  source_channel?: SocialChannel | null;
+  social_handle?: string | null;
   created_at: string;
   updated_at: string;
   // Joined

@@ -59,6 +59,8 @@ export class OrderService {
     paymentTransactionId?: string;
     paymentScreenshotUrl?: string;
     paymentSenderPhone?: string;
+    sourceChannel?: string | null;
+    socialHandle?: string | null;
   }): Promise<Order> {
     const {
       userId,
@@ -72,6 +74,8 @@ export class OrderService {
       paymentTransactionId,
       paymentScreenshotUrl,
       paymentSenderPhone,
+      sourceChannel,
+      socialHandle,
     } = params;
 
     const subtotal = cart.reduce((sum, item: any) => {
@@ -143,6 +147,8 @@ export class OrderService {
         coupon_code: couponCode || null,
         affiliate_code: affiliateCode || null,
         notes: paymentNote,
+        source_channel: sourceChannel || null,
+        social_handle: socialHandle || null,
       })
       .select()
       .single();

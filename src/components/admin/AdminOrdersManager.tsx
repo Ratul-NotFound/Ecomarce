@@ -25,6 +25,7 @@ import {
 import { formatCurrency, formatDate, getStatusLabel } from '@/lib/utils/format';
 import { createClient } from '@/lib/supabase/client';
 import type { Order } from '@/types';
+import { SocialChannelBadge } from '@/components/admin/SocialOrdersManager';
 
 interface AdminOrdersManagerProps {
   initialOrders: Order[];
@@ -787,6 +788,9 @@ export default function AdminOrdersManager({ initialOrders }: AdminOrdersManager
                         >
                           #{order.order_number}
                         </Link>
+                        {order.source_channel && (
+                          <SocialChannelBadge channel={order.source_channel} />
+                        )}
                       </td>
                       <td>
                         <div style={{ fontWeight: 700, color: 'var(--color-admin-text)' }}>

@@ -16,6 +16,7 @@ import {
   Sliders,
   Store,
   ShieldAlert,
+  Share2,
 } from 'lucide-react';
 import { STORE_CONFIG } from '@/lib/store-config';
 import { useAuth } from '@/hooks/useAuth';
@@ -36,6 +37,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
     { label: 'Dashboard', href: '/admin', icon: LayoutDashboard, minRole: 'moderator' },
     { label: 'Products Catalog', href: '/admin/products', icon: Package, minRole: 'moderator' },
     { label: 'Orders & Payments', href: '/admin/orders', icon: ShoppingBag, minRole: 'moderator' },
+    { label: 'Social Orders', href: '/admin/social-orders', icon: Share2, minRole: 'moderator' },
     { label: 'Inventory & Stock', href: '/admin/inventory', icon: Boxes, minRole: 'moderator' },
     { label: 'Live Support Chat', href: '/admin/messages', icon: MessageSquare, minRole: 'moderator' },
     { label: 'Customers Directory', href: '/admin/customers', icon: Users, minRole: 'moderator' },
@@ -52,7 +54,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
   });
 
   const managementLinks = visibleLinks.filter(l =>
-    ['/admin', '/admin/products', '/admin/orders', '/admin/inventory'].includes(l.href)
+    ['/admin', '/admin/products', '/admin/orders', '/admin/social-orders', '/admin/inventory'].includes(l.href)
   );
 
   const growthLinks = visibleLinks.filter(l =>
