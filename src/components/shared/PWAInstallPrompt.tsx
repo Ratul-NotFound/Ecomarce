@@ -5,12 +5,37 @@ import { Download, X, Sparkles } from 'lucide-react';
 import { usePWAInstall } from '@/hooks/usePWAInstall';
 import '@/styles/pwa-install.css';
 
+// ── Snooze helpers ────────────────────────────────────────────────────────────
+// Key stored in localStorage; value = Unix ms timestamp of when user dismissed
+const SNOOZE_KEY = 'pwa_install_snoozed_until';
+
+/** How long to hide the prompt after clicking a button (ms) */
+const SNOOZE_LATER_MS  = 7  * 24 * 60 * 60 * 1000; // 7 days  ("Later")
+const SNOOZE_CLOSE_MS  = 3  * 24 * 60 * 60 * 1000; // 3 days  (✕ close)
+
+function isSnoozed(): boolean {
+  try {
+    const raw = localStorage.getItem(SNOOZE_KEY);
+    if (!raw) return false;
+    return Date.now() < parseInt(raw, 10);
+  } catch {
+    return false;
+  }
+}
+
+function snooze(durationMs: number): void {
+  try {
+    localStorage.setItem(SNOOZE_KEY, String(Date.now() + durationMs));
+  } catch { /* private/storage-full — ignore */ }
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 export default function PWAInstallPrompt() {
   const { status, hasNativePrompt, isInstalling, device, triggerInstall } = usePWAInstall();
 
   const [showIosGuide, setShowIosGuide] = useState(false);
   const [visible, setVisible] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
+  const [dismissed, setDismissed] = useState(() => isSnoozed()); // pre-seed from storage
   const [storeName, setStoreName] = useState('ShopBD');
 
   // Read store name from meta once on mount
@@ -51,7 +76,8 @@ export default function PWAInstallPrompt() {
     }
   };
 
-  const handleDismiss = () => {
+  const handleDismiss = (snoozeDuration: number = SNOOZE_LATER_MS) => {
+    snooze(snoozeDuration);
     setVisible(false);
     setTimeout(() => setDismissed(true), 350);
   };
@@ -79,7 +105,7 @@ export default function PWAInstallPrompt() {
           <button
             type="button"
             className="pwa-install__close"
-            onClick={handleDismiss}
+            onClick={() => handleDismiss(SNOOZE_CLOSE_MS)}
             aria-label="Close install banner"
           >
             <X size={15} />
@@ -125,7 +151,7 @@ export default function PWAInstallPrompt() {
             <button
               type="button"
               className="pwa-install__btn pwa-install__btn--dismiss"
-              onClick={handleDismiss}
+              onClick={() => handleDismiss(SNOOZE_LATER_MS)}
               id="pwa-install-dismiss-btn"
             >
               {device === 'ios' ? 'Got it' : 'Later'}

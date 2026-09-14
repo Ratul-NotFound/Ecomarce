@@ -1,89 +1,91 @@
-/* src/styles/pwa-install.css — Matching Store Theme Aesthetic */
+/* ============================================================
+   src/styles/pwa-install.css
+   Modern, ultra-polished PWA Install Banner & Modal
+   Synchronized 100% with the Store Design System
+   ============================================================ */
 
 /* ── Floating Install Card ───────────────────────────────── */
 .pwa-install {
   position: fixed;
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 72px);
-  right: 16px;
-  left: 16px;
+  bottom: calc(var(--mobile-nav-height, 60px) + env(safe-area-inset-bottom, 0px) + 16px);
+  left: 12px;
+  right: 12px;
   z-index: 9998;
-  background: #ffffff;
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 20px;
-  padding: 16px 18px 14px;
-  max-width: 360px;
+  max-width: 380px;
   margin: 0 auto;
+  
+  /* Glassmorphism & Theme Surface */
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--color-border, #e5e3de);
+  border-radius: var(--radius-2xl, 24px);
+  padding: 18px 18px 16px;
+  
+  /* High-end layered shadow */
   box-shadow:
-    0 20px 40px -10px rgba(0, 0, 0, 0.16),
-    0 0 0 1px rgba(0, 0, 0, 0.04),
-    0 6px 18px rgba(37, 99, 235, 0.08);
+    0 16px 36px -6px rgba(15, 23, 42, 0.12),
+    0 4px 12px -2px rgba(0, 0, 0, 0.04),
+    0 0 0 1px rgba(255, 255, 255, 0.8) inset,
+    0 8px 24px -4px var(--color-primary-10, rgba(37, 99, 235, 0.08));
+
+  /* Smooth spring-like entry animation */
   opacity: 0;
-  transform: translateY(24px) scale(0.96);
-  transition: opacity 0.32s ease, transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform: translateY(28px) scale(0.95);
+  transition:
+    opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.38s cubic-bezier(0.34, 1.56, 0.64, 1);
   pointer-events: none;
+  font-family: var(--font-sans, system-ui, -apple-system, sans-serif);
 }
 
-@media (prefers-color-scheme: dark) {
-  .pwa-install {
-    background: #1e1e2d;
-    border-color: rgba(255, 255, 255, 0.12);
-    box-shadow:
-      0 24px 50px -10px rgba(0, 0, 0, 0.6),
-      0 0 0 1px rgba(255, 255, 255, 0.08);
-  }
-}
-
-/* On desktop, anchor to bottom-right */
-@media (min-width: 480px) {
+/* Desktop positioning: anchored to bottom right */
+@media (min-width: 769px) {
   .pwa-install {
     left: auto;
     right: 24px;
     bottom: calc(env(safe-area-inset-bottom, 0px) + 24px);
-    max-width: 340px;
+    max-width: 350px;
+    margin: 0;
   }
 }
 
 .pwa-install.pwa-install--visible {
   opacity: 1;
   transform: translateY(0) scale(1);
-  pointer-events: all;
+  pointer-events: auto;
 }
 
-/* ── Close button ────────────────────────────────────────── */
+/* ── Close Button ────────────────────────────────────────── */
 .pwa-install__close {
   position: absolute;
   top: 12px;
   right: 12px;
-  background: var(--color-surface-2, #f1f5f9);
-  border: 1px solid var(--color-border, #e2e8f0);
-  color: var(--color-text-secondary, #64748b);
+  background: var(--color-surface-2, #f1f0ed);
+  border: 1px solid var(--color-border, #e5e3de);
+  color: var(--color-text-muted, #9a9a9a);
   cursor: pointer;
-  padding: 4px;
-  border-radius: 50%;
-  width: 26px;
-  height: 26px;
+  padding: 0;
+  border-radius: var(--radius-full, 9999px);
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.18s ease;
+  transition: all var(--transition-fast, 150ms ease);
+  outline: none;
+  z-index: 2;
 }
 
 .pwa-install__close:hover {
-  background: var(--color-border, #e2e8f0);
-  color: var(--color-text-primary, #0f172a);
+  background: var(--color-surface-3, #e8e7e3);
+  color: var(--color-text-primary, #1a1a1a);
+  border-color: var(--color-border-strong, #c9c7c0);
   transform: rotate(90deg);
 }
 
-@media (prefers-color-scheme: dark) {
-  .pwa-install__close {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.12);
-    color: #94a3b8;
-  }
-  .pwa-install__close:hover {
-    background: rgba(255, 255, 255, 0.16);
-    color: #ffffff;
-  }
+.pwa-install__close:active {
+  transform: scale(0.92) rotate(90deg);
 }
 
 /* ── Header row ──────────────────────────────────────────── */
@@ -92,45 +94,36 @@
   align-items: center;
   gap: 12px;
   margin-bottom: 12px;
-  padding-right: 28px;
+  padding-right: 26px;
 }
 
 .pwa-install__icon {
-  width: 46px;
-  height: 46px;
-  border-radius: 13px;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-lg, 12px);
   object-fit: cover;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.18);
+  box-shadow: 0 4px 12px var(--color-primary-20, rgba(37, 99, 235, 0.18));
   flex-shrink: 0;
   border: 1px solid rgba(0, 0, 0, 0.06);
+  background: #ffffff;
 }
 
 .pwa-install__name {
-  font-size: 15px;
+  font-size: var(--text-base, 15px);
   font-weight: 800;
-  color: var(--color-text-primary, #0f172a);
+  color: var(--color-text-primary, #1a1a1a);
   line-height: 1.25;
-}
-
-@media (prefers-color-scheme: dark) {
-  .pwa-install__name {
-    color: #f8fafc;
-  }
+  letter-spacing: -0.3px;
 }
 
 .pwa-install__sub {
-  font-size: 12px;
-  color: var(--color-text-secondary, #64748b);
+  font-size: var(--text-xs, 12px);
+  font-weight: 600;
+  color: var(--color-text-secondary, #4a4a4a);
   margin-top: 3px;
   display: flex;
   align-items: center;
   gap: 4px;
-}
-
-@media (prefers-color-scheme: dark) {
-  .pwa-install__sub {
-    color: #94a3b8;
-  }
 }
 
 /* ── Feature chips ───────────────────────────────────────── */
@@ -142,38 +135,39 @@
 }
 
 .pwa-install__feature {
-  font-size: 11.5px;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1px;
   color: var(--color-primary, #2563eb);
-  background: rgba(37, 99, 235, 0.08);
-  border: 1px solid rgba(37, 99, 235, 0.18);
-  padding: 4px 9px;
-  border-radius: 20px;
+  background: var(--color-primary-10, rgba(37, 99, 235, 0.08));
+  border: 1px solid var(--color-primary-20, rgba(37, 99, 235, 0.18));
+  padding: 4px 10px;
+  border-radius: var(--radius-full, 9999px);
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
-@media (prefers-color-scheme: dark) {
-  .pwa-install__feature {
-    background: rgba(99, 102, 241, 0.16);
-    border-color: rgba(99, 102, 241, 0.28);
-    color: #a5b4fc;
-  }
-}
-
-/* ── Informational hint / tip box ───────────────────────── */
+/* ── Informational hint box (iOS / Safari) ───────────────── */
 .pwa-install__hint {
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  background: var(--color-surface-2, #f8fafc);
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 12px;
+  background: var(--color-surface-2, #f1f0ed);
+  border: 1px solid var(--color-border, #e5e3de);
+  border-radius: var(--radius-lg, 12px);
   padding: 10px 12px;
-  margin-bottom: 12px;
-  font-size: 11.5px;
+  margin-bottom: 14px;
+  font-size: var(--text-xs, 12px);
   line-height: 1.45;
-  color: var(--color-text-secondary, #475569);
-  animation: pwaFadeIn 0.2s ease;
+  color: var(--color-text-secondary, #4a4a4a);
+  animation: fade-in 0.2s ease;
+}
+
+.pwa-install__hint strong {
+  color: var(--color-text-primary, #1a1a1a);
+  font-weight: 700;
 }
 
 .pwa-install__hint-icon {
@@ -182,31 +176,27 @@
   margin-top: 1px;
 }
 
-@media (prefers-color-scheme: dark) {
-  .pwa-install__hint {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.1);
-    color: #cbd5e1;
-  }
-}
-
 /* ── Action buttons ──────────────────────────────────────── */
 .pwa-install__actions {
   display: flex;
   gap: 8px;
+  align-items: center;
 }
 
 .pwa-install__btn {
-  padding: 10px 14px;
-  border-radius: 12px;
-  font-size: 13px;
+  padding: 10px 16px;
+  border-radius: var(--radius-xl, 14px);
+  font-size: var(--text-sm, 13px);
   font-weight: 700;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  letter-spacing: 0.01em;
+  transition: all var(--transition-fast, 150ms ease);
+  letter-spacing: 0.1px;
+  outline: none;
+  border: none;
+  font-family: inherit;
 }
 
 .pwa-install__btn:active {
@@ -219,156 +209,118 @@
 }
 
 .pwa-install__btn--install {
-  background: var(--color-primary, #2563eb);
+  background: linear-gradient(135deg, var(--color-primary, #2563eb) 0%, var(--color-primary-dark, #1d4ed8) 100%);
   color: #ffffff;
   border: none;
-  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+  box-shadow: 0 4px 14px var(--color-primary-20, rgba(37, 99, 235, 0.35));
   flex: 2;
+  position: relative;
+  overflow: hidden;
 }
 
 .pwa-install__btn--install:hover:not(:disabled) {
-  filter: brightness(1.08);
-  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.45);
+  filter: brightness(1.06);
+  box-shadow: 0 6px 20px var(--color-primary-20, rgba(37, 99, 235, 0.45));
   transform: translateY(-1px);
 }
 
 .pwa-install__btn--dismiss {
-  background: var(--color-surface-2, #f1f5f9);
-  color: var(--color-text-secondary, #64748b);
-  border: 1px solid var(--color-border, #e2e8f0);
+  background: var(--color-surface-2, #f1f0ed);
+  color: var(--color-text-secondary, #4a4a4a);
+  border: 1px solid var(--color-border, #e5e3de);
   flex: 1;
 }
 
 .pwa-install__btn--dismiss:hover {
-  background: var(--color-border, #e2e8f0);
-  color: var(--color-text-primary, #0f172a);
+  background: var(--color-surface-3, #e8e7e3);
+  color: var(--color-text-primary, #1a1a1a);
+  border-color: var(--color-border-strong, #c9c7c0);
 }
 
-@media (prefers-color-scheme: dark) {
-  .pwa-install__btn--dismiss {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.12);
-    color: #cbd5e1;
-  }
-  .pwa-install__btn--dismiss:hover {
-    background: rgba(255, 255, 255, 0.14);
-    color: #ffffff;
-  }
-}
-
-/* ── Modal Dialog (For Desktop / iOS / Fallback Guide) ───── */
+/* ── Modal Dialog (For iOS / Manual Desktop Guide) ────────── */
 .pwa-modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.65);
+  background: rgba(15, 23, 42, 0.6);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   z-index: 10000;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
-  animation: pwaFadeIn 0.2s ease-out;
+  padding: 16px;
+  animation: fade-in 0.2s ease-out;
 }
 
 .pwa-modal-card {
-  background: #ffffff;
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 24px;
+  background: var(--color-surface, #ffffff);
+  border: 1px solid var(--color-border, #e5e3de);
+  border-radius: var(--radius-2xl, 24px);
   max-width: 420px;
   width: 100%;
   padding: 24px;
   box-shadow:
-    0 25px 50px -12px rgba(0, 0, 0, 0.25),
-    0 0 30px rgba(37, 99, 235, 0.1);
+    0 24px 48px -12px rgba(15, 23, 42, 0.25),
+    0 0 32px var(--color-primary-10, rgba(37, 99, 235, 0.08));
   position: relative;
-  animation: pwaScaleUp 0.24s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-@media (prefers-color-scheme: dark) {
-  .pwa-modal-card {
-    background: #1e1e2d;
-    border-color: rgba(255, 255, 255, 0.12);
-    box-shadow:
-      0 25px 50px -12px rgba(0, 0, 0, 0.7),
-      0 0 40px rgba(99, 102, 241, 0.2);
-  }
-}
-
-@keyframes pwaFadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes pwaScaleUp {
-  from { transform: scale(0.92); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
+  animation: fade-in-scale 0.26s cubic-bezier(0.34, 1.56, 0.64, 1);
+  font-family: var(--font-sans, system-ui, -apple-system, sans-serif);
 }
 
 .pwa-modal-header {
   display: flex;
   align-items: center;
   gap: 14px;
-  margin-bottom: 16px;
+  margin-bottom: 18px;
 }
 
 .pwa-modal-icon {
-  width: 50px;
-  height: 50px;
-  border-radius: 14px;
-  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.2);
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-lg, 14px);
+  box-shadow: 0 4px 14px var(--color-primary-20, rgba(37, 99, 235, 0.2));
   flex-shrink: 0;
   border: 1px solid rgba(0, 0, 0, 0.06);
+  background: #ffffff;
 }
 
 .pwa-modal-title {
-  font-size: 18px;
+  font-size: var(--text-lg, 18px);
   font-weight: 800;
-  color: var(--color-text-primary, #0f172a);
+  color: var(--color-text-primary, #1a1a1a);
   line-height: 1.25;
-}
-
-@media (prefers-color-scheme: dark) {
-  .pwa-modal-title {
-    color: #f8fafc;
-  }
+  letter-spacing: -0.3px;
 }
 
 .pwa-modal-desc {
-  font-size: 13px;
-  color: var(--color-text-secondary, #64748b);
+  font-size: var(--text-xs, 12.5px);
+  font-weight: 600;
+  color: var(--color-text-secondary, #4a4a4a);
   margin-top: 3px;
 }
 
-@media (prefers-color-scheme: dark) {
-  .pwa-modal-desc {
-    color: #94a3b8;
-  }
-}
-
 .pwa-step-card {
-  background: var(--color-surface-2, #f8fafc);
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 14px;
+  background: var(--color-surface-2, #f1f0ed);
+  border: 1px solid var(--color-border, #e5e3de);
+  border-radius: var(--radius-lg, 14px);
   padding: 12px 14px;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 12px;
   margin-bottom: 10px;
+  transition: all var(--transition-fast, 150ms ease);
 }
 
-@media (prefers-color-scheme: dark) {
-  .pwa-step-card {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.1);
-  }
+.pwa-step-card:hover {
+  background: var(--color-surface-3, #e8e7e3);
+  border-color: var(--color-border-strong, #c9c7c0);
 }
 
 .pwa-step-badge {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: var(--color-primary, #2563eb);
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-full, 9999px);
+  background: linear-gradient(135deg, var(--color-primary, #2563eb) 0%, var(--color-primary-dark, #1d4ed8) 100%);
   color: #ffffff;
   font-weight: 800;
   font-size: 12px;
@@ -376,50 +328,43 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  margin-top: 2px;
+  box-shadow: 0 2px 8px var(--color-primary-20, rgba(37, 99, 235, 0.3));
 }
 
 .pwa-step-text {
-  font-size: 13px;
-  color: var(--color-text-primary, #1e293b);
+  font-size: var(--text-sm, 13px);
+  color: var(--color-text-secondary, #4a4a4a);
   line-height: 1.45;
 }
 
 .pwa-step-text strong {
-  color: var(--color-text-primary, #0f172a);
+  color: var(--color-text-primary, #1a1a1a);
   font-weight: 700;
-}
-
-@media (prefers-color-scheme: dark) {
-  .pwa-step-text {
-    color: #cbd5e1;
-  }
-  .pwa-step-text strong {
-    color: #ffffff;
-  }
 }
 
 .pwa-modal-actions {
   display: flex;
   gap: 10px;
-  margin-top: 18px;
+  margin-top: 20px;
 }
 
 /* ── Header Install Pill Buttons ─────────────────────────── */
 .header-install-pill {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 6px;
   padding: 6px 14px;
-  background: rgba(37, 99, 235, 0.08);
+  background: var(--color-primary-10, rgba(37, 99, 235, 0.08));
   color: var(--color-primary, #2563eb);
-  border: 1px solid rgba(37, 99, 235, 0.25);
-  border-radius: 9999px;
-  font-size: 12.5px;
+  border: 1.5px solid var(--color-primary-20, rgba(37, 99, 235, 0.25));
+  border-radius: var(--radius-full, 9999px);
+  font-size: var(--text-xs, 12px);
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.08);
+  transition: all var(--transition-fast, 150ms ease);
+  box-shadow: 0 2px 6px var(--color-primary-10, rgba(37, 99, 235, 0.08));
+  font-family: inherit;
+  outline: none;
 }
 
 .header-install-pill:hover {
@@ -427,7 +372,7 @@
   color: #ffffff;
   border-color: transparent;
   transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
+  box-shadow: 0 4px 14px var(--color-primary-20, rgba(37, 99, 235, 0.3));
 }
 
 .header-install-pill:active {
@@ -449,17 +394,20 @@
     justify-content: center;
     width: 36px;
     height: 36px;
-    border-radius: 50%;
-    background: rgba(37, 99, 235, 0.08);
+    border-radius: var(--radius-full, 9999px);
+    background: var(--color-primary-10, rgba(37, 99, 235, 0.08));
     color: var(--color-primary, #2563eb);
-    border: 1px solid rgba(37, 99, 235, 0.2);
+    border: 1.5px solid var(--color-primary-20, rgba(37, 99, 235, 0.2));
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all var(--transition-fast, 150ms ease);
+    outline: none;
   }
 
   .header-install-btn-mobile:hover,
   .header-install-btn-mobile:active {
     background: var(--color-primary, #2563eb);
     color: #ffffff;
+    border-color: transparent;
   }
 }
+

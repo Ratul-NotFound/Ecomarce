@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, useRef, createContext, useContext } from 'react';
 
-
 export interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
@@ -186,4 +185,3 @@ export function usePWAInstall(): PWAInstallState {
   if (!ctx) throw new Error('usePWAInstall must be used inside <PWAInstallProvider>');
   return ctx;
 }
-
