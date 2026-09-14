@@ -5,6 +5,7 @@ const OFFLINE_URL = '/offline';
 const PRECACHE_ASSETS = [
   '/',
   '/offline',
+  '/manifest.webmanifest',
   '/manifest.json',
   '/favicon.ico',
   '/icons/icon-192.png',

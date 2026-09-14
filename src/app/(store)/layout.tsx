@@ -6,6 +6,7 @@ import TelegramChatWidget from '@/components/store/TelegramChatWidget';
 import { ToastProvider } from '@/components/shared/ToastProvider';
 import PushNotificationPrompt from '@/components/shared/PushNotificationPrompt';
 import PWAInstallPrompt from '@/components/shared/PWAInstallPrompt';
+import { PWAInstallProvider } from '@/hooks/usePWAInstall';
 import { createClient } from '@/lib/supabase/server';
 import { CategoryRepository } from '@/lib/supabase/repositories/CategoryRepository';
 import type { Category } from '@/types';
@@ -34,34 +35,36 @@ export default async function StoreLayout({ children }: { children: React.ReactN
 
   return (
     <ToastProvider>
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          minHeight: '100dvh',
-          ...(dynamicThemeVars as any),
-        }}
-        suppressHydrationWarning
-      >
-        <Header
-          categories={categories}
-          storeName={settings.store_name}
-          storeLogo={settings.store_logo_url}
-          announcement={{
-            enabled: settings.announcement_bar_enabled,
-            text: settings.announcement_bar_text,
-            link: settings.announcement_bar_link,
+      <PWAInstallProvider>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            minHeight: '100dvh',
+            ...(dynamicThemeVars as any),
           }}
-        />
-        <main style={{ flex: 1 }}>{children}</main>
-        <Footer settings={settings} />
-        <MobileNav />
-        <Suspense fallback={null}>
-          <TelegramChatWidget />
-        </Suspense>
-        <PushNotificationPrompt />
-        <PWAInstallPrompt />
-      </div>
+          suppressHydrationWarning
+        >
+          <Header
+            categories={categories}
+            storeName={settings.store_name}
+            storeLogo={settings.store_logo_url}
+            announcement={{
+              enabled: settings.announcement_bar_enabled,
+              text: settings.announcement_bar_text,
+              link: settings.announcement_bar_link,
+            }}
+          />
+          <main style={{ flex: 1 }}>{children}</main>
+          <Footer settings={settings} />
+          <MobileNav />
+          <Suspense fallback={null}>
+            <TelegramChatWidget />
+          </Suspense>
+          <PushNotificationPrompt />
+          <PWAInstallPrompt />
+        </div>
+      </PWAInstallProvider>
     </ToastProvider>
   );
 }

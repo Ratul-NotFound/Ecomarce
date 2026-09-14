@@ -1,246 +1,189 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { haptics } from '@/lib/haptics';
+import { useState, useEffect, useCallback, useRef, createContext, useContext } from 'react';
+
 
 export interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
 }
 
+export type DeviceType = 'ios' | 'android' | 'desktop';
+
+/**
+ * Three-state install status:
+ *   null    = not yet determined (SSR / first paint — render nothing install-related)
+ *   true    = confirmed installed as standalone PWA
+ *   false   = confirmed NOT installed
+ */
+export type InstallStatus = null | boolean;
+
+export interface PWAInstallState {
+  /** null while detecting, true if installed, false if not installed */
+  status: InstallStatus;
+  /** Chrome has fired beforeinstallprompt and is ready for a real WebAPK/app install */
+  hasNativePrompt: boolean;
+  /** Install is in progress (prompt shown, waiting for user choice) */
+  isInstalling: boolean;
+  /** Device platform */
+  device: DeviceType;
+  /**
+   * Trigger Chrome's native install dialog.
+   * Returns 'installed' if user accepted, 'dismissed' if declined, 'no-prompt' if Chrome isn't ready.
+   */
+  triggerInstall: () => Promise<'installed' | 'dismissed' | 'no-prompt'>;
+}
+
 declare global {
   interface Window {
-    __pwaInstall: BeforeInstallPromptEvent | null;
     __pwaInstallPrompt: BeforeInstallPromptEvent | null;
   }
 }
 
-/**
- * Accurately check if the user is currently running inside the standalone PWA application.
- * Note: Avoid checking (display-mode: fullscreen) or (display-mode: minimal-ui) as they
- * produce false positives in desktop fullscreen or mobile collapsible toolbars.
- */
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+/** Returns true if the page is running as an installed standalone PWA right now. */
 export function isInstalledStandalone(): boolean {
   if (typeof window === 'undefined') return false;
   return (
     window.matchMedia('(display-mode: standalone)').matches ||
+    window.matchMedia('(display-mode: minimal-ui)').matches ||
     (navigator as any).standalone === true ||
-    document.referrer.includes('android-app://')
+    document.referrer.startsWith('android-app://')
   );
 }
 
-export function getDeviceType(): 'ios' | 'android' | 'desktop' {
+export function getDeviceType(): DeviceType {
   if (typeof navigator === 'undefined') return 'desktop';
   const ua = navigator.userAgent;
-  if (/iphone|ipad|ipod/i.test(ua) && !(window as any).MSStream) return 'ios';
+  if (/iphone|ipad|ipod/i.test(ua)) return 'ios';
   if (/android/i.test(ua)) return 'android';
   return 'desktop';
 }
 
-export function usePWAInstall() {
-  const [isInstalled, setIsInstalled] = useState<boolean>(false);
-  const [hasNativePrompt, setHasNativePrompt] = useState<boolean>(false);
-  const [isInstalling, setIsInstalling] = useState<boolean>(false);
-  const [showGuide, setShowGuide] = useState<boolean>(false);
-  const [androidHint, setAndroidHint] = useState<string | null>(null);
-  const [device, setDevice] = useState<'ios' | 'android' | 'desktop'>('desktop');
+// ─── Context (single state machine shared across all consumers) ──────────────
+
+const PWAInstallContext = createContext<PWAInstallState | null>(null);
+
+// ─── Provider (mount once in store layout) ───────────────────────────────────
+
+export function PWAInstallProvider({ children }: { children: React.ReactNode }) {
+  // null = unknown (before client-side detection), true = installed, false = not installed
+  const [status, setStatus] = useState<InstallStatus>(null);
+  const [hasNativePrompt, setHasNativePrompt] = useState(false);
+  const [isInstalling, setIsInstalling] = useState(false);
+  const [device, setDevice] = useState<DeviceType>('desktop');
   const deferredPromptRef = useRef<BeforeInstallPromptEvent | null>(null);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    // Detect device
+    // 1. Immediately detect if already installed
+    const installed = isInstalledStandalone();
+    setStatus(installed);
     setDevice(getDeviceType());
 
-    // Clean legacy test blocking keys from localStorage so users aren't locked out
-    try {
-      localStorage.removeItem('pwa_app_installed');
-      localStorage.removeItem('pwa_banner_hidden_until');
-      localStorage.removeItem('pwa_installed');
-    } catch {}
+    if (installed) return; // already installed — no need to track prompts
 
-    // Check if running standalone
-    const standalone = isInstalledStandalone();
-    setIsInstalled(standalone);
-    if (standalone) return;
-
-    // Check if early capture in <head> already intercepted the prompt
-    const earlyPrompt = window.__pwaInstall || window.__pwaInstallPrompt;
-    if (earlyPrompt) {
-      deferredPromptRef.current = earlyPrompt;
+    // 2. Capture prompt intercepted by the early inline <head> script
+    if (window.__pwaInstallPrompt) {
+      deferredPromptRef.current = window.__pwaInstallPrompt;
       setHasNativePrompt(true);
     }
 
-    // Listener for custom event dispatched from inline script
-    const onPromptReady = () => {
-      const prompt = window.__pwaInstall || window.__pwaInstallPrompt;
-      if (prompt) {
-        deferredPromptRef.current = prompt;
+    // 3. Chrome fires this when it's ready to install as a real WebAPK/app
+    const onBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault(); // prevent the browser's automatic mini-infobar
+      const evt = e as BeforeInstallPromptEvent;
+      deferredPromptRef.current = evt;
+      window.__pwaInstallPrompt = evt;
+      setHasNativePrompt(true);
+    };
+
+    // 4. Custom event from inline <head> script (fires when it captures the prompt early)
+    const onInstallReady = () => {
+      if (window.__pwaInstallPrompt) {
+        deferredPromptRef.current = window.__pwaInstallPrompt;
         setHasNativePrompt(true);
-        setAndroidHint(null);
       }
     };
 
-    // Direct listener on window in case event fires after React mount
-    const onBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault();
-      const pEvent = e as BeforeInstallPromptEvent;
-      deferredPromptRef.current = pEvent;
-      window.__pwaInstall = pEvent;
-      window.__pwaInstallPrompt = pEvent;
-      setHasNativePrompt(true);
-      setAndroidHint(null);
-    };
-
-    // App installed listener (fired when installation completes)
+    // 5. Fires after installation is fully complete
     const onAppInstalled = () => {
       deferredPromptRef.current = null;
-      window.__pwaInstall = null;
       window.__pwaInstallPrompt = null;
-      setIsInstalled(true);
+      setStatus(true);
       setHasNativePrompt(false);
-      setShowGuide(false);
-      setAndroidHint(null);
-      haptics.success();
     };
 
-    // Media query listener for display-mode change
-    const mediaQuery = window.matchMedia('(display-mode: standalone)');
-    const onMediaChange = (e: MediaQueryListEvent) => {
-      if (e.matches) {
-        setIsInstalled(true);
-        setShowGuide(false);
-      }
+    // 6. Detect if app launched in standalone mode (e.g. user opened it from home screen)
+    const mq = window.matchMedia('(display-mode: standalone)');
+    const onMQChange = (e: MediaQueryListEvent) => {
+      if (e.matches) setStatus(true);
     };
 
     window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt);
     window.addEventListener('appinstalled', onAppInstalled);
-    window.addEventListener('pwa-install-ready', onPromptReady);
-    document.addEventListener('pwa-install-ready', onPromptReady);
-    if (mediaQuery.addEventListener) {
-      mediaQuery.addEventListener('change', onMediaChange);
-    }
+    window.addEventListener('pwa-install-ready', onInstallReady);
+    window.addEventListener('pwa-installed', onAppInstalled);
+    mq.addEventListener?.('change', onMQChange);
 
     return () => {
       window.removeEventListener('beforeinstallprompt', onBeforeInstallPrompt);
       window.removeEventListener('appinstalled', onAppInstalled);
-      window.removeEventListener('pwa-install-ready', onPromptReady);
-      document.removeEventListener('pwa-install-ready', onPromptReady);
-      if (mediaQuery.removeEventListener) {
-        mediaQuery.removeEventListener('change', onMediaChange);
-      }
+      window.removeEventListener('pwa-install-ready', onInstallReady);
+      window.removeEventListener('pwa-installed', onAppInstalled);
+      mq.removeEventListener?.('change', onMQChange);
     };
   }, []);
 
-  const installApp = useCallback(async (): Promise<boolean> => {
+  const triggerInstall = useCallback(async (): Promise<'installed' | 'dismissed' | 'no-prompt'> => {
+    // Re-check live — React state may be 1 render behind
     if (isInstalledStandalone()) {
-      setIsInstalled(true);
-      return true;
+      setStatus(true);
+      return 'installed';
     }
 
-    const currentDevice = getDeviceType();
-    let promptEvent = deferredPromptRef.current || window.__pwaInstall || window.__pwaInstallPrompt;
+    const prompt = deferredPromptRef.current ?? window.__pwaInstallPrompt;
+    if (!prompt || typeof prompt.prompt !== 'function') {
+      return 'no-prompt';
+    }
 
-    // If prompt hasn't arrived yet, wait up to 800ms for beforeinstallprompt to arrive
-    if (!promptEvent && typeof window !== 'undefined') {
-      setIsInstalling(true);
-      promptEvent = await new Promise<BeforeInstallPromptEvent | null>((resolve) => {
-        const handler = () => {
-          const p = window.__pwaInstall || window.__pwaInstallPrompt || deferredPromptRef.current;
-          cleanup();
-          resolve(p);
-        };
-        const timer = setTimeout(() => {
-          cleanup();
-          resolve(null);
-        }, 800);
-        const cleanup = () => {
-          window.removeEventListener('pwa-install-ready', handler);
-          window.removeEventListener('beforeinstallprompt', handler);
-          clearTimeout(timer);
-        };
-        window.addEventListener('pwa-install-ready', handler, { once: true });
-        window.addEventListener('beforeinstallprompt', handler, { once: true });
-      });
+    setIsInstalling(true);
+    try {
+      // This opens Chrome's real install dialog (WebAPK on Android, app install on desktop).
+      // It is NOT "Add to Home Screen" — Chrome controls this dialog entirely.
+      await prompt.prompt();
+      const { outcome } = await prompt.userChoice;
+
+      // The prompt object can only be used once — discard it regardless of outcome
+      deferredPromptRef.current = null;
+      window.__pwaInstallPrompt = null;
+      setHasNativePrompt(false);
+
+      if (outcome === 'accepted') {
+        // appinstalled event will also fire; we update status here for instant UI response
+        setStatus(true);
+        return 'installed';
+      }
+      return 'dismissed';
+    } catch {
+      return 'no-prompt';
+    } finally {
       setIsInstalling(false);
     }
-
-    if (promptEvent && typeof promptEvent.prompt === 'function') {
-      setIsInstalling(true);
-      haptics.heavy();
-      try {
-        await promptEvent.prompt();
-        const choice = await promptEvent.userChoice;
-
-        if (choice && choice.outcome === 'accepted') {
-          // Chrome sets platform='web' for true WebAPK installs.
-          // An empty string means Chrome fell back to ShortcutManager (1×1 widget).
-          const isWebAPK = choice.platform === 'web';
-
-          deferredPromptRef.current = null;
-          window.__pwaInstall = null;
-          window.__pwaInstallPrompt = null;
-          setHasNativePrompt(false);
-
-          if (isWebAPK) {
-            haptics.success();
-            setIsInstalled(true);
-            setShowGuide(false);
-            setAndroidHint(null);
-            return true;
-          } else {
-            // Chrome installed a browser shortcut, NOT a WebAPK.
-            // Tell the user they need to visit the site a few more times.
-            setAndroidHint(
-              'Chrome added a browser shortcut — not the full app. Visit the site 2–3 more times over the next day, then tap Install again. Chrome will then install it as a real native app.'
-            );
-            return false;
-          }
-        }
-        return false;
-      } catch (err) {
-        console.warn('[PWA] Prompt error:', err);
-        if (currentDevice === 'ios' || currentDevice === 'desktop') {
-          setShowGuide(true);
-        } else {
-          setAndroidHint('If you have an old 1×1 shortcut on your home screen, delete it and refresh the page so Chrome can install the full app.');
-        }
-        return false;
-      } finally {
-        setIsInstalling(false);
-      }
-    }
-
-    // If prompt not available, route according to device
-    if (currentDevice === 'ios') {
-      setShowGuide(true);
-      return false;
-    }
-
-    if (currentDevice === 'desktop') {
-      setShowGuide(true);
-      return false;
-    }
-
-    if (currentDevice === 'android') {
-      setAndroidHint('Please delete any previous 1×1 shortcut from your home screen and refresh this page. Chrome will then open the direct app installer.');
-      return false;
-    }
-
-    setShowGuide(true);
-    return false;
   }, []);
 
-  return {
-    isInstalled,
-    canInstall: !isInstalled,
-    hasNativePrompt,
-    isInstalling,
-    device,
-    showGuide,
-    setShowGuide,
-    androidHint,
-    setAndroidHint,
-    installApp,
-  };
+  return (
+    <PWAInstallContext.Provider value={{ status, hasNativePrompt, isInstalling, device, triggerInstall }}>
+      {children}
+    </PWAInstallContext.Provider>
+  );
 }
+
+// ─── Hook used by components ─────────────────────────────────────────────────
+
+export function usePWAInstall(): PWAInstallState {
+  const ctx = useContext(PWAInstallContext);
+  if (!ctx) throw new Error('usePWAInstall must be used inside <PWAInstallProvider>');
+  return ctx;
+}
+

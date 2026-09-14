@@ -30,7 +30,9 @@ export default function Header({ categories = [], storeName, storeLogo, announce
   const [logoError, setLogoError] = useState(false);
   const { itemCount } = useCart();
   const { user, profile, isAdmin, isModerator } = useAuth();
-  const { isInstalled, installApp } = usePWAInstall();
+  const { status: pwaStatus, hasNativePrompt, triggerInstall } = usePWAInstall();
+  // Only show install UI when we've confirmed the user is NOT in standalone mode
+  const showInstallButton = pwaStatus === false;
   const userAvatar = profile?.avatar_url || extractAvatarUrl(user);
 
   const hasLogo = Boolean(storeLogo && storeLogo !== '/logo.svg' && !logoError);
@@ -75,14 +77,14 @@ export default function Header({ categories = [], storeName, storeLogo, announce
 
           {/* Action Buttons */}
           <div className="store-header__actions">
-            {/* Direct PWA Install Action (Shown only when not installed) */}
-            {!isInstalled && (
+            {/* PWA Install Button — only shown when confirmed not installed AND Chrome has a native prompt */}
+            {showInstallButton && hasNativePrompt && (
               <>
                 <button
                   type="button"
-                  onClick={installApp}
+                  onClick={() => triggerInstall()}
                   className="header-install-pill"
-                  title="Install ShopBD App"
+                  title="Install App"
                   id="header-install-app-pill"
                   aria-label="Install App"
                 >
@@ -91,9 +93,9 @@ export default function Header({ categories = [], storeName, storeLogo, announce
                 </button>
                 <button
                   type="button"
-                  onClick={installApp}
+                  onClick={() => triggerInstall()}
                   className="header-install-btn-mobile"
-                  title="Install ShopBD App"
+                  title="Install App"
                   id="header-install-app-mobile"
                   aria-label="Install App"
                 >

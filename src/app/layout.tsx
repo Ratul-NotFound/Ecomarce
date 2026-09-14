@@ -75,20 +75,15 @@ export default function RootLayout({
           if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(function() {});
           }
-          window.__pwaInstall = null;
           window.__pwaInstallPrompt = null;
           window.addEventListener('beforeinstallprompt', function(e) {
             e.preventDefault();
-            window.__pwaInstall = e;
             window.__pwaInstallPrompt = e;
             window.dispatchEvent(new CustomEvent('pwa-install-ready'));
-            document.dispatchEvent(new CustomEvent('pwa-install-ready'));
           });
           window.addEventListener('appinstalled', function() {
-            window.__pwaInstall = null;
             window.__pwaInstallPrompt = null;
             window.dispatchEvent(new CustomEvent('pwa-installed'));
-            document.dispatchEvent(new CustomEvent('pwa-installed'));
           });
         ` }} />
         {/* Preconnect to Google Fonts for faster loading */}
@@ -98,10 +93,6 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Hind+Siliguri:wght@400;500;600;700&display=swap"
           rel="stylesheet"
         />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content={STORE_CONFIG.name} />
-        <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body suppressHydrationWarning>
         <ServiceWorkerRegister />
