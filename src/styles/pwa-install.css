@@ -411,3 +411,98 @@
   }
 }
 
+/* ── Footer Install Button ───────────────────────────────── */
+.footer-install-wrap {
+  margin-top: 20px;
+  display: inline-flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.footer-install-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 16px;
+  background: linear-gradient(135deg, var(--color-primary, #2563eb) 0%, var(--color-primary-dark, #1d4ed8) 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-full, 9999px);
+  font-size: var(--text-xs, 12px);
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 0.2px;
+  box-shadow: 0 3px 12px var(--color-primary-20, rgba(37, 99, 235, 0.3));
+  transition: all var(--transition-fast, 150ms ease);
+  font-family: inherit;
+  outline: none;
+  width: fit-content;
+}
+
+.footer-install-btn:hover:not(:disabled) {
+  filter: brightness(1.08);
+  box-shadow: 0 5px 18px var(--color-primary-20, rgba(37, 99, 235, 0.42));
+  transform: translateY(-1px);
+}
+
+.footer-install-btn:active {
+  transform: scale(0.97);
+}
+
+.footer-install-btn:disabled {
+  opacity: 0.75;
+  cursor: not-allowed;
+}
+
+/* Tiny spinner inside the button while installing */
+.footer-install-spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #ffffff;
+  border-radius: var(--radius-full, 9999px);
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+/* Inline hint / guide panel */
+.footer-install-hint {
+  background: var(--color-surface-2, #f1f0ed);
+  border: 1px solid var(--color-border, #e5e3de);
+  border-radius: var(--radius-lg, 12px);
+  padding: 10px 13px;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--color-text-secondary, #4a4a4a);
+  max-width: 240px;
+  animation: fade-in 0.18s ease;
+}
+
+.footer-install-hint strong {
+  color: var(--color-text-primary, #1a1a1a);
+}
+
+.footer-install-hint p {
+  margin: 0;
+}
+
+.footer-install-hint p + p {
+  margin-top: 4px;
+}
+
+/* "App Installed" confirmation badge */
+.footer-install-installed {
+  margin-top: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-xs, 12px);
+  font-weight: 700;
+  color: var(--color-success, #10b981);
+  background: var(--color-success-light, rgba(16, 185, 129, 0.1));
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: var(--radius-full, 9999px);
+  padding: 6px 12px;
+  width: fit-content;
+}

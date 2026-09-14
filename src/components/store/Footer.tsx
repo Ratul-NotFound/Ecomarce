@@ -4,6 +4,7 @@ import { STORE_CONFIG } from '@/lib/store-config';
 import type { StorefrontCustomSettings } from '@/lib/store-settings-shared';
 import { BkashLogo, NagadLogo } from '@/components/shared/PaymentLogos';
 import { ShieldCheck, Banknote } from 'lucide-react';
+import FooterInstallButton from '@/components/store/FooterInstallButton';
 
 interface FooterProps {
   settings?: StorefrontCustomSettings;
@@ -162,6 +163,9 @@ export default function Footer({ settings }: FooterProps) {
                 </div>
               </div>
             )}
+
+            {/* PWA Install — always available in footer */}
+            <FooterInstallButton />
           </div>
 
           {/* Quick Links */}
